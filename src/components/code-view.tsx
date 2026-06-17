@@ -1,24 +1,7 @@
 import { useMemo } from "react"
-import hljs from "highlight.js/lib/core"
-import json from "highlight.js/lib/languages/json"
-import javascript from "highlight.js/lib/languages/javascript"
-import typescript from "highlight.js/lib/languages/typescript"
-import xml from "highlight.js/lib/languages/xml"
-import css from "highlight.js/lib/languages/css"
-import markdown from "highlight.js/lib/languages/markdown"
-import sql from "highlight.js/lib/languages/sql"
-import plaintext from "highlight.js/lib/languages/plaintext"
 import { getLanguage, type Language } from "@/lib/types"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
-
-hljs.registerLanguage("json", json)
-hljs.registerLanguage("javascript", javascript)
-hljs.registerLanguage("typescript", typescript)
-hljs.registerLanguage("xml", xml)
-hljs.registerLanguage("css", css)
-hljs.registerLanguage("markdown", markdown)
-hljs.registerLanguage("sql", sql)
-hljs.registerLanguage("plaintext", plaintext)
+import { highlightCode } from "@/lib/highlight"
 
 interface CodeViewProps {
   code: string
@@ -32,12 +15,7 @@ export function CodeView({ code, language, wrap, syntaxThemeId }: CodeViewProps)
   const theme = getSyntaxTheme(syntaxThemeId)
 
   const highlighted = useMemo(() => {
-    if (!code) return ""
-    try {
-      return hljs.highlight(code, { language: meta.hljs, ignoreIllegals: true }).value
-    } catch {
-      return escapeHtml(code)
-    }
+    return highlightCode(code, meta.hljs)
   }, [code, meta.hljs])
 
   const lineCount = useMemo(() => (code ? code.split("\n").length : 0), [code])
@@ -67,11 +45,4 @@ export function CodeView({ code, language, wrap, syntaxThemeId }: CodeViewProps)
       </pre>
     </div>
   )
-}
-
-function escapeHtml(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
 }

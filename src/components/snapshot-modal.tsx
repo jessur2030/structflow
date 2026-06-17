@@ -1,27 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toPng, toBlob } from "html-to-image"
-import hljs from "highlight.js/lib/core"
-import json from "highlight.js/lib/languages/json"
-import javascript from "highlight.js/lib/languages/javascript"
-import typescript from "highlight.js/lib/languages/typescript"
-import xml from "highlight.js/lib/languages/xml"
-import css from "highlight.js/lib/languages/css"
-import markdown from "highlight.js/lib/languages/markdown"
-import sql from "highlight.js/lib/languages/sql"
-import plaintext from "highlight.js/lib/languages/plaintext"
 import { X, Copy, Check, Download, Loader2 } from "lucide-react"
 import { getLanguage, type Language } from "@/lib/types"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
 import { cn } from "@/lib/utils"
-
-hljs.registerLanguage("json", json)
-hljs.registerLanguage("javascript", javascript)
-hljs.registerLanguage("typescript", typescript)
-hljs.registerLanguage("xml", xml)
-hljs.registerLanguage("css", css)
-hljs.registerLanguage("markdown", markdown)
-hljs.registerLanguage("sql", sql)
-hljs.registerLanguage("plaintext", plaintext)
+import { highlightCode } from "@/lib/highlight"
 
 // Solid backdrop choices behind the code window. Brand navy/blue/cyan + neutral.
 const BACKDROPS: { id: string; label: string; value: string }[] = [
@@ -63,12 +46,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
   }, [onClose])
 
   const highlighted = useMemo(() => {
-    if (!code) return ""
-    try {
-      return hljs.highlight(code, { language: meta.hljs, ignoreIllegals: true }).value
-    } catch {
-      return escapeHtml(code)
-    }
+    return highlightCode(code, meta.hljs)
   }, [code, meta.hljs])
 
   const lines = useMemo(() => (code ? code.split("\n") : []), [code])
@@ -285,8 +263,4 @@ function ChipToggle({ active, onClick, children }: { active: boolean; onClick: (
       {children}
     </button>
   )
-}
-
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }

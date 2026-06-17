@@ -264,9 +264,20 @@
   overflow-x: auto;
   margin: 0.75em 0;
 }
+.md-preview pre.md-code-block {
+  background-color: var(--syn-bg);
+  color: var(--syn-fg);
+  border: 1px solid color-mix(in srgb, var(--syn-gutter) 20%, transparent);
+  word-break: normal;
+}
 .md-preview pre code {
   background: transparent;
   padding: 0;
+}
+.md-preview pre.md-code-block code {
+  display: block;
+  color: var(--syn-fg);
+  font-size: 12.5px;
 }
 .md-preview blockquote {
   border-left: 3px solid var(--border);

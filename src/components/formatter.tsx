@@ -251,7 +251,7 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
           ) : canTree && view === "tree" ? (
             <JsonTree data={parsedJson} search={search} syntaxThemeId={syntaxThemeId} />
           ) : canPreview && view === "preview" ? (
-            <MarkdownPreview source={output} />
+            <MarkdownPreview source={output} syntaxThemeId={syntaxThemeId} />
           ) : (
             <CodeView code={output} language={language} wrap={wrap} syntaxThemeId={syntaxThemeId} />
           )}
