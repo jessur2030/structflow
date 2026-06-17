@@ -11,7 +11,6 @@ export function useSyntaxTheme() {
       const stored = localStorage.getItem(KEY)
       if (stored) setSyntaxThemeId(stored)
     } catch {
-      // ignore
     }
   }, [])
 
@@ -20,7 +19,6 @@ export function useSyntaxTheme() {
     try {
       localStorage.setItem(KEY, id)
     } catch {
-      // ignore
     }
   }
 

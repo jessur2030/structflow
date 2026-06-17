@@ -28,7 +28,6 @@ export function useTheme() {
       const stored = localStorage.getItem(KEY) as ThemeMode | null
       if (stored === "light" || stored === "dark" || stored === "system") initial = stored
     } catch {
-      // ignore
     }
     setModeState(initial)
     const r = resolve(initial)
@@ -36,7 +35,6 @@ export function useTheme() {
     apply(r)
   }, [])
 
-  // React to OS theme changes while in "system" mode.
   useEffect(() => {
     if (mode !== "system") return
     const mq = window.matchMedia("(prefers-color-scheme: dark)")
@@ -57,7 +55,6 @@ export function useTheme() {
     try {
       localStorage.setItem(KEY, next)
     } catch {
-      // ignore
     }
   }
 

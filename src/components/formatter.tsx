@@ -29,12 +29,19 @@ import { cn } from "@/lib/utils"
 
 type ViewMode = "tree" | "formatted" | "preview"
 
+export interface SaveEntryPayload {
+  rawInput: string
+  formattedOutput: string
+  language: Language
+  formatOptions: FormatOptions
+}
+
 interface FormatterProps {
   language: Language
   setLanguage: (l: Language) => void
   input: string
   setInput: (v: string) => void
-  onRequestSave: (content: string, language: Language) => void
+  onRequestSave: (payload: SaveEntryPayload) => void
   syntaxThemeId: string
 }
 
@@ -45,7 +52,6 @@ function loadOptions(): FormatOptions {
     const raw = localStorage.getItem(OPTS_KEY)
     if (raw) return { ...DEFAULT_OPTIONS, ...JSON.parse(raw) }
   } catch {
-    // ignore
   }
   return DEFAULT_OPTIONS
 }
@@ -68,11 +74,9 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
     try {
       localStorage.setItem(OPTS_KEY, JSON.stringify(options))
     } catch {
-      // ignore
     }
   }, [options])
 
-  // Auto-format on input/option/language change (debounced).
   useEffect(() => {
     let cancelled = false
     const t = setTimeout(async () => {
@@ -104,7 +108,6 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
   const canTree = language === "json" && parsedJson !== null
   const canPreview = language === "markdown"
 
-  // Keep view valid when switching languages.
   useEffect(() => {
     if (view === "tree" && !canTree) setView("formatted")
     if (view === "preview" && !canPreview) setView("formatted")
@@ -136,7 +139,6 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
 
   return (
     <div className="flex h-full flex-col">
-      {/* Toolbar */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <LanguageSelect value={language} onChange={setLanguage} />
         <div className="ml-auto flex items-center gap-0.5">
@@ -152,7 +154,18 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
           <IconButton label="Code snapshot" onClick={() => setShowSnapshot(true)} disabled={!input}>
             <Camera className="h-4 w-4" />
           </IconButton>
-          <IconButton label="Save to library" onClick={() => onRequestSave(output || input, language)} disabled={!input}>
+          <IconButton
+            label="Save to library"
+            onClick={() =>
+              onRequestSave({
+                rawInput: input,
+                formattedOutput: output || input,
+                language,
+                formatOptions: options,
+              })
+            }
+            disabled={!input}
+          >
             <Save className="h-4 w-4" />
           </IconButton>
           <IconButton label="Clear" onClick={() => setInput("")} disabled={!input}>
@@ -163,7 +176,6 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
 
       {showOptions && <OptionsPanel language={language} options={options} onChange={setOptions} />}
 
-      {/* Input */}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Input</span>
@@ -193,7 +205,6 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
         </button>
       </div>
 
-      {/* Output */}
       <div className="flex min-h-0 flex-[1.4] flex-col border-t border-border">
         <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Output</span>

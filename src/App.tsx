@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { Wand2, Library as LibraryIcon, FolderInput } from "lucide-react"
 import logo from "./assets/logo.png"
-import { Formatter } from "./components/formatter"
+import { Formatter, type SaveEntryPayload } from "./components/formatter"
 import { Library, ModalButton } from "./components/library"
 import { Modal } from "./components/modal"
 import { ThemeModeToggle } from "./components/theme-mode-toggle"
@@ -16,10 +16,19 @@ import {
   getAllProjects,
   moveEntry,
   saveEntry,
+  saveEntries,
   saveProject,
+  saveProjects,
   uid,
 } from "./lib/storage"
-import { PROJECT_COLORS, type Entry, type Language, type Project } from "./lib/types"
+import {
+  PROJECT_COLORS,
+  STRUCTFLOW_FORMATTER_VERSION,
+  type Entry,
+  type EntrySource,
+  type Language,
+  type Project,
+} from "./lib/types"
 import { cn } from "./lib/utils"
 
 type Tab = "format" | "library"
@@ -31,16 +40,15 @@ export default function App() {
 
   const [language, setLanguage] = useState<Language>("markdown")
   const [input, setInput] = useState("")
+  const [inputSource, setInputSource] = useState<EntrySource>("manual")
 
   const [entries, setEntries] = useState<Entry[]>([])
   const [projects, setProjects] = useState<Project[]>([])
 
-  // Save modal state
   const [saveOpen, setSaveOpen] = useState(false)
   const [saveTitle, setSaveTitle] = useState("")
-  const [savePayload, setSavePayload] = useState<{ content: string; language: Language } | null>(null)
+  const [savePayload, setSavePayload] = useState<SaveEntryPayload | null>(null)
   const [saveProjectId, setSaveProjectId] = useState<string | null>(null)
-  // When starting a new entry from a project in the Library, remember the target.
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
@@ -53,22 +61,22 @@ export default function App() {
     refresh()
   }, [refresh])
 
-  // Pick up text sent from the right-click context menu (extension only).
   useEffect(() => {
     if (typeof chrome === "undefined" || !chrome.storage?.local) return
     chrome.storage.local.get("structflow_incoming", (res) => {
       const incoming = res?.structflow_incoming
-      if (incoming) {
+      if (typeof incoming === "string" && incoming) {
         setInput(incoming)
+        setInputSource("context-menu")
         setTab("format")
         chrome.storage.local.remove("structflow_incoming")
       }
     })
   }, [])
 
-  const requestSave = (content: string, lang: Language) => {
-    setSavePayload({ content, language: lang })
-    setSaveTitle(suggestTitle(content, lang))
+  const requestSave = (payload: SaveEntryPayload) => {
+    setSavePayload(payload)
+    setSaveTitle(suggestTitle(payload.formattedOutput || payload.rawInput, payload.language))
     setSaveProjectId(pendingProjectId)
     setSaveOpen(true)
   }
@@ -80,7 +88,11 @@ export default function App() {
       id: uid(),
       title: saveTitle.trim() || "Untitled",
       language: savePayload.language,
-      content: savePayload.content,
+      rawInput: savePayload.rawInput,
+      formattedOutput: savePayload.formattedOutput,
+      formatterVersion: STRUCTFLOW_FORMATTER_VERSION,
+      formatOptions: savePayload.formatOptions,
+      source: inputSource,
       projectId: saveProjectId,
       createdAt: now,
       updatedAt: now,
@@ -94,15 +106,15 @@ export default function App() {
 
   const openEntry = (entry: Entry) => {
     setLanguage(entry.language)
-    setInput(entry.content)
+    setInput(entry.rawInput)
+    setInputSource("library")
     setPendingProjectId(null)
     setTab("format")
   }
 
-  // Start a brand-new entry in the Formatter, pre-targeting a project so the
-  // next Save drops it straight into that folder.
   const handleAddToProject = (projectId: string | null) => {
     setInput("")
+    setInputSource("manual")
     setPendingProjectId(projectId)
     setTab("format")
   }
@@ -142,9 +154,14 @@ export default function App() {
     }
   }
 
+  const handleImportData = async (importedEntries: Entry[], importedProjects: Project[]) => {
+    await saveProjects(importedProjects)
+    await saveEntries(importedEntries)
+    await refresh()
+  }
+
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
-      {/* Header */}
       <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         <div className="flex items-center gap-1.5">
           <img src={logo || "/placeholder.svg"} alt="StructFlow logo" className="h-6 w-6" />
@@ -157,7 +174,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Tabs */}
       <div className="flex border-b border-border px-2">
         <TabButton active={tab === "format"} onClick={() => setTab("format")}>
           <Wand2 className="h-3.5 w-3.5" /> Formatter
@@ -172,14 +188,16 @@ export default function App() {
         </TabButton>
       </div>
 
-      {/* Body */}
       <main className="min-h-0 flex-1">
         {tab === "format" ? (
           <Formatter
             language={language}
             setLanguage={setLanguage}
             input={input}
-            setInput={setInput}
+            setInput={(value) => {
+              setInput(value)
+              setInputSource("manual")
+            }}
             onRequestSave={requestSave}
             syntaxThemeId={syntaxThemeId}
           />
@@ -201,6 +219,7 @@ export default function App() {
             onRenameProject={handleRenameProject}
             onRecolorProject={handleRecolorProject}
             onAddToProject={handleAddToProject}
+            onImportData={handleImportData}
             onDeleteProject={async (id) => {
               await deleteProject(id)
               await refresh()
@@ -209,7 +228,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Save modal */}
       <Modal
         open={saveOpen}
         onClose={() => setSaveOpen(false)}
@@ -292,7 +310,6 @@ function suggestTitle(content: string, language: Language): string {
       }
       if (Array.isArray(parsed)) return `Array (${parsed.length})`
     } catch {
-      // ignore
     }
   }
   const firstLine = content.trim().split("\n")[0]?.slice(0, 40)

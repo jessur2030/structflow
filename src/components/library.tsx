@@ -15,10 +15,11 @@ import {
   Inbox,
   MoreVertical,
   Archive,
+  Upload,
 } from "lucide-react"
 import { Modal } from "./modal"
-import { copyToClipboard, downloadFile, exportEntriesAsZip, mimeFor, slugify } from "@/lib/io"
-import { getLanguage, PROJECT_COLORS, type Entry, type Project } from "@/lib/types"
+import { copyToClipboard, downloadFile, exportEntriesAsZip, importEntriesFromFile, mimeFor, slugify } from "@/lib/io"
+import { entryContent, getLanguage, PROJECT_COLORS, type Entry, type Project } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface LibraryProps {
@@ -32,6 +33,7 @@ interface LibraryProps {
   onRenameProject: (id: string, name: string) => void
   onRecolorProject: (id: string, color: string) => void
   onAddToProject: (projectId: string | null) => void
+  onImportData: (entries: Entry[], projects: Project[]) => Promise<void>
   onDeleteProject: (id: string) => void
 }
 
@@ -46,6 +48,7 @@ export function Library({
   onRenameProject,
   onRecolorProject,
   onAddToProject,
+  onImportData,
   onDeleteProject,
 }: LibraryProps) {
   const [query, setQuery] = useState("")
@@ -55,6 +58,13 @@ export function Library({
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [selected, setSelected] = useState<Record<string, boolean>>({})
+  const [importError, setImportError] = useState<string | null>(null)
+  const [pendingImport, setPendingImport] = useState<{
+    fileName: string
+    entries: Entry[]
+    projects: Project[]
+  } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -62,7 +72,8 @@ export function Library({
     return entries.filter(
       (e) =>
         e.title.toLowerCase().includes(q) ||
-        e.content.toLowerCase().includes(q) ||
+        entryContent(e).toLowerCase().includes(q) ||
+        e.rawInput.toLowerCase().includes(q) ||
         e.language.toLowerCase().includes(q),
     )
   }, [entries, query])
@@ -91,9 +102,6 @@ export function Library({
 
   const ungrouped = groups.get(null) ?? []
 
-  // --- Bulk export ---------------------------------------------------------
-  // Count entries per group key ("__none__" for ungrouped) from the FULL set,
-  // independent of the current search filter.
   const countsByKey = useMemo(() => {
     const counts: Record<string, number> = { __none__: 0 }
     for (const p of projects) counts[p.id] = 0
@@ -115,7 +123,6 @@ export function Library({
   )
 
   const openExport = () => {
-    // Default to selecting every group that has entries.
     const initial: Record<string, boolean> = {}
     for (const g of exportableGroups) initial[g.key] = g.count > 0
     setSelected(initial)
@@ -140,9 +147,27 @@ export function Library({
     setExportOpen(false)
   }
 
+  const runImport = async (file: File | undefined) => {
+    if (!file) return
+    setImportError(null)
+    try {
+      const imported = await importEntriesFromFile(file)
+      setPendingImport({ fileName: file.name, entries: imported.entries, projects: imported.projects })
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Could not import StructFlow data.")
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const confirmImport = async () => {
+    if (!pendingImport) return
+    await onImportData(pendingImport.entries, pendingImport.projects)
+    setPendingImport(null)
+  }
+
   return (
     <div className="flex h-full flex-col">
-      {/* Search + new folder */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <div className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5">
           <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -165,6 +190,22 @@ export function Library({
         </button>
         <button
           type="button"
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Import data"
+          title="Import data"
+          className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-[13px] font-medium hover:bg-secondary"
+        >
+          <Upload className="h-4 w-4" />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".zip,.json,application/zip,application/json"
+          className="hidden"
+          onChange={(e) => void runImport(e.target.files?.[0])}
+        />
+        <button
+          type="button"
           onClick={() => setNewProjectOpen(true)}
           aria-label="New project"
           title="New project"
@@ -173,6 +214,11 @@ export function Library({
           <FolderPlus className="h-4 w-4" />
         </button>
       </div>
+      {importError && (
+        <div className="border-b border-border px-3 py-2 text-[12.5px] text-destructive">
+          {importError}
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-auto">
         {entries.length === 0 ? (
@@ -215,7 +261,6 @@ export function Library({
               )
             })}
 
-            {/* Ungrouped */}
             <ProjectGroup
               project={null}
               count={ungrouped.length}
@@ -321,6 +366,42 @@ export function Library({
           ))}
         </div>
       </Modal>
+
+      <Modal
+        open={!!pendingImport}
+        onClose={() => setPendingImport(null)}
+        title="Import data"
+        footer={
+          <>
+            <ModalButton variant="ghost" onClick={() => setPendingImport(null)}>
+              Cancel
+            </ModalButton>
+            <ModalButton onClick={confirmImport}>
+              Import {pendingImport?.entries.length ?? 0}{" "}
+              {(pendingImport?.entries.length ?? 0) === 1 ? "entry" : "entries"}
+            </ModalButton>
+          </>
+        }
+      >
+        {pendingImport && (
+          <div className="space-y-2 text-[13px]">
+            <p className="text-muted-foreground">
+              Ready to import <span className="font-medium text-foreground">{pendingImport.fileName}</span>.
+              Imported IDs will be regenerated so existing library items are not overwritten.
+            </p>
+            <div className="rounded-md border border-border bg-background px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span>Projects</span>
+                <span className="font-mono text-muted-foreground">{pendingImport.projects.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Entries</span>
+                <span className="font-mono text-muted-foreground">{pendingImport.entries.length}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
@@ -353,7 +434,6 @@ function ProjectGroup({
   const menuRef = useRef<HTMLDivElement | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
 
-  // Close the menu on outside click or Escape.
   useEffect(() => {
     if (!menuOpen) return
     const onPointer = (e: PointerEvent) => {
@@ -372,7 +452,6 @@ function ProjectGroup({
     }
   }, [menuOpen])
 
-  // Flip the menu above the trigger if there isn't enough room below.
   useLayoutEffect(() => {
     if (!menuOpen) return
     const btn = menuBtnRef.current
@@ -561,7 +640,6 @@ function EntryRow({
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
   const meta = getLanguage(entry.language)
 
-  // Close the menu on outside click or Escape.
   useEffect(() => {
     if (!menuOpen) return
     const onPointer = (e: PointerEvent) => {
@@ -580,7 +658,6 @@ function EntryRow({
     }
   }, [menuOpen, onMenuToggle])
 
-  // Flip the menu above the trigger if there isn't enough room below.
   useLayoutEffect(() => {
     if (!menuOpen) return
     const btn = menuBtnRef.current
@@ -592,7 +669,7 @@ function EntryRow({
 
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    const ok = await copyToClipboard(entry.content)
+    const ok = await copyToClipboard(entryContent(entry))
     if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1200)
@@ -601,7 +678,7 @@ function EntryRow({
 
   const exportEntry = (e: React.MouseEvent) => {
     e.stopPropagation()
-    downloadFile(`${slugify(entry.title)}.${meta.ext}`, entry.content, mimeFor(entry.language))
+    downloadFile(`${slugify(entry.title)}.${meta.ext}`, entryContent(entry), mimeFor(entry.language))
   }
 
   const submitRename = () => {

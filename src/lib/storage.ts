@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb"
-import type { Entry, Project } from "./types"
+import { STRUCTFLOW_SCHEMA_VERSION, type Entry, type Project } from "./types"
 
 interface StructFlowDB extends DBSchema {
   entries: {
@@ -18,8 +18,12 @@ let dbPromise: Promise<IDBPDatabase<StructFlowDB>> | null = null
 
 function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<StructFlowDB>("structflow", 1, {
+    dbPromise = openDB<StructFlowDB>("structflow", STRUCTFLOW_SCHEMA_VERSION, {
       upgrade(db) {
+        for (const name of Array.from(db.objectStoreNames)) {
+          db.deleteObjectStore(name)
+        }
+
         const entries = db.createObjectStore("entries", { keyPath: "id" })
         entries.createIndex("by-project", "projectId")
         entries.createIndex("by-updated", "updatedAt")
@@ -36,7 +40,6 @@ export function uid(): string {
   return crypto.randomUUID()
 }
 
-// ---- Entries ----
 export async function getAllEntries(): Promise<Entry[]> {
   const db = await getDB()
   const all = await db.getAll("entries")
@@ -46,6 +49,13 @@ export async function getAllEntries(): Promise<Entry[]> {
 export async function saveEntry(entry: Entry): Promise<void> {
   const db = await getDB()
   await db.put("entries", entry)
+}
+
+export async function saveEntries(entries: Entry[]): Promise<void> {
+  const db = await getDB()
+  const tx = db.transaction("entries", "readwrite")
+  await Promise.all(entries.map((entry) => tx.store.put(entry)))
+  await tx.done
 }
 
 export async function deleteEntry(id: string): Promise<void> {
@@ -63,7 +73,6 @@ export async function moveEntry(id: string, projectId: string | null): Promise<v
   }
 }
 
-// ---- Projects ----
 export async function getAllProjects(): Promise<Project[]> {
   const db = await getDB()
   const all = await db.getAll("projects")
@@ -75,9 +84,15 @@ export async function saveProject(project: Project): Promise<void> {
   await db.put("projects", project)
 }
 
+export async function saveProjects(projects: Project[]): Promise<void> {
+  const db = await getDB()
+  const tx = db.transaction("projects", "readwrite")
+  await Promise.all(projects.map((project) => tx.store.put(project)))
+  await tx.done
+}
+
 export async function deleteProject(id: string): Promise<void> {
   const db = await getDB()
-  // Orphan its entries back to "no project" rather than deleting them.
   const entries = await db.getAllFromIndex("entries", "by-project", id)
   const tx = db.transaction(["entries", "projects"], "readwrite")
   for (const entry of entries) {

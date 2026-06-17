@@ -1,5 +1,3 @@
-// Shared types for StructFlow.
-
 export type Language =
   | "markdown"
   | "text"
@@ -13,11 +11,8 @@ export type Language =
 export interface LanguageMeta {
   id: Language
   label: string
-  /** Highlight.js language id */
   hljs: string
-  /** Short description shown in the UI */
   description: string
-  /** Default file extension when exporting */
   ext: string
 }
 
@@ -60,22 +55,15 @@ export function getLanguage(id: Language): LanguageMeta {
   return LANGUAGES.find((l) => l.id === id) ?? LANGUAGES[0]
 }
 
-/** Indent style for JSON formatting. */
 export type IndentStyle = "2" | "4" | "tab" | "minify"
 
 export interface FormatOptions {
   indent: IndentStyle
-  /** Prettier-style: print width */
   printWidth: number
-  /** Prettier-style: single quotes */
   singleQuote: boolean
-  /** Prettier-style: semicolons */
   semi: boolean
-  /** Prettier-style: trailing commas */
   trailingComma: "none" | "es5" | "all"
-  /** Sort object keys alphabetically (JSON only) */
   sortKeys: boolean
-  /** SQL uppercase keywords */
   sqlUppercase: boolean
 }
 
@@ -89,11 +77,21 @@ export const DEFAULT_OPTIONS: FormatOptions = {
   sqlUppercase: true,
 }
 
+export const STRUCTFLOW_SCHEMA_VERSION = 2
+export const STRUCTFLOW_APP_VERSION = "1.0.0"
+export const STRUCTFLOW_FORMATTER_VERSION = "2"
+
+export type EntrySource = "manual" | "context-menu" | "library" | "import"
+
 export interface Entry {
   id: string
   title: string
   language: Language
-  content: string
+  rawInput: string
+  formattedOutput: string
+  formatterVersion: string
+  formatOptions: FormatOptions
+  source: EntrySource
   projectId: string | null
   createdAt: number
   updatedAt: number
@@ -106,7 +104,20 @@ export interface Project {
   createdAt: number
 }
 
-/** Preset folder colors. A random one is assigned on create; users can change it. */
+export interface StructFlowExportManifest {
+  app: "StructFlow"
+  schemaVersion: typeof STRUCTFLOW_SCHEMA_VERSION
+  appVersion: string
+  exportedAt: string
+  counts: { projects: number; entries: number }
+  projects: Project[]
+  entries: Entry[]
+}
+
+export function entryContent(entry: Entry): string {
+  return entry.formattedOutput || entry.rawInput
+}
+
 export const PROJECT_COLORS = [
   "oklch(0.65 0.16 256)", // blue
   "oklch(0.68 0.15 150)", // green
@@ -117,4 +128,3 @@ export const PROJECT_COLORS = [
   "oklch(0.72 0.15 100)", // lime
   "oklch(0.66 0.14 330)", // pink
 ]
-
