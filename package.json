@@ -1,0 +1,39 @@
+{
+  "name": "structflow",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "dompurify": "^3.4.11",
+    "fflate": "^0.8.3",
+    "highlight.js": "^11.11.1",
+    "html-to-image": "^1.11.13",
+    "idb": "^8.0.3",
+    "lucide-react": "^1.16.0",
+    "marked": "^18.0.5",
+    "prettier": "^3.8.4",
+    "react": "^19",
+    "react-dom": "^19",
+    "sql-formatter": "^15.8.1",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/chrome": "^0.1.43",
+    "@types/dompurify": "^3.2.0",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.2",
+    "sharp": "^0.35.1",
+    "tailwindcss": "^4.2.0",
+    "typescript": "5.7.3",
+    "vite": "^8.0.16"
+  }
+}
