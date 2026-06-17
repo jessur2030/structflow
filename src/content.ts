@@ -67,8 +67,14 @@ function readSettings(): Promise<Settings> {
         return
       }
       chrome.storage.local.get([SYNTAX_KEY, THEME_KEY, ENABLED_KEY], (res) => {
-        const synId = res?.[SYNTAX_KEY] ?? "vscode-dark"
-        const themeMode = res?.[THEME_KEY] ?? "system"
+        const rawSyn = res?.[SYNTAX_KEY]
+        const rawTheme = res?.[THEME_KEY]
+        const rawEnabled = res?.[ENABLED_KEY]
+        const synId = typeof rawSyn === "string" ? rawSyn : "vscode-dark"
+        const themeMode =
+          rawTheme === "dark" || rawTheme === "light" || rawTheme === "system"
+            ? rawTheme
+            : "system"
         const appDark =
           themeMode === "dark"
             ? true
@@ -78,7 +84,7 @@ function readSettings(): Promise<Settings> {
         resolve({
           syntaxTheme: getSyntaxTheme(synId),
           appDark,
-          enabled: res?.[ENABLED_KEY] !== false,
+          enabled: rawEnabled !== false,
         })
       })
     } catch {
@@ -153,8 +159,10 @@ function buildCss(s: Settings): string {
     background: ${s.appDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"};
     font-family: ui-sans-serif, system-ui, sans-serif; }
   .sf-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; }
-  .sf-dot { width: 14px; height: 14px; border-radius: 3px; background: ${c.keyword};
-    display: inline-flex; align-items: center; justify-content: center; color: ${c.bg}; font-size: 10px; }
+  .sf-dot { width: 16px; height: 16px; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
+    box-shadow: 0 0 0 1px ${withAlpha(c.gutter, 0.35)}; }
+  .sf-dot img { width: 100%; height: 100%; display: block; }
   .sf-search { flex: 1; min-width: 80px; max-width: 320px; display: flex; align-items: center; gap: 6px;
     background: ${withAlpha(c.gutter, 0.12)}; border: 1px solid ${withAlpha(c.gutter, 0.3)};
     border-radius: 6px; padding: 4px 8px; }
@@ -377,7 +385,15 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
   // Top bar
   const bar = el("div", "sf-bar")
   const badge = el("span", "sf-badge")
-  const dot = el("span", "sf-dot", "{}")
+  const dot = el("span", "sf-dot")
+  const dotIcon = el("img")
+  dotIcon.src = chrome.runtime.getURL("icons/icon-16.png")
+  dotIcon.alt = "StructFlow"
+  dotIcon.addEventListener("error", () => {
+    dotIcon.remove()
+    dot.textContent = "{}"
+  })
+  dot.appendChild(dotIcon)
   badge.appendChild(dot)
   badge.appendChild(document.createTextNode("StructFlow · JSON"))
   bar.appendChild(badge)
