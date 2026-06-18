@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react"
-import { ChevronRight, Copy, Check } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { ChevronRight, Copy, Check, Hash } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { copyToClipboard } from "@/lib/io"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
@@ -8,32 +8,47 @@ interface JsonTreeProps {
   data: unknown
   search: string
   syntaxThemeId: string
+  expandAll: boolean | null
+  expandVersion: number
 }
 
-export function JsonTree({ data, search, syntaxThemeId }: JsonTreeProps) {
+export function JsonTree({ data, search, syntaxThemeId, expandAll, expandVersion }: JsonTreeProps) {
   const theme = getSyntaxTheme(syntaxThemeId)
   return (
     <div
       className="syntax-surface min-h-full px-2 py-2 font-mono text-[12.5px] leading-[1.7]"
       style={syntaxThemeVars(theme) as React.CSSProperties}
     >
-      <TreeNode keyName={null} value={data} depth={0} search={search.toLowerCase()} defaultOpen />
+      <TreeNode
+        keyName={null}
+        path="$"
+        value={data}
+        depth={0}
+        search={search.toLowerCase()}
+        expandAll={expandAll}
+        expandVersion={expandVersion}
+        defaultOpen
+      />
     </div>
   )
 }
 
 interface TreeNodeProps {
   keyName: string | null
+  path: string
   value: unknown
   depth: number
   search: string
+  expandAll: boolean | null
+  expandVersion: number
   defaultOpen?: boolean
   isLast?: boolean
 }
 
-function TreeNode({ keyName, value, depth, search, defaultOpen, isLast }: TreeNodeProps) {
+function TreeNode({ keyName, path, value, depth, search, expandAll, expandVersion, defaultOpen, isLast }: TreeNodeProps) {
   const [open, setOpen] = useState(depth < 2 || !!defaultOpen)
   const [copied, setCopied] = useState(false)
+  const [pathCopied, setPathCopied] = useState(false)
 
   const isObject = value !== null && typeof value === "object"
   const isArray = Array.isArray(value)
@@ -45,7 +60,24 @@ function TreeNode({ keyName, value, depth, search, defaultOpen, isLast }: TreeNo
   const matches =
     !!search &&
     ((keyName != null && keyName.toLowerCase().includes(search)) ||
+      path.toLowerCase().includes(search) ||
       (!isObject && String(value).toLowerCase().includes(search)))
+
+  const descendantMatches = useMemo(() => {
+    return !!search && valueContainsSearch(value, search, path)
+  }, [path, search, value])
+
+  useEffect(() => {
+    if (expandAll !== null) {
+      setOpen(expandAll || !!defaultOpen)
+    }
+  }, [defaultOpen, expandAll, expandVersion])
+
+  useEffect(() => {
+    if (search && isObject && (matches || descendantMatches)) {
+      setOpen(true)
+    }
+  }, [descendantMatches, isObject, matches, search])
 
   const copyValue = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -54,6 +86,15 @@ function TreeNode({ keyName, value, depth, search, defaultOpen, isLast }: TreeNo
     if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1200)
+    }
+  }
+
+  const copyPath = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const ok = await copyToClipboard(path)
+    if (ok) {
+      setPathCopied(true)
+      setTimeout(() => setPathCopied(false), 1200)
     }
   }
 
@@ -77,7 +118,10 @@ function TreeNode({ keyName, value, depth, search, defaultOpen, isLast }: TreeNo
           <ValueLiteral value={value} highlight={matches && !!search} />
           {!isLast && <span className="syn-punctuation">,</span>}
         </span>
-        <CopyDot copied={copied} onClick={copyValue} />
+        <span className="ml-auto flex shrink-0">
+          <CopyAction label="Copy JSON path" copied={pathCopied} onClick={copyPath} icon="path" />
+          <CopyAction label="Copy value" copied={copied} onClick={copyValue} />
+        </span>
       </div>
     )
   }
@@ -107,7 +151,10 @@ function TreeNode({ keyName, value, depth, search, defaultOpen, isLast }: TreeNo
             </span>
           )}
         </span>
-        <CopyDot copied={copied} onClick={copyValue} />
+        <span className="ml-auto flex shrink-0">
+          <CopyAction label="Copy JSON path" copied={pathCopied} onClick={copyPath} icon="path" />
+          <CopyAction label="Copy value" copied={copied} onClick={copyValue} />
+        </span>
       </div>
 
       {open && (
@@ -116,9 +163,12 @@ function TreeNode({ keyName, value, depth, search, defaultOpen, isLast }: TreeNo
             <TreeNode
               key={k}
               keyName={k}
+              path={childPath(path, k, isArray)}
               value={v}
               depth={depth + 1}
               search={search}
+              expandAll={expandAll}
+              expandVersion={expandVersion}
               isLast={i === entries.length - 1}
             />
           ))}
@@ -152,15 +202,49 @@ function ValueLiteral({ value, highlight }: { value: unknown; highlight: boolean
   return <span className={cn(cls, highlight && "syn-match")}>{text}</span>
 }
 
-function CopyDot({ copied, onClick }: { copied: boolean; onClick: (e: React.MouseEvent) => void }) {
+function CopyAction({
+  label,
+  copied,
+  onClick,
+  icon = "value",
+}: {
+  label: string
+  copied: boolean
+  onClick: (e: React.MouseEvent) => void
+  icon?: "value" | "path"
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Copy value"
-      className="ml-auto shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-[color-mix(in_srgb,var(--syn-fg)_12%,transparent)] group-hover:opacity-100 syn-punctuation"
+      aria-label={label}
+      title={label}
+      className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-[color-mix(in_srgb,var(--syn-fg)_12%,transparent)] group-hover:opacity-100 syn-punctuation"
     >
-      {copied ? <Check className="h-3 w-3 text-[var(--success)]" /> : <Copy className="h-3 w-3" />}
+      {copied ? (
+        <Check className="h-3 w-3 text-[var(--success)]" />
+      ) : icon === "path" ? (
+        <Hash className="h-3 w-3" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
     </button>
   )
+}
+
+function childPath(parent: string, key: string, parentIsArray: boolean): string {
+  if (parentIsArray) return `${parent}[${key}]`
+  return /^[A-Za-z_$][\w$]*$/.test(key) ? `${parent}.${key}` : `${parent}[${JSON.stringify(key)}]`
+}
+
+function valueContainsSearch(value: unknown, search: string, path: string): boolean {
+  if (!search) return false
+  if (path.toLowerCase().includes(search)) return true
+  if (value === null || typeof value !== "object") {
+    return String(value).toLowerCase().includes(search)
+  }
+  const isArray = Array.isArray(value)
+  return Object.entries(value as Record<string, unknown>).some(([key, child]) => {
+    return key.toLowerCase().includes(search) || valueContainsSearch(child, search, childPath(path, key, isArray))
+  })
 }

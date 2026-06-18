@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Wand2,
   Copy,
@@ -14,12 +14,16 @@ import {
   Search,
   AlertCircle,
   CheckCircle2,
+  Columns2,
+  Maximize2,
+  Minimize2,
 } from "lucide-react"
 import { LanguageSelect } from "./language-select"
 import { OptionsPanel } from "./options-panel"
 import { CodeView } from "./code-view"
 import { JsonTree } from "./json-tree"
 import { MarkdownPreview } from "./markdown-preview"
+import { CompareView } from "./compare-view"
 import { SnapshotModal } from "./snapshot-modal"
 import { IconButton } from "./icon-button"
 import { formatCode, validate } from "@/lib/formatter"
@@ -27,7 +31,7 @@ import { copyToClipboard, downloadFile, mimeFor, slugify } from "@/lib/io"
 import { DEFAULT_OPTIONS, getLanguage, type FormatOptions, type Language } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-type ViewMode = "tree" | "formatted" | "preview"
+type ViewMode = "tree" | "formatted" | "preview" | "compare"
 
 export interface SaveEntryPayload {
   rawInput: string
@@ -66,6 +70,10 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
   const [copied, setCopied] = useState(false)
   const [wrap, setWrap] = useState(false)
   const [showSnapshot, setShowSnapshot] = useState(false)
+  const [treeExpansion, setTreeExpansion] = useState<{ expandAll: boolean | null; version: number }>({
+    expandAll: null,
+    version: 0,
+  })
 
   const meta = getLanguage(language)
   const liveStatus = useMemo(() => validate(language, input), [language, input])
@@ -107,26 +115,30 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
 
   const canTree = language === "json" && parsedJson !== null
   const canPreview = language === "markdown"
+  const jsonMatchCount = useMemo(
+    () => (canTree ? countJsonMatches(parsedJson, search.trim().toLowerCase()) : 0),
+    [canTree, parsedJson, search],
+  )
 
   useEffect(() => {
     if (view === "tree" && !canTree) setView("formatted")
     if (view === "preview" && !canPreview) setView("formatted")
   }, [canTree, canPreview, view])
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     const ok = await copyToClipboard(output || input)
     if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1300)
     }
-  }
+  }, [input, output])
 
   const handleExport = () => {
     const name = `${slugify(input.slice(0, 30) || meta.label)}.${meta.ext}`
     downloadFile(name, output || input, mimeFor(language))
   }
 
-  const handleFormatNow = async () => {
+  const handleFormatNow = useCallback(async () => {
     const res = await formatCode(language, input, options)
     if (res.ok) {
       setOutput(res.output)
@@ -135,7 +147,66 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
     } else {
       setError(res.error ?? "Could not format input.")
     }
+  }, [input, language, options, setInput])
+
+  const handleSave = useCallback(() => {
+    if (!input.trim()) return
+    onRequestSave({
+      rawInput: input,
+      formattedOutput: output || input,
+      language,
+      formatOptions: options,
+    })
+  }, [input, language, onRequestSave, options, output])
+
+  const handleClear = useCallback(() => {
+    setInput("")
+    setOutput("")
+    setError(null)
+  }, [setInput])
+
+  const setTreeOpenState = (expandAll: boolean) => {
+    setTreeExpansion((current) => ({ expandAll, version: current.version + 1 }))
   }
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const mod = event.metaKey || event.ctrlKey
+      if (!mod || event.isComposing) return
+
+      if (event.key === "Enter") {
+        event.preventDefault()
+        void handleFormatNow()
+        return
+      }
+
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault()
+        handleSave()
+        return
+      }
+
+      if (event.shiftKey && event.key.toLowerCase() === "c") {
+        event.preventDefault()
+        void handleCopy()
+        return
+      }
+
+      if (event.shiftKey && event.key.toLowerCase() === "p" && canPreview) {
+        event.preventDefault()
+        setView((current) => (current === "preview" ? "formatted" : "preview"))
+        return
+      }
+
+      if (event.shiftKey && event.key === "Backspace") {
+        event.preventDefault()
+        handleClear()
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [canPreview, handleClear, handleCopy, handleFormatNow, handleSave])
 
   return (
     <div className="flex h-full flex-col">
@@ -154,21 +225,10 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
           <IconButton label="Code snapshot" onClick={() => setShowSnapshot(true)} disabled={!input}>
             <Camera className="h-4 w-4" />
           </IconButton>
-          <IconButton
-            label="Save to library"
-            onClick={() =>
-              onRequestSave({
-                rawInput: input,
-                formattedOutput: output || input,
-                language,
-                formatOptions: options,
-              })
-            }
-            disabled={!input}
-          >
+          <IconButton label="Save to library" onClick={handleSave} disabled={!input}>
             <Save className="h-4 w-4" />
           </IconButton>
-          <IconButton label="Clear" onClick={() => setInput("")} disabled={!input}>
+          <IconButton label="Clear" onClick={handleClear} disabled={!input}>
             <Trash2 className="h-4 w-4" />
           </IconButton>
         </div>
@@ -229,6 +289,11 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
                 </ViewToggle>
               </div>
             )}
+            <div className="flex rounded-md border border-border p-0.5">
+              <ViewToggle active={view === "compare"} onClick={() => setView("compare")} label="Compare input and output">
+                <Columns2 className="h-3.5 w-3.5" />
+              </ViewToggle>
+            </div>
             {view === "formatted" && (
               <IconButton label={wrap ? "Disable wrap" : "Enable wrap"} active={wrap} onClick={() => setWrap((w) => !w)}>
                 <span className="text-[10px] font-bold">↵</span>
@@ -247,6 +312,27 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
                 placeholder="Search keys and values…"
                 className="w-full bg-transparent text-[12.5px] focus:outline-none"
               />
+              {search.trim() && (
+                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{jsonMatchCount}</span>
+              )}
+              <button
+                type="button"
+                aria-label="Expand all"
+                title="Expand all"
+                onClick={() => setTreeOpenState(true)}
+                className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Collapse all"
+                title="Collapse all"
+                onClick={() => setTreeOpenState(false)}
+                className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <Minimize2 className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         )}
@@ -260,9 +346,17 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
           ) : !input.trim() ? (
             <EmptyState label={meta.label} />
           ) : canTree && view === "tree" ? (
-            <JsonTree data={parsedJson} search={search} syntaxThemeId={syntaxThemeId} />
+            <JsonTree
+              data={parsedJson}
+              search={search}
+              syntaxThemeId={syntaxThemeId}
+              expandAll={treeExpansion.expandAll}
+              expandVersion={treeExpansion.version}
+            />
           ) : canPreview && view === "preview" ? (
             <MarkdownPreview source={output} syntaxThemeId={syntaxThemeId} />
+          ) : view === "compare" ? (
+            <CompareView input={input} output={output} syntaxThemeId={syntaxThemeId} />
           ) : (
             <CodeView code={output} language={language} wrap={wrap} syntaxThemeId={syntaxThemeId} />
           )}
@@ -280,6 +374,30 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
       )}
     </div>
   )
+}
+
+function countJsonMatches(value: unknown, search: string, path = "$", keyName: string | null = null): number {
+  if (!search) return 0
+  const nodeMatches =
+    path.toLowerCase().includes(search) ||
+    (keyName != null && keyName.toLowerCase().includes(search)) ||
+    (value === null || typeof value !== "object" ? String(value).toLowerCase().includes(search) : false)
+
+  if (value === null || typeof value !== "object") {
+    return nodeMatches ? 1 : 0
+  }
+
+  let count = nodeMatches ? 1 : 0
+  const isArray = Array.isArray(value)
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    const childPath = isArray
+      ? `${path}[${key}]`
+      : /^[A-Za-z_$][\w$]*$/.test(key)
+        ? `${path}.${key}`
+        : `${path}[${JSON.stringify(key)}]`
+    count += countJsonMatches(child, search, childPath, key)
+  }
+  return count
 }
 
 function StatusPill({ status, empty }: { status: { ok: boolean; error?: string }; empty: boolean }) {

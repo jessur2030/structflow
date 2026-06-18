@@ -22,6 +22,7 @@ import {
   uid,
 } from "./lib/storage"
 import {
+  LANGUAGES,
   PROJECT_COLORS,
   STRUCTFLOW_FORMATTER_VERSION,
   type Entry,
@@ -32,14 +33,42 @@ import {
 import { cn } from "./lib/utils"
 
 type Tab = "format" | "library"
+const DRAFT_KEY = "structflow_formatter_draft"
+
+interface FormatterDraft {
+  language: Language
+  input: string
+}
+
+function loadDraft(): FormatterDraft {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      typeof parsed.input === "string" &&
+      isLanguage(parsed.language)
+    ) {
+      return { language: parsed.language, input: parsed.input }
+    }
+  } catch {
+  }
+  return { language: "markdown", input: "" }
+}
+
+function isLanguage(value: unknown): value is Language {
+  return typeof value === "string" && LANGUAGES.some((language) => language.id === value)
+}
 
 export default function App() {
   const { mode, resolved, setMode } = useTheme()
   const { syntaxThemeId, setSyntaxTheme } = useSyntaxTheme()
+  const [initialDraft] = useState(loadDraft)
   const [tab, setTab] = useState<Tab>("format")
 
-  const [language, setLanguage] = useState<Language>("markdown")
-  const [input, setInput] = useState("")
+  const [language, setLanguage] = useState<Language>(initialDraft.language)
+  const [input, setInput] = useState(initialDraft.input)
   const [inputSource, setInputSource] = useState<EntrySource>("manual")
 
   const [entries, setEntries] = useState<Entry[]>([])
@@ -60,6 +89,13 @@ export default function App() {
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ language, input }))
+    } catch {
+    }
+  }, [language, input])
 
   useEffect(() => {
     if (typeof chrome === "undefined" || !chrome.storage?.local) return
