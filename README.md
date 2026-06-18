@@ -37,6 +37,10 @@ stored in your browser via IndexedDB.
 - **Bulk export** — export all or selected folders as a single `.zip`: entries are
   written as real files organized into folders, alongside a `manifest.json` that
   captures the full structured data for backup/restore.
+- **Pinned, tagged, and recent entries** — star important snippets, tag saved
+  items, filter recent opens, duplicate entries, and edit saved entry details.
+- **Side-panel shortcut** — open StructFlow with `Ctrl+Shift+S`, or
+  `MacCtrl+Shift+S` on macOS by default.
 - **Light & dark themes** — persisted and applied across the panel and viewers.
 
 ---
@@ -65,6 +69,7 @@ Then load it in Chrome:
 pnpm dev      # Vite dev server — previews the panel UI as a normal web app
 pnpm build    # Production build to dist/ (panel + content script + assets)
 pnpm preview  # Preview the production build
+pnpm package:extension  # Build and create releases/structflow-vX.Y.Z.zip
 ```
 
 The same code runs both as the unpacked extension and in the browser preview;
@@ -108,6 +113,8 @@ for a full file map and subsystem notes.
 - [`ai-context/progress-tracker.md`](ai-context/progress-tracker.md) — what's shipped, per phase.
 - [`ai-context/future-features.md`](ai-context/future-features.md) — ideas backlog.
 - [`STORE_LISTING.md`](STORE_LISTING.md) — copy for the Chrome Web Store listing.
+- [`PRIVACY.md`](PRIVACY.md) — local-first privacy policy.
+- [`CHANGELOG.md`](CHANGELOG.md) — release history.
 
 ---
 

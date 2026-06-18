@@ -128,6 +128,21 @@ Legend: [x] done · [~] partial · [ ] not started
 ## Backlog / follow-ups (not started)
 See `ai-context/future-features.md` for the full ideas backlog.
 
+## Phase 11 — production readiness Phase 4/5
+- [x] Entry v3 library metadata: `pinned`, `tags`, `lastOpenedAt`
+- [x] Library filters: All / Pinned / Recent
+- [x] Entry detail modal: edit title, language, project, tags, raw input, formatted output, pinned state
+- [x] Saved-entry reformat action using the stored formatter options
+- [x] Duplicate handling: same-folder save titles are uniqued; saved entries can be duplicated as copies
+- [x] Import/export manifest validation includes v3 metadata
+- [x] Side-panel command added: `Ctrl+Shift+S` default, `MacCtrl+Shift+S` on macOS
+- [x] Manifest permission audit: removed separate `host_permissions`; retained `sidePanel`, `storage`, `contextMenus`, and content-script matches
+- [x] Added `PRIVACY.md`
+- [x] Added `CHANGELOG.md`
+- [x] Added `pnpm package:extension` release ZIP script
+- [ ] Capture Chrome Web Store screenshots and optional promo image
+- [ ] Replace placeholder support/public URLs before launch
+
 ## Phase 8 — docs & launch prep
 - [x] Refreshed `.project-context.md` (note-taking + monetization angle, full feature list, non-goals)
 - [x] Rewrote `architecture-context.md` file map + added subsystem notes (content script, syntax themes, snapshot, support, extension wiring)
