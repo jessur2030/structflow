@@ -140,8 +140,13 @@ See `ai-context/future-features.md` for the full ideas backlog.
 - [x] Added `PRIVACY.md`
 - [x] Added `CHANGELOG.md`
 - [x] Added `pnpm package:extension` release ZIP script
-- [ ] Capture Chrome Web Store screenshots and optional promo image
-- [ ] Replace placeholder support/public URLs before launch
+- [x] Added `pnpm assets:store` real screenshot capture generator
+- [x] Added `pnpm assets:store:annotated` text-enhanced asset generator
+- [x] Generated five 1280x800 plain Chrome Web Store screenshots in `store-assets/plain/`
+- [x] Generated five 1280x800 annotated Chrome Web Store screenshots in `store-assets/annotated/`
+- [x] Generated 440x280 promo image in `store-assets/`
+- [x] Added `SUPPORT.md` support-page source
+- [ ] Replace placeholder public privacy/support URLs before launch
 
 ## Phase 8 — docs & launch prep
 - [x] Refreshed `.project-context.md` (note-taking + monetization angle, full feature list, non-goals)

@@ -12,6 +12,7 @@ pnpm-lock.yaml
 # Build outputs
 dist/
 build/
+releases/
 *.tsbuildinfo
 
 # IDE
@@ -36,3 +37,5 @@ out/
 Thumbs.db
 
 STORE_LISTING.md
+
+docs/

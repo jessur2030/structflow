@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "assets:store": "node scripts/gen-store-assets.cjs",
+    "assets:store:annotated": "node scripts/gen-annotated-store-assets.cjs",
     "package:extension": "pnpm build && node scripts/package-extension.cjs"
   },
   "dependencies": {

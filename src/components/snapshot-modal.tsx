@@ -6,7 +6,6 @@ import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
 import { cn } from "@/lib/utils"
 import { highlightCode } from "@/lib/highlight"
 
-// Solid backdrop choices behind the code window. Brand navy/blue/cyan + neutral.
 const BACKDROPS: { id: string; label: string; value: string }[] = [
   { id: "navy", label: "Navy", value: "#1b2440" },
   { id: "blue", label: "Blue", value: "#1d4ed8" },
@@ -36,7 +35,6 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  // Close on Escape.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose()
@@ -73,7 +71,6 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
           setCopied(true)
           setTimeout(() => setCopied(false), 1400)
         } catch {
-          // Clipboard write can fail (focus/permission). Fall back to download.
           const url = URL.createObjectURL(blob)
           const a = document.createElement("a")
           a.download = `${(title || "snippet").replace(/[^\w.-]+/g, "-")}.png`
@@ -83,7 +80,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
         }
       }
     } catch (err) {
-      console.log("[v0] snapshot render failed:", (err as Error).message)
+      console.warn("StructFlow snapshot render failed:", (err as Error).message)
     } finally {
       setBusy(false)
     }
@@ -98,10 +95,9 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
           <h2 className="text-[13px] font-semibold">Code snapshot</h2>
           <button
@@ -114,7 +110,6 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
           </button>
         </div>
 
-        {/* Preview area */}
         <div className="flex-1 overflow-auto bg-[var(--snap-checker)] p-4">
           <div className="flex justify-center">
             <div
@@ -126,7 +121,6 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
                 className="syntax-surface overflow-hidden rounded-lg text-left font-mono text-[12.5px] leading-[1.6] shadow-xl"
                 style={syntaxThemeVars(theme) as React.CSSProperties}
               >
-                {/* Window chrome */}
                 <div
                   className="flex items-center gap-2 px-4 py-2.5"
                   style={{ background: "var(--syn-bg)", color: "var(--syn-fg)" }}
@@ -140,7 +134,6 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
                     <span className="ml-2 truncate text-[12px] opacity-80">{title}</span>
                   )}
                 </div>
-                {/* Code body */}
                 <div className="flex" style={{ background: "var(--syn-bg)" }}>
                   {showLineNumbers && (
                     <div
@@ -161,10 +154,9 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
           </div>
         </div>
 
-        {/* Controls */}
         <div className="border-t border-border px-4 py-3">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            {/* Backdrop */}
+          <div className="grid gap-3">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Backdrop</span>
               <div className="flex gap-1.5">
@@ -189,7 +181,6 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
               </div>
             </div>
 
-            {/* Padding */}
             <label className="flex items-center gap-2">
               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Padding</span>
               <input
@@ -210,18 +201,21 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
             <ChipToggle active={showLineNumbers} onClick={() => setShowLineNumbers((v) => !v)}>
               Line numbers
             </ChipToggle>
+            </div>
 
             {showTitle && (
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="filename"
-                className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-ring"
-              />
+              <label className="grid gap-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Filename</span>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="filename"
+                  className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </label>
             )}
           </div>
 
-          {/* Actions */}
           <div className="mt-3 flex items-center justify-end gap-2">
             <button
               type="button"
