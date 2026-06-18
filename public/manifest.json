@@ -30,8 +30,9 @@
   "commands": {
     "open-structflow-side-panel": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "MacCtrl+Shift+S"
+        "default": "Alt+Shift+S",
+        "mac": "Command+Shift+S",
+        "linux": "Alt+Shift+S"
       },
       "description": "Open StructFlow side panel"
     }
