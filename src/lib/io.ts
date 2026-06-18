@@ -210,6 +210,9 @@ function validateEntry(value: unknown, projectIds: Set<string>): Entry {
     formatOptions: validateFormatOptions(value.formatOptions),
     source: validateSource(value.source),
     projectId: projectId && projectIds.has(projectId) ? projectId : null,
+    pinned: typeof value.pinned === "boolean" ? value.pinned : false,
+    tags: Array.isArray(value.tags) ? value.tags.filter((tag): tag is string => typeof tag === "string") : [],
+    lastOpenedAt: typeof value.lastOpenedAt === "number" && Number.isFinite(value.lastOpenedAt) ? value.lastOpenedAt : null,
     createdAt: requireNumber(value.createdAt, "entry.createdAt"),
     updatedAt: requireNumber(value.updatedAt, "entry.updatedAt"),
   }

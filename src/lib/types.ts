@@ -77,7 +77,7 @@ export const DEFAULT_OPTIONS: FormatOptions = {
   sqlUppercase: true,
 }
 
-export const STRUCTFLOW_SCHEMA_VERSION = 2
+export const STRUCTFLOW_SCHEMA_VERSION = 3
 export const STRUCTFLOW_APP_VERSION = "1.0.0"
 export const STRUCTFLOW_FORMATTER_VERSION = "2"
 
@@ -93,6 +93,9 @@ export interface Entry {
   formatOptions: FormatOptions
   source: EntrySource
   projectId: string | null
+  pinned: boolean
+  tags: string[]
+  lastOpenedAt: number | null
   createdAt: number
   updatedAt: number
 }
