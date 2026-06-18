@@ -133,5 +133,6 @@ Sponsor/Donate).
 
 ## License
 
-To be decided before public release (an open-source license such as MIT is the
-likely choice). Until a `LICENSE` file is added, all rights reserved.
+Apache-2.0. Reuse is allowed, but redistributed copies and derivative works
+must preserve the license and attribution notices in [`LICENSE`](LICENSE) and
+[`NOTICE`](NOTICE).

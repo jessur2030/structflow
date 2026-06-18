@@ -2,6 +2,15 @@
   "name": "structflow",
   "version": "1.0.0",
   "private": true,
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/jessur2030/structflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jessur2030/structflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jessur2030/structflow/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

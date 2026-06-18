@@ -8,7 +8,8 @@ Recommended support URL for the Chrome Web Store:
 https://github.com/jessur2030/structflow/issues
 ```
 
-Before submitting to the store, replace `jessur2030` with the real repository owner and make sure issues are enabled.
+Make sure GitHub issues are enabled on the public repository before submitting
+to the store.
 
 ## What To Include
 
