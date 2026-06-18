@@ -69,6 +69,8 @@ Then load it in Chrome:
 pnpm dev      # Vite dev server — previews the panel UI as a normal web app
 pnpm build    # Production build to dist/ (panel + content script + assets)
 pnpm preview  # Preview the production build
+pnpm assets:store  # Capture real Chrome Web Store screenshots + promo tile
+pnpm assets:store:annotated  # Build text-enhanced screenshots from the real captures
 pnpm package:extension  # Build and create releases/structflow-vX.Y.Z.zip
 ```
 
@@ -113,7 +115,9 @@ for a full file map and subsystem notes.
 - [`ai-context/progress-tracker.md`](ai-context/progress-tracker.md) — what's shipped, per phase.
 - [`ai-context/future-features.md`](ai-context/future-features.md) — ideas backlog.
 - [`STORE_LISTING.md`](STORE_LISTING.md) — copy for the Chrome Web Store listing.
+- [`store-assets/`](store-assets/) — generated screenshots and promo tile for the store.
 - [`PRIVACY.md`](PRIVACY.md) — local-first privacy policy.
+- [`SUPPORT.md`](SUPPORT.md) — support page source.
 - [`CHANGELOG.md`](CHANGELOG.md) — release history.
 
 ---

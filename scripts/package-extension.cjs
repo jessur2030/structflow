@@ -1,10 +1,11 @@
 const { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } = require("node:fs")
 const { join, relative, resolve, sep } = require("node:path")
-const { zipSync, strToU8 } = require("fflate")
+const { zipSync } = require("fflate")
 
 const root = resolve(__dirname, "..")
 const distDir = join(root, "dist")
 const manifestPath = join(distDir, "manifest.json")
+const packagePath = join(root, "package.json")
 
 if (!existsSync(manifestPath)) {
   throw new Error("dist/manifest.json not found. Run pnpm build first.")
@@ -15,10 +16,15 @@ if (!manifest.version || typeof manifest.version !== "string") {
   throw new Error("dist/manifest.json is missing a string version.")
 }
 
+const packageJson = JSON.parse(readFileSync(packagePath, "utf8"))
+if (packageJson.version !== manifest.version) {
+  throw new Error(`Version mismatch: package.json=${packageJson.version}, manifest.json=${manifest.version}.`)
+}
+
 const files = {}
 for (const filePath of listFiles(distDir)) {
   const zipPath = relative(distDir, filePath).split(sep).join("/")
-  files[zipPath] = strToU8(readFileSync(filePath))
+  files[zipPath] = new Uint8Array(readFileSync(filePath))
 }
 
 const outputDir = join(root, "releases")
