@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "release": "pnpm build && node -e \"const v=require('./package.json').version;const {execSync}=require('child_process');require('fs').mkdirSync('releases',{recursive:true});execSync('zip -r releases/structflow-v'+v+'.zip dist',{stdio:'inherit'});console.log('Created releases/structflow-v'+v+'.zip');\"",
+    "release": "pnpm build && node -e \"const v=require('./package.json').version;const {execSync}=require('child_process');require('fs').mkdirSync('releases',{recursive:true});const out='../releases/structflow-v'+v+'.zip';execSync('rm -f '+out+' && zip -r '+out+' .',{cwd:'dist',stdio:'inherit'});console.log('Created releases/structflow-v'+v+'.zip');\"",
     "assets:store": "node scripts/gen-store-assets.cjs",
     "assets:store:annotated": "node scripts/gen-annotated-store-assets.cjs",
     "package:extension": "pnpm build && node scripts/package-extension.cjs"
