@@ -14,20 +14,13 @@ export const SUPPORT_LINKS: SupportLink[] = [
     label: "Star on GitHub",
     description: "Follow development and star the repo",
     icon: "github",
-    url: "https://github.com/your-handle/structflow",
+    url: "https://github.com/jessur2030/structflow",
   },
   {
     id: "coffee",
     label: "Buy me a coffee",
     description: "Fuel late-night feature work",
     icon: "coffee",
-    url: "https://www.buymeacoffee.com/your-handle",
-  },
-  {
-    id: "sponsor",
-    label: "Sponsor / Donate",
-    description: "Support ongoing maintenance",
-    icon: "heart",
-    url: "https://github.com/sponsors/your-handle",
+    url: "https://buymeacoffee.com/jessusrdevn",
   },
 ]
