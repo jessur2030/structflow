@@ -1,10 +1,12 @@
 const { spawn } = require("node:child_process")
-const { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } = require("node:fs")
+const { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } = require("node:fs")
 const { join, resolve } = require("node:path")
 const sharp = require("sharp")
 
 const root = resolve(__dirname, "..")
 const outDir = join(root, "store-assets")
+const iconPath = join(root, "public/icons/icon-128.png")
+const iconBase64 = existsSync(iconPath) ? readFileSync(iconPath).toString("base64") : ""
 const baseUrl = "http://127.0.0.1:5187/"
 const debugPort = 9337
 const chromePaths = [
@@ -164,17 +166,168 @@ async function main() {
       await page.screenshot(join(outDir, item.file))
     }
 
-    await sharp(join(outDir, screenshots[0].file))
-      .extract({ left: 380, top: 0, width: 520, height: 330 })
-      .resize(440, 280, { fit: "cover", position: "top" })
-      .png()
-      .toFile(join(outDir, "promo-small-440x280.png"))
+    const promoSource = join(outDir, screenshots[0].file)
+    await writeSmallPromo()
+    await writeMarqueePromo(promoSource)
 
-    console.log(`Captured ${screenshots.length} real app screenshots and one promo crop in store-assets/`)
+    console.log(`Captured ${screenshots.length} real app screenshots and two promo tiles in store-assets/`)
   } finally {
     vite.kill()
     chrome.kill()
   }
+}
+
+async function writeSmallPromo() {
+  await sharp({
+    create: {
+      width: 440,
+      height: 280,
+      channels: 3,
+      background: "#0b1020",
+    },
+  })
+    .composite([{ input: Buffer.from(smallPromoSvg()) }])
+    .flatten({ background: "#0b1020" })
+    .png()
+    .toFile(join(outDir, "promo-small-440x280.png"))
+}
+
+async function writeMarqueePromo(sourcePath) {
+  const backdrop = await sharp(sourcePath)
+    .extract({ left: 0, top: 72, width: 1280, height: 512 })
+    .resize(1400, 560, { fit: "cover" })
+    .blur(12)
+    .modulate({ brightness: 0.62, saturation: 1.08 })
+    .png()
+    .toBuffer()
+
+  const panel = await sharp(sourcePath)
+    .extract({ left: 380, top: 0, width: 520, height: 800 })
+    .resize({ height: 500 })
+    .png()
+    .toBuffer()
+
+  await sharp({
+    create: {
+      width: 1400,
+      height: 560,
+      channels: 3,
+      background: "#0b1020",
+    },
+  })
+    .composite([
+      { input: backdrop },
+      { input: Buffer.from(marqueePromoSvg()) },
+      { input: panel, left: 1000, top: 30 },
+      { input: Buffer.from(marqueePanelFrameSvg()) },
+    ])
+    .flatten({ background: "#0b1020" })
+    .png()
+    .toFile(join(outDir, "promo-marquee-1400x560.png"))
+}
+
+function marqueePromoSvg() {
+  const description = wrap(
+    "StructFlow keeps formatting, previews, snapshots, and a local library in one fast local-first workspace.",
+    54,
+  )
+  const pills = ["Local-first", "Markdown preview", "JSON tree", "PNG snapshots"]
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560">
+      <defs>
+        <linearGradient id="wash" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#08111f" stop-opacity="0.96"/>
+          <stop offset="0.48" stop-color="#0b1020" stop-opacity="0.9"/>
+          <stop offset="1" stop-color="#0b1020" stop-opacity="0.72"/>
+        </linearGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.5"/>
+        </filter>
+      </defs>
+      <style>
+        text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      </style>
+      <rect width="1400" height="560" fill="url(#wash)"/>
+      <circle cx="158" cy="450" r="180" fill="#4f9cff" opacity=".18"/>
+      <circle cx="1228" cy="82" r="150" fill="#14b8a6" opacity=".15"/>
+      <circle cx="760" cy="510" r="220" fill="#0ea5e9" opacity=".08"/>
+
+      <g transform="translate(72 58)">
+        ${brandMark(0, 0, 52)}
+        <text x="70" y="22" fill="#f8fafc" font-size="30" font-weight="800">StructFlow</text>
+        <text x="70" y="49" fill="#9fb0c8" font-size="17">Chrome side panel extension</text>
+      </g>
+
+      <g transform="translate(72 118)">
+        <text x="0" y="58" fill="#f8fafc" font-size="56" font-weight="880">Format code,</text>
+        <text x="0" y="124" fill="#f8fafc" font-size="56" font-weight="880">explore JSON,</text>
+        <text x="0" y="190" fill="#f8fafc" font-size="56" font-weight="880">and keep snippets close.</text>
+        ${description.map((line, index) => `<text x="0" y="${256 + index * 34}" fill="#b8c3d6" font-size="22">${escapeXml(line)}</text>`).join("")}
+      </g>
+
+      <g transform="translate(72 460)">
+        ${promoPillsSvg(pills)}
+      </g>
+
+      <g filter="url(#shadow)">
+        <rect x="990" y="20" width="345" height="520" rx="28" fill="#0f172a" fill-opacity="0.96"/>
+      </g>
+    </svg>
+  `
+}
+
+function smallPromoSvg() {
+  const description = [
+    "Format code, explore JSON,",
+    "and keep snippets close.",
+  ]
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#0f172a"/>
+          <stop offset="0.6" stop-color="#0b1020"/>
+          <stop offset="1" stop-color="#071923"/>
+        </linearGradient>
+        <filter id="card-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#020617" flood-opacity="0.42"/>
+        </filter>
+      </defs>
+      <style>
+        text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      </style>
+      <rect width="440" height="280" fill="url(#bg)"/>
+      <circle cx="42" cy="252" r="94" fill="#4f9cff" opacity=".12"/>
+      <circle cx="404" cy="28" r="72" fill="#14b8a6" opacity=".1"/>
+
+      <g filter="url(#card-shadow)">
+        <rect x="34" y="34" width="372" height="212" rx="30" fill="#0b1221" fill-opacity="0.92" stroke="#f8fafc" stroke-opacity="0.08"/>
+      </g>
+
+      <g transform="translate(220 48)">
+        ${brandMark(-30, 0, 60)}
+        <text x="0" y="94" text-anchor="middle" fill="#f8fafc" font-size="38" font-weight="860">StructFlow</text>
+        ${description.map((line, index) => `<text x="0" y="${144 + index * 28}" text-anchor="middle" fill="#b8c3d6" font-size="20">${escapeXml(line)}</text>`).join("")}
+      </g>
+    </svg>
+  `
+}
+
+function marqueePanelFrameSvg() {
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560">
+      <defs>
+        <linearGradient id="panel-border" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f8fafc" stop-opacity="0.24"/>
+          <stop offset="1" stop-color="#f8fafc" stop-opacity="0.08"/>
+        </linearGradient>
+      </defs>
+      <rect x="990.5" y="20.5" width="344" height="519" rx="28" fill="none" stroke="url(#panel-border)" stroke-width="1"/>
+      <rect x="1000.5" y="30.5" width="324" height="499" rx="22" fill="none" stroke="#f8fafc" stroke-opacity="0.08" stroke-width="1"/>
+    </svg>
+  `
 }
 
 async function createPage() {
@@ -412,6 +565,53 @@ async function fetchJson(url, init) {
 
 function cssEscape(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+}
+
+function brandMark(x, y, size) {
+  if (iconBase64) {
+    return `<image href="data:image/png;base64,${iconBase64}" x="${x}" y="${y}" width="${size}" height="${size}"/>`
+  }
+  return `<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="#4f9cff"/>`
+}
+
+function promoPillsSvg(items) {
+  let offsetX = 0
+  return items.map((item) => {
+    const width = item.length * 9 + 38
+    const svg = `
+      <g transform="translate(${offsetX} 0)">
+        <rect x="0" y="0" width="${width}" height="46" rx="23" fill="#ffffff" opacity="0.1"/>
+        <text x="19" y="30" fill="#e5edf8" font-size="16" font-weight="720">${escapeXml(item)}</text>
+      </g>
+    `
+    offsetX += width + 14
+    return svg
+  }).join("")
+}
+
+function wrap(text, max) {
+  const words = text.split(" ")
+  const lines = []
+  let current = ""
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word
+    if (next.length > max && current) {
+      lines.push(current)
+      current = word
+    } else {
+      current = next
+    }
+  }
+  if (current) lines.push(current)
+  return lines
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
 }
 
 function delay(ms) {

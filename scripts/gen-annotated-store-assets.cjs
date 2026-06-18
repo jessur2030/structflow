@@ -63,8 +63,10 @@ async function main() {
     await writeAnnotated(item, sourcePath)
   }
 
-  const promo = join(assetDir, "promo-small-440x280.png")
-  if (existsSync(promo)) copyFileSync(promo, join(plainDir, basename(promo)))
+  for (const promoName of ["promo-small-440x280.png", "promo-marquee-1400x560.png"]) {
+    const promo = join(assetDir, promoName)
+    if (existsSync(promo)) copyFileSync(promo, join(plainDir, basename(promo)))
+  }
 
   console.log(`Created ${items.length} annotated screenshots in store-assets/annotated/`)
 }

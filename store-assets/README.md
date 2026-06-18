@@ -15,6 +15,7 @@ pnpm assets:store:annotated  # Builds annotated versions from the real screensho
 - `plain/screenshot-04-snapshot-modal.png` — 1280x800
 - `plain/screenshot-05-compare-view.png` — 1280x800
 - `promo-small-440x280.png` — 440x280
+- `promo-marquee-1400x560.png` — 1400x560
 
 The same plain screenshots are also kept at the top level for quick upload.
 

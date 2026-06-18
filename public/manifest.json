@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "StructFlow",
   "version": "1.0.0",
-  "description": "A JSON viewer and multi-language code formatter that lives in your Chrome side panel. Format, beautify, view, and save JSON, JS, TS, HTML, CSS, Markdown, and SQL.",
+  "description": "JSON viewer & code formatter in your Chrome side panel. Format, beautify, and save JSON, JS, TS, HTML, CSS, Markdown, and SQL.",
   "permissions": ["sidePanel", "storage", "contextMenus"],
   "background": {
     "service_worker": "background.js",
