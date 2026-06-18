@@ -16,11 +16,45 @@ import {
   MoreVertical,
   Archive,
   Upload,
+  Star,
+  Tags,
+  History,
+  CopyPlus,
+  Info,
+  RefreshCw,
 } from "lucide-react"
 import { Modal } from "./modal"
+import { formatCode } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, exportEntriesAsZip, importEntriesFromFile, mimeFor, slugify } from "@/lib/io"
-import { entryContent, getLanguage, PROJECT_COLORS, type Entry, type Project } from "@/lib/types"
+import {
+  DEFAULT_OPTIONS,
+  LANGUAGES,
+  STRUCTFLOW_FORMATTER_VERSION,
+  entryContent,
+  getLanguage,
+  PROJECT_COLORS,
+  type Entry,
+  type FormatOptions,
+  type Language,
+  type Project,
+} from "@/lib/types"
 import { cn } from "@/lib/utils"
+
+type LibraryMode = "all" | "pinned" | "recent"
+type EntryPatch = Partial<
+  Pick<
+    Entry,
+    | "title"
+    | "language"
+    | "rawInput"
+    | "formattedOutput"
+    | "formatterVersion"
+    | "formatOptions"
+    | "projectId"
+    | "pinned"
+    | "tags"
+  >
+>
 
 interface LibraryProps {
   entries: Entry[]
@@ -34,6 +68,8 @@ interface LibraryProps {
   onRecolorProject: (id: string, color: string) => void
   onAddToProject: (projectId: string | null) => void
   onImportData: (entries: Entry[], projects: Project[]) => Promise<void>
+  onUpdateEntry: (id: string, patch: EntryPatch) => void
+  onDuplicateEntry: (id: string) => void
   onDeleteProject: (id: string) => void
 }
 
@@ -49,13 +85,17 @@ export function Library({
   onRecolorProject,
   onAddToProject,
   onImportData,
+  onUpdateEntry,
+  onDuplicateEntry,
   onDeleteProject,
 }: LibraryProps) {
   const [query, setQuery] = useState("")
+  const [mode, setMode] = useState<LibraryMode>("all")
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [projectName, setProjectName] = useState("")
   const [menuFor, setMenuFor] = useState<string | null>(null)
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [importError, setImportError] = useState<string | null>(null)
@@ -68,15 +108,25 @@ export function Library({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return entries
-    return entries.filter(
-      (e) =>
-        e.title.toLowerCase().includes(q) ||
-        entryContent(e).toLowerCase().includes(q) ||
-        e.rawInput.toLowerCase().includes(q) ||
-        e.language.toLowerCase().includes(q),
-    )
-  }, [entries, query])
+    return entries
+      .filter((entry) => {
+        if (mode === "pinned" && !entry.pinned) return false
+        if (mode === "recent" && !entry.lastOpenedAt) return false
+        if (!q) return true
+        return (
+          entry.title.toLowerCase().includes(q) ||
+          entryContent(entry).toLowerCase().includes(q) ||
+          entry.rawInput.toLowerCase().includes(q) ||
+          entry.language.toLowerCase().includes(q) ||
+          entry.tags.some((tag) => tag.toLowerCase().includes(q))
+        )
+      })
+      .sort((a, b) => {
+        if (mode === "recent") return (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0)
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+        return b.updatedAt - a.updatedAt
+      })
+  }, [entries, mode, query])
 
   const groups = useMemo(() => {
     const map = new Map<string | null, Entry[]>()
@@ -219,6 +269,17 @@ export function Library({
           {importError}
         </div>
       )}
+      <div className="flex items-center gap-1 border-b border-border px-3 py-2">
+        <ModeButton active={mode === "all"} onClick={() => setMode("all")}>
+          All
+        </ModeButton>
+        <ModeButton active={mode === "pinned"} onClick={() => setMode("pinned")}>
+          <Star className="h-3.5 w-3.5" /> Pinned
+        </ModeButton>
+        <ModeButton active={mode === "recent"} onClick={() => setMode("recent")}>
+          <History className="h-3.5 w-3.5" /> Recent
+        </ModeButton>
+      </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
         {entries.length === 0 ? (
@@ -255,6 +316,9 @@ export function Library({
                       onDelete={() => onDeleteEntry(entry.id)}
                       onRename={(t) => onRenameEntry(entry.id, t)}
                       onMove={(pid) => onMoveEntry(entry.id, pid)}
+                      onTogglePinned={() => onUpdateEntry(entry.id, { pinned: !entry.pinned })}
+                      onDuplicate={() => onDuplicateEntry(entry.id)}
+                      onEdit={() => setEditingEntry(entry)}
                     />
                   ))}
                 </ProjectGroup>
@@ -279,6 +343,9 @@ export function Library({
                   onDelete={() => onDeleteEntry(entry.id)}
                   onRename={(t) => onRenameEntry(entry.id, t)}
                   onMove={(pid) => onMoveEntry(entry.id, pid)}
+                  onTogglePinned={() => onUpdateEntry(entry.id, { pinned: !entry.pinned })}
+                  onDuplicate={() => onDuplicateEntry(entry.id)}
+                  onEdit={() => setEditingEntry(entry)}
                 />
               ))}
             </ProjectGroup>
@@ -402,6 +469,16 @@ export function Library({
           </div>
         )}
       </Modal>
+
+      <EntryEditorModal
+        entry={editingEntry}
+        projects={projects}
+        onClose={() => setEditingEntry(null)}
+        onSave={(id, patch) => {
+          onUpdateEntry(id, patch)
+          setEditingEntry(null)
+        }}
+      />
     </div>
   )
 }
@@ -613,6 +690,229 @@ function ProjectGroup({
   )
 }
 
+function EntryEditorModal({
+  entry,
+  projects,
+  onClose,
+  onSave,
+}: {
+  entry: Entry | null
+  projects: Project[]
+  onClose: () => void
+  onSave: (id: string, patch: EntryPatch) => void
+}) {
+  const [title, setTitle] = useState("")
+  const [language, setLanguage] = useState<Language>("markdown")
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [tagsInput, setTagsInput] = useState("")
+  const [rawInput, setRawInput] = useState("")
+  const [formattedOutput, setFormattedOutput] = useState("")
+  const [formatOptions, setFormatOptions] = useState<FormatOptions>(DEFAULT_OPTIONS)
+  const [pinned, setPinned] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [formatting, setFormatting] = useState(false)
+
+  useEffect(() => {
+    if (!entry) return
+    setTitle(entry.title)
+    setLanguage(entry.language)
+    setProjectId(entry.projectId)
+    setTagsInput(entry.tags.join(", "))
+    setRawInput(entry.rawInput)
+    setFormattedOutput(entry.formattedOutput)
+    setFormatOptions(entry.formatOptions ?? DEFAULT_OPTIONS)
+    setPinned(entry.pinned)
+    setError(null)
+  }, [entry])
+
+  const reformat = async () => {
+    setFormatting(true)
+    setError(null)
+    const result = await formatCode(language, rawInput, formatOptions)
+    setFormatting(false)
+    setFormattedOutput(result.output)
+    if (!result.ok) setError(result.error ?? "Could not format this entry.")
+  }
+
+  const save = () => {
+    if (!entry) return
+    const nextTitle = title.trim()
+    if (!nextTitle) {
+      setError("Title is required.")
+      return
+    }
+    onSave(entry.id, {
+      title: nextTitle,
+      language,
+      rawInput,
+      formattedOutput,
+      formatterVersion: STRUCTFLOW_FORMATTER_VERSION,
+      formatOptions,
+      projectId,
+      pinned,
+      tags: parseTags(tagsInput),
+    })
+  }
+
+  return (
+    <Modal
+      open={!!entry}
+      onClose={onClose}
+      title="Entry details"
+      footer={
+        <>
+          <ModalButton variant="ghost" onClick={onClose}>
+            Cancel
+          </ModalButton>
+          <ModalButton onClick={save}>Save changes</ModalButton>
+        </>
+      }
+    >
+      <div className="max-h-[70vh] space-y-3 overflow-auto pr-1">
+        {error && <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12.5px] text-destructive">{error}</div>}
+
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <label className="space-y-1.5">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Title</span>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pin</span>
+            <button
+              type="button"
+              onClick={() => setPinned((value) => !value)}
+              aria-label={pinned ? "Unpin entry" : "Pin entry"}
+              className={cn(
+                "flex h-9 w-10 items-center justify-center rounded-md border border-border bg-background hover:bg-secondary",
+                pinned && "border-primary text-primary",
+              )}
+            >
+              <Star className={cn("h-4 w-4", pinned && "fill-current")} />
+            </button>
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <label className="space-y-1.5">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Language</span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as Language)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {LANGUAGES.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Project</span>
+            <select
+              value={projectId ?? ""}
+              onChange={(e) => setProjectId(e.target.value || null)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">No project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label className="space-y-1.5">
+          <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Tags className="h-3 w-3" /> Tags
+          </span>
+          <input
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            placeholder="api, auth, notes"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+
+        <label className="space-y-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Raw input</span>
+          <textarea
+            value={rawInput}
+            onChange={(e) => setRawInput(e.target.value)}
+            rows={6}
+            spellCheck={false}
+            className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 font-mono text-[12px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Formatted output</span>
+            <button
+              type="button"
+              onClick={() => void reformat()}
+              disabled={formatting}
+              className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] font-medium hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", formatting && "animate-spin")} /> Reformat
+            </button>
+          </div>
+          <textarea
+            value={formattedOutput}
+            onChange={(e) => setFormattedOutput(e.target.value)}
+            rows={6}
+            spellCheck={false}
+            className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 font-mono text-[12px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function parseTags(value: string): string[] {
+  const seen = new Set<string>()
+  const tags: string[] = []
+  for (const part of value.split(/[,\n]/)) {
+    const tag = part.trim().replace(/^#/, "")
+    const key = tag.toLowerCase()
+    if (tag && !seen.has(key)) {
+      seen.add(key)
+      tags.push(tag)
+    }
+  }
+  return tags
+}
+
+function ModeButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1 rounded-md px-2 py-1 text-[12.5px] font-medium transition-colors",
+        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 function EntryRow({
   entry,
   projects,
@@ -622,6 +922,9 @@ function EntryRow({
   onDelete,
   onRename,
   onMove,
+  onTogglePinned,
+  onDuplicate,
+  onEdit,
 }: {
   entry: Entry
   projects: Project[]
@@ -631,6 +934,9 @@ function EntryRow({
   onDelete: () => void
   onRename: (title: string) => void
   onMove: (projectId: string | null) => void
+  onTogglePinned: () => void
+  onDuplicate: () => void
+  onEdit: () => void
 }) {
   const [copied, setCopied] = useState(false)
   const [renaming, setRenaming] = useState(false)
@@ -689,7 +995,11 @@ function EntryRow({
 
   return (
     <div className="group relative flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60">
-      <FileCode2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+      {entry.pinned ? (
+        <Star className="h-4 w-4 shrink-0 fill-[var(--primary)] text-[var(--primary)]" />
+      ) : (
+        <FileCode2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+      )}
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 flex-col items-start text-left">
         {renaming ? (
           <input
@@ -711,9 +1021,24 @@ function EntryRow({
           <span className="rounded bg-secondary px-1 py-px font-mono uppercase">{meta.label}</span>
           {new Date(entry.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
         </span>
+        {entry.tags.length > 0 && (
+          <span className="mt-1 flex max-w-full gap-1 overflow-hidden">
+            {entry.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="max-w-[92px] truncate rounded bg-secondary px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                #{tag}
+              </span>
+            ))}
+          </span>
+        )}
       </button>
 
       <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+        <RowAction label={entry.pinned ? "Unpin" : "Pin"} onClick={(e) => {
+          e.stopPropagation()
+          onTogglePinned()
+        }}>
+          <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-[var(--primary)]")} />
+        </RowAction>
         <RowAction label="Copy" onClick={copy}>
           {copied ? <Check className="h-3.5 w-3.5 text-[var(--success)]" /> : <Copy className="h-3.5 w-3.5" />}
         </RowAction>
@@ -748,11 +1073,36 @@ function EntryRow({
         >
           <MenuItem
             onClick={() => {
+              onEdit()
+              onMenuToggle()
+            }}
+          >
+            <Info className="h-3.5 w-3.5" /> Details
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
               setRenaming(true)
               onMenuToggle()
             }}
           >
             <Pencil className="h-3.5 w-3.5" /> Rename
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              onTogglePinned()
+              onMenuToggle()
+            }}
+          >
+            <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-[var(--primary)]")} />
+            {entry.pinned ? "Unpin" : "Pin"}
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              onDuplicate()
+              onMenuToggle()
+            }}
+          >
+            <CopyPlus className="h-3.5 w-3.5" /> Duplicate
           </MenuItem>
           <div className="my-1 border-t border-border" />
           <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Move to</div>

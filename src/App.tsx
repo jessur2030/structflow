@@ -22,6 +22,7 @@ import {
   uid,
 } from "./lib/storage"
 import {
+  DEFAULT_OPTIONS,
   LANGUAGES,
   PROJECT_COLORS,
   STRUCTFLOW_FORMATTER_VERSION,
@@ -130,9 +131,13 @@ export default function App() {
       formatOptions: savePayload.formatOptions,
       source: inputSource,
       projectId: saveProjectId,
+      pinned: false,
+      tags: [],
+      lastOpenedAt: null,
       createdAt: now,
       updatedAt: now,
     }
+    entry.title = makeUniqueTitle(entry.title, saveProjectId, entries)
     await saveEntry(entry)
     await refresh()
     setSaveOpen(false)
@@ -140,12 +145,14 @@ export default function App() {
     setPendingProjectId(null)
   }
 
-  const openEntry = (entry: Entry) => {
+  const openEntry = async (entry: Entry) => {
     setLanguage(entry.language)
     setInput(entry.rawInput)
     setInputSource("library")
     setPendingProjectId(null)
     setTab("format")
+    await saveEntry({ ...entry, lastOpenedAt: Date.now() })
+    await refresh()
   }
 
   const handleAddToProject = (projectId: string | null) => {
@@ -188,6 +195,35 @@ export default function App() {
       await saveEntry({ ...entry, title, updatedAt: Date.now() })
       await refresh()
     }
+  }
+
+  const handleUpdateEntry = async (id: string, patch: Partial<Entry>) => {
+    const entry = entries.find((e) => e.id === id)
+    if (entry) {
+      await saveEntry({
+        ...entry,
+        ...patch,
+        formatOptions: patch.formatOptions ?? entry.formatOptions ?? DEFAULT_OPTIONS,
+        updatedAt: Date.now(),
+      })
+      await refresh()
+    }
+  }
+
+  const handleDuplicateEntry = async (id: string) => {
+    const entry = entries.find((e) => e.id === id)
+    if (!entry) return
+    const now = Date.now()
+    await saveEntry({
+      ...entry,
+      id: uid(),
+      title: makeUniqueTitle(`${entry.title} copy`, entry.projectId, entries),
+      pinned: false,
+      lastOpenedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    await refresh()
   }
 
   const handleImportData = async (importedEntries: Entry[], importedProjects: Project[]) => {
@@ -256,6 +292,8 @@ export default function App() {
             onRecolorProject={handleRecolorProject}
             onAddToProject={handleAddToProject}
             onImportData={handleImportData}
+            onUpdateEntry={handleUpdateEntry}
+            onDuplicateEntry={handleDuplicateEntry}
             onDeleteProject={async (id) => {
               await deleteProject(id)
               await refresh()
@@ -350,4 +388,21 @@ function suggestTitle(content: string, language: Language): string {
   }
   const firstLine = content.trim().split("\n")[0]?.slice(0, 40)
   return firstLine || "Untitled"
+}
+
+function makeUniqueTitle(title: string, projectId: string | null, entries: Entry[]): string {
+  const used = new Set(
+    entries
+      .filter((entry) => entry.projectId === projectId)
+      .map((entry) => entry.title.trim().toLowerCase()),
+  )
+  if (!used.has(title.trim().toLowerCase())) return title
+
+  let n = 2
+  let next = `${title} ${n}`
+  while (used.has(next.trim().toLowerCase())) {
+    n++
+    next = `${title} ${n}`
+  }
+  return next
 }
