@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "description": "A JSON viewer and multi-language code formatter that lives in your Chrome side panel. Format, beautify, view, and save JSON, JS, TS, HTML, CSS, Markdown, and SQL.",
   "permissions": ["sidePanel", "storage", "contextMenus"],
-  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -27,6 +26,15 @@
   },
   "action": {
     "default_title": "Open StructFlow"
+  },
+  "commands": {
+    "open-structflow-side-panel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "MacCtrl+Shift+S"
+      },
+      "description": "Open StructFlow side panel"
+    }
   },
   "icons": {
     "16": "icons/icon-16.png",
