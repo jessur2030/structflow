@@ -24,6 +24,8 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { Modal } from "./modal"
+import { IconButton } from "./icon-button"
+import { FloatingTooltip } from "./tooltip"
 import { formatCode } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, exportEntriesAsZip, importEntriesFromFile, mimeFor, slugify } from "@/lib/io"
 import {
@@ -228,25 +230,21 @@ export function Library({
             className="w-full bg-transparent text-[13px] focus:outline-none"
           />
         </div>
-        <button
-          type="button"
+        <IconButton
+          label="Export data"
           onClick={openExport}
           disabled={entries.length === 0}
-          aria-label="Export data"
-          title="Export data"
-          className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-[13px] font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          className="border border-border bg-background"
         >
           <Archive className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
+        </IconButton>
+        <IconButton
+          label="Import data"
           onClick={() => fileInputRef.current?.click()}
-          aria-label="Import data"
-          title="Import data"
-          className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-[13px] font-medium hover:bg-secondary"
+          className="border border-border bg-background"
         >
           <Upload className="h-4 w-4" />
-        </button>
+        </IconButton>
         <input
           ref={fileInputRef}
           type="file"
@@ -254,15 +252,13 @@ export function Library({
           className="hidden"
           onChange={(e) => void runImport(e.target.files?.[0])}
         />
-        <button
-          type="button"
+        <IconButton
+          label="New project"
           onClick={() => setNewProjectOpen(true)}
-          aria-label="New project"
-          title="New project"
-          className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-[13px] font-medium hover:bg-secondary"
+          className="border border-border bg-background"
         >
           <FolderPlus className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
       {importError && (
         <div className="border-b border-border px-3 py-2 text-[12.5px] text-destructive">
@@ -508,8 +504,11 @@ function ProjectGroup({
   const [name, setName] = useState(project?.name ?? "")
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuUp, setMenuUp] = useState(false)
+  const [addTooltipOpen, setAddTooltipOpen] = useState(false)
+  const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
+  const addBtnRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -584,28 +583,41 @@ function ProjectGroup({
         <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
           {onAddItem && (
             <button
+              ref={addBtnRef}
               type="button"
               onClick={onAddItem}
               aria-label="Add new item"
-              title="Add new item"
+              onPointerEnter={() => setAddTooltipOpen(true)}
+              onPointerLeave={() => setAddTooltipOpen(false)}
+              onFocus={() => setAddTooltipOpen(true)}
+              onBlur={() => setAddTooltipOpen(false)}
               className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
+          )}
+          {onAddItem && (
+            <FloatingTooltip anchorRef={addBtnRef} label="Add new item" open={addTooltipOpen} />
           )}
           {project && (onRename || onRecolor || onDelete) && (
             <button
               ref={menuBtnRef}
               type="button"
               aria-label="Project options"
-              title="Project options"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((o) => !o)}
+              onPointerEnter={() => setMenuTooltipOpen(true)}
+              onPointerLeave={() => setMenuTooltipOpen(false)}
+              onFocus={() => setMenuTooltipOpen(true)}
+              onBlur={() => setMenuTooltipOpen(false)}
               className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
+          )}
+          {project && (onRename || onRecolor || onDelete) && (
+            <FloatingTooltip anchorRef={menuBtnRef} label="Project options" open={menuTooltipOpen && !menuOpen} />
           )}
         </div>
 
@@ -942,6 +954,7 @@ function EntryRow({
   const [renaming, setRenaming] = useState(false)
   const [title, setTitle] = useState(entry.title)
   const [menuUp, setMenuUp] = useState(false)
+  const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
   const meta = getLanguage(entry.language)
@@ -1049,9 +1062,12 @@ function EntryRow({
           ref={menuBtnRef}
           type="button"
           aria-label="More"
-          title="More"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
+          onPointerEnter={() => setMenuTooltipOpen(true)}
+          onPointerLeave={() => setMenuTooltipOpen(false)}
+          onFocus={() => setMenuTooltipOpen(true)}
+          onBlur={() => setMenuTooltipOpen(false)}
           onClick={(e) => {
             e.stopPropagation()
             onMenuToggle()
@@ -1061,6 +1077,7 @@ function EntryRow({
           <MoreVertical className="h-3.5 w-3.5" />
         </button>
       </div>
+      <FloatingTooltip anchorRef={menuBtnRef} label="More actions" open={menuTooltipOpen && !menuOpen} />
 
       {menuOpen && (
         <div
@@ -1151,16 +1168,26 @@ function RowAction({
   onClick: (e: React.MouseEvent) => void
   children: React.ReactNode
 }) {
+  const ref = useRef<HTMLButtonElement>(null)
+  const [showTooltip, setShowTooltip] = useState(false)
+
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-    >
-      {children}
-    </button>
+    <>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={label}
+        onClick={onClick}
+        onPointerEnter={() => setShowTooltip(true)}
+        onPointerLeave={() => setShowTooltip(false)}
+        onFocus={() => setShowTooltip(true)}
+        onBlur={() => setShowTooltip(false)}
+        className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+      >
+        {children}
+      </button>
+      <FloatingTooltip anchorRef={ref} label={label} open={showTooltip} />
+    </>
   )
 }
 
