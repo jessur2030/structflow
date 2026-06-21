@@ -19,7 +19,10 @@
     "release": "pnpm build && node -e \"const v=require('./package.json').version;const {execSync}=require('child_process');require('fs').mkdirSync('releases',{recursive:true});const out='../releases/structflow-v'+v+'.zip';execSync('rm -f '+out+' && zip -r '+out+' .',{cwd:'dist',stdio:'inherit'});console.log('Created releases/structflow-v'+v+'.zip');\"",
     "assets:store": "node scripts/gen-store-assets.cjs",
     "assets:store:annotated": "node scripts/gen-annotated-store-assets.cjs",
-    "package:extension": "pnpm build && node scripts/package-extension.cjs"
+    "package:extension": "pnpm package:chrome",
+    "package:chrome": "pnpm build && node scripts/build-browser-manifest.cjs chrome && node scripts/package-extension.cjs chrome",
+    "package:edge": "pnpm build && node scripts/build-browser-manifest.cjs edge && node scripts/package-extension.cjs edge",
+    "package:firefox": "pnpm build && node scripts/build-browser-manifest.cjs firefox && node scripts/package-extension.cjs firefox"
   },
   "dependencies": {
     "clsx": "^2.1.1",
