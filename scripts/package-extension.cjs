@@ -6,6 +6,7 @@ const root = resolve(__dirname, "..")
 const distDir = join(root, "dist")
 const manifestPath = join(distDir, "manifest.json")
 const packagePath = join(root, "package.json")
+const target = process.argv[2] || "chrome"
 
 if (!existsSync(manifestPath)) {
   throw new Error("dist/manifest.json not found. Run pnpm build first.")
@@ -24,13 +25,14 @@ if (packageJson.version !== manifest.version) {
 const files = {}
 for (const filePath of listFiles(distDir)) {
   const zipPath = relative(distDir, filePath).split(sep).join("/")
+  if (/^manifest\.[^.]+\.json$/.test(zipPath)) continue
   files[zipPath] = new Uint8Array(readFileSync(filePath))
 }
 
 const outputDir = join(root, "releases")
 mkdirSync(outputDir, { recursive: true })
 
-const outputPath = join(outputDir, `structflow-v${manifest.version}.zip`)
+const outputPath = join(outputDir, `structflow-${target}-v${manifest.version}.zip`)
 writeFileSync(outputPath, zipSync(files, { level: 9 }))
 
 console.log(`Packaged ${Object.keys(files).length} files -> ${relative(root, outputPath)}`)

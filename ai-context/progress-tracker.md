@@ -128,6 +128,16 @@ Legend: [x] done · [~] partial · [ ] not started
 ## Backlog / follow-ups (not started)
 See `ai-context/future-features.md` for the full ideas backlog.
 
+## Phase 12 — cross-browser packaging + tooltips
+- [x] Added browser-specific packaging scripts: `package:chrome`, `package:edge`, `package:firefox`
+- [x] Added post-build manifest generator for Chrome, Edge, and Firefox
+- [x] Edge package keeps Chromium MV3 side-panel manifest
+- [x] Firefox package swaps `side_panel` for `sidebar_action` and removes `sidePanel` permission
+- [x] Background worker opens Chrome/Edge side panel or Firefox sidebar where supported
+- [x] Added `BROWSER_PUBLISHING.md` with Edge and Firefox test/submission steps
+- [x] Added dynamic styled tooltips for shared formatter icon buttons, view toggles, JSON copy actions, library header actions, row actions, and folder controls
+  - tooltips render through a floating portal, flip when there is not enough room, and clamp inside the viewport
+
 ## Phase 11 — production readiness Phase 4/5
 - [x] Entry v3 library metadata: `pinned`, `tags`, `lastOpenedAt`
 - [x] Library filters: All / Pinned / Recent

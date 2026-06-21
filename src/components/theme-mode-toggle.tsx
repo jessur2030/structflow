@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Moon, Sun, Monitor, Check } from "lucide-react"
 import type { ThemeMode } from "@/lib/use-theme"
 import { cn } from "@/lib/utils"
+import { FloatingTooltip } from "./tooltip"
 
 interface ThemeModeToggleProps {
   mode: ThemeMode
@@ -17,7 +18,9 @@ const OPTIONS: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
 
 export function ThemeModeToggle({ mode, resolved, onChange }: ThemeModeToggleProps) {
   const [open, setOpen] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -35,11 +38,16 @@ export function ThemeModeToggle({ mode, resolved, onChange }: ThemeModeTogglePro
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Theme"
-        title="Theme"
+        onPointerEnter={() => setShowTooltip(true)}
+        onPointerLeave={() => setShowTooltip(false)}
+        onFocus={() => setShowTooltip(true)}
+        onBlur={() => setShowTooltip(false)}
+        ref={buttonRef}
         className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
       >
         <TriggerIcon className="h-4 w-4" />
       </button>
+      <FloatingTooltip anchorRef={buttonRef} label="Theme" open={showTooltip && !open} preferredSide="bottom" />
 
       {open && (
         <div className="absolute right-0 top-full z-30 mt-1 w-36 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-xl">

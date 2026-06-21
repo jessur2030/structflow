@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Wand2,
   Copy,
@@ -26,6 +26,7 @@ import { MarkdownPreview } from "./markdown-preview"
 import { CompareView } from "./compare-view"
 import { SnapshotModal } from "./snapshot-modal"
 import { IconButton } from "./icon-button"
+import { FloatingTooltip } from "./tooltip"
 import { formatCode, validate } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, mimeFor, slugify } from "@/lib/io"
 import { DEFAULT_OPTIONS, getLanguage, type FormatOptions, type Language } from "@/lib/types"
@@ -315,24 +316,20 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
               {search.trim() && (
                 <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{jsonMatchCount}</span>
               )}
-              <button
-                type="button"
-                aria-label="Expand all"
-                title="Expand all"
+              <IconButton
+                label="Expand all"
                 onClick={() => setTreeOpenState(true)}
-                className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="h-6 w-6"
               >
                 <Maximize2 className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Collapse all"
-                title="Collapse all"
+              </IconButton>
+              <IconButton
+                label="Collapse all"
                 onClick={() => setTreeOpenState(false)}
-                className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="h-6 w-6"
               >
                 <Minimize2 className="h-3.5 w-3.5" />
-              </button>
+              </IconButton>
             </div>
           </div>
         )}
@@ -427,19 +424,29 @@ function ViewToggle({
   label: string
   children: React.ReactNode
 }) {
+  const ref = useRef<HTMLButtonElement>(null)
+  const [showTooltip, setShowTooltip] = useState(false)
+
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={cn(
-        "flex h-6 w-7 items-center justify-center rounded text-muted-foreground transition-colors",
-        active && "bg-secondary text-foreground",
-      )}
-    >
-      {children}
-    </button>
+    <>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={label}
+        onClick={onClick}
+        onPointerEnter={() => setShowTooltip(true)}
+        onPointerLeave={() => setShowTooltip(false)}
+        onFocus={() => setShowTooltip(true)}
+        onBlur={() => setShowTooltip(false)}
+        className={cn(
+          "flex h-6 w-7 items-center justify-center rounded text-muted-foreground transition-colors",
+          active && "bg-secondary text-foreground",
+        )}
+      >
+        {children}
+      </button>
+      <FloatingTooltip anchorRef={ref} label={label} open={showTooltip} />
+    </>
   )
 }
 

@@ -2,7 +2,7 @@
 
 > A developer's side-panel for JSON and code — format, explore, snapshot, and keep notes, all offline in your browser.
 
-StructFlow is a Chrome (Manifest V3) **side-panel extension** that combines a
+StructFlow is a browser (Manifest V3) **side-panel/sidebar extension** that combines a
 multi-language code formatter, an interactive JSON viewer (in the panel **and**
 on raw JSON pages), a CodeSnap-style PNG exporter, and a searchable local library
 of saved snippets. Because Markdown and Plain Text are first-class, it also works
@@ -71,7 +71,10 @@ pnpm build    # Production build to dist/ (panel + content script + assets)
 pnpm preview  # Preview the production build
 pnpm assets:store  # Capture real Chrome Web Store screenshots + promo tile
 pnpm assets:store:annotated  # Build text-enhanced screenshots from the real captures
-pnpm package:extension  # Build and create releases/structflow-vX.Y.Z.zip
+pnpm package:chrome   # Build releases/structflow-chrome-vX.Y.Z.zip
+pnpm package:edge     # Build releases/structflow-edge-vX.Y.Z.zip
+pnpm package:firefox  # Build releases/structflow-firefox-vX.Y.Z.zip
+pnpm package:extension  # Alias for package:chrome
 ```
 
 The same code runs both as the unpacked extension and in the browser preview;
@@ -101,7 +104,7 @@ node scripts/gen-icons.cjs
 - **html-to-image** — DOM → PNG snapshots
 - **fflate** — client-side `.zip` for bulk library export
 - **idb** — IndexedDB wrapper
-- **chrome.sidePanel** + service worker + content script
+- **chrome.sidePanel** / Firefox `sidebar_action` + service worker + content script
 
 See [`ai-context/architecture-context.md`](ai-context/architecture-context.md)
 for a full file map and subsystem notes.
@@ -115,6 +118,7 @@ for a full file map and subsystem notes.
 - [`ai-context/progress-tracker.md`](ai-context/progress-tracker.md) — what's shipped, per phase.
 - [`ai-context/future-features.md`](ai-context/future-features.md) — ideas backlog.
 - [`STORE_LISTING.md`](STORE_LISTING.md) — copy for the Chrome Web Store listing.
+- [`BROWSER_PUBLISHING.md`](BROWSER_PUBLISHING.md) — Edge and Firefox packaging/submission steps.
 - [`store-assets/`](store-assets/) — generated screenshots and promo tile for the store.
 - [`PRIVACY.md`](PRIVACY.md) — local-first privacy policy.
 - [`SUPPORT.md`](SUPPORT.md) — support page source.
