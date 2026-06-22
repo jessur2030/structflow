@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { getLanguage, type Language } from "@/lib/types"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
-import { highlightCode } from "@/lib/highlight"
+import { HighlightedCode } from "./highlighted-code"
 
 interface CodeViewProps {
   code: string
@@ -13,10 +13,6 @@ interface CodeViewProps {
 export function CodeView({ code, language, wrap, syntaxThemeId }: CodeViewProps) {
   const meta = getLanguage(language)
   const theme = getSyntaxTheme(syntaxThemeId)
-
-  const highlighted = useMemo(() => {
-    return highlightCode(code, meta.hljs)
-  }, [code, meta.hljs])
 
   const lineCount = useMemo(() => (code ? code.split("\n").length : 0), [code])
 
@@ -41,7 +37,7 @@ export function CodeView({ code, language, wrap, syntaxThemeId }: CodeViewProps)
           (wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre")
         }
       >
-        <code className="hljs" dangerouslySetInnerHTML={{ __html: highlighted }} />
+        <HighlightedCode code={code} language={meta.hljs} />
       </pre>
     </div>
   )

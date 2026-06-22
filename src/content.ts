@@ -348,34 +348,51 @@ function applySearch(root: HTMLElement) {
   })
 }
 
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-}
-
-/** Pretty-print JSON into a syntax-highlighted HTML string using theme classes. */
-function highlightJson(data: unknown): string {
+/** Pretty-print JSON into syntax-highlighted DOM nodes using theme classes. */
+function highlightJson(data: unknown): DocumentFragment {
   const json = JSON.stringify(data, null, 2)
-  return json.replace(
-    /("(?:\\.|[^"\\])*"(\s*:)?|\b(?:true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
-    (match) => {
-      if (/^"/.test(match)) {
-        const k = match.match(/^("(?:[^"\\]|\\.)*")(\s*):$/)
-        if (k) {
-          return `<span class="sf-key">${escapeHtml(k[1])}</span><span class="sf-punc">${k[2]}:</span>`
-        }
-        return `<span class="sf-str">${escapeHtml(match)}</span>`
+  const fragment = document.createDocumentFragment()
+  const pattern =
+    /("(?:\\.|[^"\\])*"(\s*:)?|\b(?:true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(json))) {
+    if (match.index > lastIndex) {
+      fragment.appendChild(document.createTextNode(json.slice(lastIndex, match.index)))
+    }
+
+    const value = match[0]
+    if (/^"/.test(value)) {
+      const key = value.match(/^("(?:[^"\\]|\\.)*")(\s*):$/)
+      if (key) {
+        fragment.appendChild(el("span", "sf-key", key[1]))
+        fragment.appendChild(el("span", "sf-punc", `${key[2]}:`))
+      } else {
+        fragment.appendChild(el("span", "sf-str", value))
       }
-      if (/^(?:true|false)$/.test(match)) return `<span class="sf-bool">${match}</span>`
-      if (match === "null") return `<span class="sf-null">${match}</span>`
-      return `<span class="sf-num">${match}</span>`
-    },
-  )
+    } else if (/^(?:true|false)$/.test(value)) {
+      fragment.appendChild(el("span", "sf-bool", value))
+    } else if (value === "null") {
+      fragment.appendChild(el("span", "sf-null", value))
+    } else {
+      fragment.appendChild(el("span", "sf-num", value))
+    }
+
+    lastIndex = pattern.lastIndex
+  }
+
+  if (lastIndex < json.length) {
+    fragment.appendChild(document.createTextNode(json.slice(lastIndex)))
+  }
+
+  return fragment
 }
 
 function render(detected: { raw: string; data: unknown }, s: Settings) {
   // Preserve original document title.
   document.documentElement.style.height = "100%"
-  document.body.innerHTML = ""
+  document.body.replaceChildren()
   document.body.style.margin = "0"
 
   injectStyles(s)
@@ -433,7 +450,7 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
 
   // Formatted (pretty, syntax-highlighted) view — the default.
   const fmtPre = el("pre", "sf-fmt")
-  fmtPre.innerHTML = highlightJson(detected.data)
+  fmtPre.replaceChildren(highlightJson(detected.data))
   rootEl.appendChild(fmtPre)
 
   // Tree view
@@ -478,7 +495,7 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
     s.syntaxTheme = getSyntaxTheme(themeSelect.value)
     const styleNode = document.getElementById("sf-styles")
     if (styleNode) styleNode.textContent = buildCss(s)
-    fmtPre.innerHTML = highlightJson(detected.data)
+    fmtPre.replaceChildren(highlightJson(detected.data))
     chrome?.storage?.local?.set?.({ [SYNTAX_KEY]: themeSelect.value })
   })
 

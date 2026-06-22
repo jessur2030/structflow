@@ -1,5 +1,4 @@
 import { useMemo, type CSSProperties } from "react"
-import { escapeHtml } from "@/lib/highlight"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
 
 interface CompareViewProps {
@@ -46,7 +45,7 @@ function ComparePane({ title, rows, border }: { title: string; rows: Row[]; bord
             <span className="inline-block w-10 select-none pr-3 text-right text-[var(--syn-gutter)]">
               {row.lineNumber}
             </span>
-            <code dangerouslySetInnerHTML={{ __html: escapeHtml(row.text || " ") }} />
+            <code>{row.text || " "}</code>
           </div>
         ))}
       </pre>
