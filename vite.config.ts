@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
@@ -11,6 +12,12 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "src"),
     },
+  },
+  test: {
+    // Unit tests target pure logic (formatter, highlighter), so the default
+    // Node environment is enough. Switch to "jsdom" when adding component tests.
+    environment: "node",
+    include: ["test/**/*.{test,spec}.{ts,tsx}"],
   },
   build: {
     outDir: "dist",
