@@ -20,6 +20,11 @@ if (target === "chrome") {
   manifest.description =
     "JSON viewer & code formatter in your Firefox sidebar. Format, beautify, and save JSON, JS, TS, HTML, CSS, Markdown, and SQL."
   manifest.permissions = manifest.permissions.filter((permission) => permission !== "sidePanel")
+  if (manifest.background?.service_worker) {
+    manifest.background.scripts = [manifest.background.service_worker]
+    delete manifest.background.service_worker
+    delete manifest.background.type
+  }
   delete manifest.side_panel
   delete manifest.web_accessible_resources
   manifest.sidebar_action = {
@@ -36,6 +41,9 @@ if (target === "chrome") {
     gecko: {
       id: "structflow@jessur2030.github.io",
       strict_min_version: "109.0",
+      data_collection_permissions: {
+        required: ["none"],
+      },
     },
   }
   if (manifest.commands?.["open-structflow-side-panel"]?.suggested_key) {
