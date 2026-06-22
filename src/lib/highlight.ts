@@ -1,4 +1,4 @@
-import hljs from "highlight.js/lib/core"
+import { createLowlight } from "lowlight"
 import json from "highlight.js/lib/languages/json"
 import javascript from "highlight.js/lib/languages/javascript"
 import typescript from "highlight.js/lib/languages/typescript"
@@ -7,8 +7,11 @@ import css from "highlight.js/lib/languages/css"
 import markdown from "highlight.js/lib/languages/markdown"
 import sql from "highlight.js/lib/languages/sql"
 import plaintext from "highlight.js/lib/languages/plaintext"
+import type { Root } from "hast"
 
-const languages = {
+// Only the languages StructFlow supports are registered, so the bundle ships
+// just these grammars rather than all of highlight.js.
+const lowlight = createLowlight({
   json,
   javascript,
   typescript,
@@ -17,35 +20,27 @@ const languages = {
   markdown,
   sql,
   plaintext,
-}
+})
 
-for (const [name, language] of Object.entries(languages)) {
-  if (!hljs.getLanguage(name)) {
-    hljs.registerLanguage(name, language)
-  }
-}
+/**
+ * Highlight `code` into a hast (HTML AST) tree of `<span class="hljs-*">`
+ * nodes. Rendering the tree as React elements (see HighlightedCode) avoids any
+ * innerHTML usage while reusing highlight.js's real grammars and the existing
+ * `.hljs-*` theme CSS.
+ */
+export function highlightCode(code: string, language: string): Root {
+  if (!code) return { type: "root", children: [] }
 
-export { hljs }
-
-export function highlightCode(code: string, language: string): string {
-  if (!code) return ""
-
-  const normalizedLanguage = normalizeLanguage(language)
-  try {
-    if (normalizedLanguage && hljs.getLanguage(normalizedLanguage)) {
-      return hljs.highlight(code, { language: normalizedLanguage, ignoreIllegals: true }).value
+  const normalized = normalizeLanguage(language)
+  if (normalized && lowlight.registered(normalized)) {
+    try {
+      return lowlight.highlight(normalized, code)
+    } catch {
+      // fall through to plain text
     }
-    return hljs.highlightAuto(code).value
-  } catch {
-    return escapeHtml(code)
   }
-}
 
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
+  return { type: "root", children: [{ type: "text", value: code }] }
 }
 
 function normalizeLanguage(language: string): string {
@@ -61,7 +56,6 @@ function normalizeLanguage(language: string): string {
     case "tsx":
       return "typescript"
     case "html":
-    case "xml":
     case "svg":
       return "xml"
     case "md":

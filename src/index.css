@@ -167,6 +167,7 @@
 }
 .syntax-surface .hljs-keyword,
 .syntax-surface .hljs-selector-tag,
+.syntax-surface .hljs-selector-pseudo,
 .syntax-surface .hljs-literal,
 .syntax-surface .hljs-section,
 .syntax-surface .hljs-doctag,
@@ -176,6 +177,8 @@
 }
 .syntax-surface .hljs-string,
 .syntax-surface .hljs-meta-string,
+.syntax-surface .hljs-link,
+.syntax-surface .hljs-code,
 .syntax-surface .hljs-addition {
   color: var(--syn-string);
 }

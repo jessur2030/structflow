@@ -1,72 +1,201 @@
-import { useMemo, type CSSProperties } from "react"
-import { Renderer, marked, type Tokens } from "marked"
-import DOMPurify from "dompurify"
-import { escapeHtml, highlightCode } from "@/lib/highlight"
+import { useMemo, type CSSProperties, type ElementType, type ReactNode } from "react"
+import { marked, type Tokens } from "marked"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
+import { HighlightedCode } from "./highlighted-code"
 
 interface MarkdownPreviewProps {
   source: string
   syntaxThemeId: string
 }
 
+type MarkdownToken = Tokens.Generic & Record<string, any>
+
 export function MarkdownPreview({ source, syntaxThemeId }: MarkdownPreviewProps) {
   const theme = getSyntaxTheme(syntaxThemeId)
-
-  const html = useMemo(() => {
-    if (!source) return ""
+  const tokens = useMemo(() => {
+    if (!source) return []
     try {
-      const renderer = new Renderer()
-      const headingCounts = new Map<string, number>()
-      renderer.code = ({ text, lang }: Tokens.Code) => {
-        const language = lang ?? "plaintext"
-        const highlighted = highlightCode(text, language)
-        const languageClass = getLanguageClass(language)
-        const languageLabel = getLanguageLabel(language)
-
-        return `<div class="md-code-shell"><div class="md-code-header">${languageLabel}</div><pre class="syntax-surface md-code-block"><code class="hljs${languageClass}">${highlighted}</code></pre></div>\n`
-      }
-      renderer.heading = ({ text, depth }: Tokens.Heading) => {
-        const id = headingId(text, headingCounts)
-        const inline = marked.parseInline(text, { async: false }) as string
-
-        return `<h${depth} id="${id}">${inline}</h${depth}>\n`
-      }
-
-      const raw = marked.parse(source, { async: false, gfm: true, breaks: false, renderer }) as string
-      return sanitizeMarkdown(`${buildToc(source)}${raw}`)
+      return marked.lexer(source, { gfm: true }) as MarkdownToken[]
     } catch {
-      return ""
+      return []
     }
   }, [source])
+
+  // Fresh map per render pass; headingId() mutates it as headings are rendered
+  // in document order, which is what de-duplicates repeated heading slugs.
+  const headingCounts = useMemo(() => new Map<string, number>(), [tokens])
 
   if (!source) return null
 
   return (
-    <div
-      className="md-preview px-4 py-3"
-      style={syntaxThemeVars(theme) as CSSProperties}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="md-preview px-4 py-3" style={syntaxThemeVars(theme) as CSSProperties}>
+      <TableOfContents tokens={tokens} />
+      {tokens.map((token, index) => renderBlock(token, index, headingCounts))}
+    </div>
   )
 }
 
-function getLanguageClass(language: string): string {
-  const lang = language.trim().toLowerCase().split(/\s+/)[0] ?? ""
-  const safeLang = lang.replace(/[^\w-]/g, "")
+function TableOfContents({ tokens }: { tokens: MarkdownToken[] }) {
+  const headings = tokens.filter((token) => token.type === "heading" && token.depth <= 3)
+  if (headings.length < 3) return null
 
-  return safeLang ? ` language-${safeLang}` : ""
+  const counts = new Map<string, number>()
+  return (
+    <nav className="md-toc">
+      <ol>
+        {headings.map((heading, index) => (
+          <li key={index} className={`md-toc-depth-${heading.depth}`}>
+            <a href={`#${headingId(heading.text ?? "", counts)}`}>
+              {stripMarkup(heading.text ?? "")}
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
 }
 
-function getLanguageLabel(language: string): string {
-  const lang = language.trim().split(/\s+/)[0] || "text"
-  return escapeHtml(lang.toUpperCase())
+function renderBlock(token: MarkdownToken, key: number | string, headingCounts: Map<string, number>): ReactNode {
+  switch (token.type) {
+    case "space":
+      return null
+    case "hr":
+      return <hr key={key} />
+    case "heading": {
+      const Tag = `h${Math.min(Math.max(token.depth ?? 2, 1), 6)}` as ElementType
+      const id = headingId(token.text ?? "", headingCounts)
+      return (
+        <Tag key={key} id={id}>
+          {renderInline(token.tokens, token.text)}
+        </Tag>
+      )
+    }
+    case "paragraph":
+      return <p key={key}>{renderInline(token.tokens, token.text)}</p>
+    case "text":
+      return <p key={key}>{renderInline(token.tokens, token.text ?? token.raw)}</p>
+    case "blockquote":
+      return (
+        <blockquote key={key}>
+          {(token.tokens ?? []).map((child: MarkdownToken, index: number) =>
+            renderBlock(child, index, new Map()),
+          )}
+        </blockquote>
+      )
+    case "list": {
+      const ListTag = token.ordered ? "ol" : "ul"
+      return (
+        <ListTag key={key} start={token.start || undefined}>
+          {(token.items ?? []).map((item: MarkdownToken, index: number) => (
+            <li key={index}>
+              {item.tokens?.length
+                ? item.tokens.map((child: MarkdownToken, childIndex: number) =>
+                    renderBlock(child, childIndex, new Map()),
+                  )
+                : renderInline(item.tokens, item.text)}
+            </li>
+          ))}
+        </ListTag>
+      )
+    }
+    case "code": {
+      const language = token.lang || "text"
+      return (
+        <div key={key} className="md-code-shell">
+          <div className="md-code-header">{String(language).toUpperCase()}</div>
+          <pre className="syntax-surface md-code-block">
+            <HighlightedCode code={token.text ?? ""} language={language} />
+          </pre>
+        </div>
+      )
+    }
+    case "table":
+      return renderTable(token, key)
+    case "html":
+      return token.text || token.raw ? (
+        <pre key={key} className="syntax-surface md-code-block">
+          <code>{token.text || token.raw}</code>
+        </pre>
+      ) : null
+    default:
+      return token.tokens?.length ? (
+        <div key={key}>
+          {token.tokens.map((child: MarkdownToken, index: number) =>
+            renderBlock(child, index, new Map()),
+          )}
+        </div>
+      ) : token.raw ? (
+        <p key={key}>{token.raw}</p>
+      ) : null
+  }
+}
+
+function renderTable(token: MarkdownToken, key: number | string) {
+  return (
+    <table key={key}>
+      <thead>
+        <tr>
+          {(token.header ?? []).map((cell: MarkdownToken, index: number) => (
+            <th key={index} style={{ textAlign: token.align?.[index] || undefined }}>
+              {renderInline(cell.tokens, cell.text)}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {(token.rows ?? []).map((row: MarkdownToken[], rowIndex: number) => (
+          <tr key={rowIndex}>
+            {row.map((cell, cellIndex) => (
+              <td key={cellIndex} style={{ textAlign: token.align?.[cellIndex] || undefined }}>
+                {renderInline(cell.tokens, cell.text)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+function renderInline(tokens?: MarkdownToken[], fallback = ""): ReactNode {
+  if (!tokens?.length) return fallback
+
+  return tokens.map((token, index) => {
+    switch (token.type) {
+      case "text":
+        return token.tokens?.length ? renderInline(token.tokens, token.text) : token.text
+      case "escape":
+        return token.text
+      case "strong":
+        return <strong key={index}>{renderInline(token.tokens, token.text)}</strong>
+      case "em":
+        return <em key={index}>{renderInline(token.tokens, token.text)}</em>
+      case "codespan":
+        return <code key={index}>{token.text}</code>
+      case "br":
+        return <br key={index} />
+      case "del":
+        return <del key={index}>{renderInline(token.tokens, token.text)}</del>
+      case "link":
+        return (
+          <a key={index} href={safeHref(token.href)} target="_blank" rel="noopener noreferrer">
+            {renderInline(token.tokens, token.text || token.href)}
+          </a>
+        )
+      case "image":
+        return token.text || token.href
+      case "html":
+        return token.text || token.raw || ""
+      default:
+        return token.raw || token.text || ""
+    }
+  })
 }
 
 function headingId(text: string, counts: Map<string, number>): string {
   const base =
-    text
+    stripMarkup(text)
       .toLowerCase()
-      .replace(/<[^>]+>/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "section"
   const count = counts.get(base) ?? 0
@@ -74,32 +203,12 @@ function headingId(text: string, counts: Map<string, number>): string {
   return count === 0 ? base : `${base}-${count + 1}`
 }
 
-function buildToc(source: string): string {
-  const headings = marked
-    .lexer(source, { gfm: true })
-    .filter((token): token is Tokens.Heading => token.type === "heading" && token.depth <= 3)
-
-  if (headings.length < 3) return ""
-
-  const counts = new Map<string, number>()
-  const items = headings
-    .map((heading) => {
-      const id = headingId(heading.text, counts)
-      const text = escapeHtml(heading.text.replace(/<[^>]+>/g, ""))
-      return `<li class="md-toc-depth-${heading.depth}"><a href="#${id}">${text}</a></li>`
-    })
-    .join("")
-
-  return `<nav class="md-toc"><ol>${items}</ol></nav>`
+function stripMarkup(text: string): string {
+  return text.replace(/<[^>]+>/g, "")
 }
 
-function sanitizeMarkdown(raw: string): string {
-  const clean = DOMPurify.sanitize(raw)
-  const template = document.createElement("template")
-  template.innerHTML = clean
-  template.content.querySelectorAll("a[href]").forEach((link) => {
-    link.setAttribute("target", "_blank")
-    link.setAttribute("rel", "noopener noreferrer")
-  })
-  return template.innerHTML
+function safeHref(href: string): string {
+  const trimmed = href.trim()
+  if (/^(https?:|mailto:|#|\/)/i.test(trimmed)) return trimmed
+  return "#"
 }

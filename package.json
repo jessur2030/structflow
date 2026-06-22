@@ -16,6 +16,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "release": "pnpm build && node -e \"const v=require('./package.json').version;const {execSync}=require('child_process');require('fs').mkdirSync('releases',{recursive:true});const out='../releases/structflow-v'+v+'.zip';execSync('rm -f '+out+' && zip -r '+out+' .',{cwd:'dist',stdio:'inherit'});console.log('Created releases/structflow-v'+v+'.zip');\"",
     "assets:store": "node scripts/gen-store-assets.cjs",
     "assets:store:annotated": "node scripts/gen-annotated-store-assets.cjs",
@@ -26,11 +28,10 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "dompurify": "^3.4.11",
     "fflate": "^0.8.3",
     "highlight.js": "^11.11.1",
-    "html-to-image": "^1.11.13",
     "idb": "^8.0.3",
+    "lowlight": "^3.3.0",
     "lucide-react": "^1.16.0",
     "marked": "^18.0.5",
     "prettier": "^3.8.4",
@@ -42,7 +43,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.1",
     "@types/chrome": "^0.1.43",
-    "@types/dompurify": "^3.2.0",
+    "@types/hast": "^3.0.4",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -50,6 +51,7 @@
     "sharp": "^0.35.1",
     "tailwindcss": "^4.2.0",
     "typescript": "5.7.3",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   }
 }

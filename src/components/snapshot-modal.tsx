@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { toPng, toBlob } from "html-to-image"
 import { X, Copy, Check, Download, Loader2 } from "lucide-react"
 import { getLanguage, type Language } from "@/lib/types"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
 import { cn } from "@/lib/utils"
-import { highlightCode } from "@/lib/highlight"
+import { HighlightedCode } from "./highlighted-code"
 
 const BACKDROPS: { id: string; label: string; value: string }[] = [
   { id: "navy", label: "Navy", value: "#1b2440" },
@@ -43,26 +42,22 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
     return () => window.removeEventListener("keydown", onKey)
   }, [onClose])
 
-  const highlighted = useMemo(() => {
-    return highlightCode(code, meta.hljs)
-  }, [code, meta.hljs])
-
   const lines = useMemo(() => (code ? code.split("\n") : []), [code])
 
   const render = async (kind: "copy" | "download") => {
     if (!cardRef.current) return
     setBusy(true)
     try {
-      const opts = { pixelRatio: 2, cacheBust: true, skipFonts: false }
+      const blob = await renderElementToPng(cardRef.current, 2)
+      if (!blob) throw new Error("Could not render image")
+
       if (kind === "download") {
-        const dataUrl = await toPng(cardRef.current, opts)
         const a = document.createElement("a")
         a.download = `${(title || "snippet").replace(/[^\w.-]+/g, "-")}.png`
-        a.href = dataUrl
+        a.href = URL.createObjectURL(blob)
         a.click()
+        URL.revokeObjectURL(a.href)
       } else {
-        const blob = await toBlob(cardRef.current, opts)
-        if (!blob) throw new Error("Could not render image")
         try {
           if (!navigator.clipboard || !("write" in navigator.clipboard)) {
             throw new Error("Clipboard image API unavailable")
@@ -146,7 +141,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
                     </div>
                   )}
                   <pre className="overflow-hidden px-4 pb-4 pt-1">
-                    <code className="hljs" dangerouslySetInnerHTML={{ __html: highlighted }} />
+                    <HighlightedCode code={code} language={meta.hljs} />
                   </pre>
                 </div>
               </div>
@@ -240,6 +235,70 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
       </div>
     </div>
   )
+}
+
+async function renderElementToPng(element: HTMLElement, pixelRatio: number): Promise<Blob | null> {
+  const rect = element.getBoundingClientRect()
+  const width = Math.ceil(rect.width)
+  const height = Math.ceil(rect.height)
+  if (!width || !height) return null
+
+  const clone = element.cloneNode(true) as HTMLElement
+  inlineComputedStyles(element, clone)
+  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml")
+
+  const markup = new XMLSerializer().serializeToString(clone)
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
+    `<foreignObject width="100%" height="100%">${markup}</foreignObject>`,
+    `</svg>`,
+  ].join("")
+
+  const image = await loadImage(URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })))
+  const canvas = document.createElement("canvas")
+  canvas.width = width * pixelRatio
+  canvas.height = height * pixelRatio
+  const ctx = canvas.getContext("2d")
+  if (!ctx) return null
+
+  ctx.scale(pixelRatio, pixelRatio)
+  ctx.drawImage(image, 0, 0)
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1))
+}
+
+function inlineComputedStyles(source: Element, clone: Element) {
+  if (source instanceof HTMLElement && clone instanceof HTMLElement) {
+    const computed = window.getComputedStyle(source)
+    for (const property of computed) {
+      clone.style.setProperty(
+        property,
+        computed.getPropertyValue(property),
+        computed.getPropertyPriority(property),
+      )
+    }
+  }
+
+  const sourceChildren = Array.from(source.children)
+  const cloneChildren = Array.from(clone.children)
+  sourceChildren.forEach((child, index) => {
+    const cloneChild = cloneChildren[index]
+    if (cloneChild) inlineComputedStyles(child, cloneChild)
+  })
+}
+
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => {
+      URL.revokeObjectURL(url)
+      resolve(image)
+    }
+    image.onerror = (event) => {
+      URL.revokeObjectURL(url)
+      reject(event)
+    }
+    image.src = url
+  })
 }
 
 function ChipToggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
