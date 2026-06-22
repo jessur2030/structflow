@@ -2,6 +2,8 @@
 
 > A developer's side-panel for JSON and code — format, explore, snapshot, and keep notes, all offline in your browser.
 
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/gnjabohddgleaghkhglofkepfmadclmj?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/structflow/gnjabohddgleaghkhglofkepfmadclmj)
+
 StructFlow is a browser (Manifest V3) **side-panel/sidebar extension** that combines a
 multi-language code formatter, an interactive JSON viewer (in the panel **and**
 on raw JSON pages), a CodeSnap-style PNG exporter, and a searchable local library
@@ -42,6 +44,19 @@ stored in your browser via IndexedDB.
 - **Side-panel shortcut** — open StructFlow with `Ctrl+Shift+S`, or
   `MacCtrl+Shift+S` on macOS by default.
 - **Light & dark themes** — persisted and applied across the panel and viewers.
+
+---
+
+## Install
+
+| Browser | Status | Link |
+| --- | --- | --- |
+| **Chrome** | ✅ Available | [Chrome Web Store](https://chromewebstore.google.com/detail/structflow/gnjabohddgleaghkhglofkepfmadclmj) |
+| **Firefox** | 🔜 In review | _coming soon_ |
+| **Edge** | 🔜 Planned | _coming soon_ |
+
+> Works in any Chromium browser (Edge, Brave, Arc) via the Chrome Web Store link
+> above, or from source below.
 
 ---
 
