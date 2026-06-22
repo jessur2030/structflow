@@ -16,6 +16,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "release": "pnpm build && node -e \"const v=require('./package.json').version;const {execSync}=require('child_process');require('fs').mkdirSync('releases',{recursive:true});const out='../releases/structflow-v'+v+'.zip';execSync('rm -f '+out+' && zip -r '+out+' .',{cwd:'dist',stdio:'inherit'});console.log('Created releases/structflow-v'+v+'.zip');\"",
     "assets:store": "node scripts/gen-store-assets.cjs",
     "assets:store:annotated": "node scripts/gen-annotated-store-assets.cjs",
@@ -49,6 +51,7 @@
     "sharp": "^0.35.1",
     "tailwindcss": "^4.2.0",
     "typescript": "5.7.3",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   }
 }
