@@ -121,17 +121,17 @@ node scripts/gen-icons.cjs
 - **idb** — IndexedDB wrapper
 - **chrome.sidePanel** / Firefox `sidebar_action` + service worker + content script
 
-See [`ai-context/architecture-context.md`](ai-context/architecture-context.md)
+See [`context/architecture-context.md`](context/architecture-context.md)
 for a full file map and subsystem notes.
 
 ---
 
 ## Project docs
 
-- [`ai-context/.project-context.md`](ai-context/.project-context.md) — what it is, features, conventions, non-goals.
-- [`ai-context/architecture-context.md`](ai-context/architecture-context.md) — stack, file map, data flow, subsystems.
-- [`ai-context/progress-tracker.md`](ai-context/progress-tracker.md) — what's shipped, per phase.
-- [`ai-context/future-features.md`](ai-context/future-features.md) — ideas backlog.
+- [`context/.project-context.md`](context/.project-context.md) — what it is, features, conventions, non-goals.
+- [`context/architecture-context.md`](context/architecture-context.md) — stack, file map, data flow, subsystems.
+- [`context/progress-tracker.md`](context/progress-tracker.md) — what's shipped, per phase.
+- [`context/future-features.md`](context/future-features.md) — ideas backlog.
 - [`STORE_LISTING.md`](STORE_LISTING.md) — copy for the Chrome Web Store listing.
 - [`BROWSER_PUBLISHING.md`](BROWSER_PUBLISHING.md) — Edge and Firefox packaging/submission steps.
 - [`store-assets/`](store-assets/) — generated screenshots and promo tile for the store.

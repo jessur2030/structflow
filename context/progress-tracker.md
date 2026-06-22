@@ -126,7 +126,7 @@ Legend: [x] done · [~] partial · [ ] not started
 - [x] Clean production build
 
 ## Backlog / follow-ups (not started)
-See `ai-context/future-features.md` for the full ideas backlog.
+See `context/future-features.md` for the full ideas backlog.
 
 ## Phase 12 — cross-browser packaging + tooltips
 - [x] Added browser-specific packaging scripts: `package:chrome`, `package:edge`, `package:firefox`
