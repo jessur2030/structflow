@@ -2,6 +2,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate"
 import {
   DEFAULT_OPTIONS,
   LANGUAGES,
+  PROJECT_COLORS,
   STRUCTFLOW_APP_VERSION,
   STRUCTFLOW_SCHEMA_VERSION,
   entryContent,
@@ -26,7 +27,11 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       ta.style.opacity = "0"
       document.body.appendChild(ta)
       ta.select()
-      document.execCommand("copy")
+      // execCommand("copy") is deprecated but is still the only fallback when the
+      // async Clipboard API is unavailable (e.g. the document isn't focused). It
+      // works in all current browsers; the cast keeps the deprecation hint from
+      // leaking out of this intentional fallback.
+      ;(document as { execCommand(commandId: string): boolean }).execCommand("copy")
       document.body.removeChild(ta)
       return true
     } catch {
@@ -142,6 +147,265 @@ function readManifestFromZip(bytes: Uint8Array): string {
   const manifest = files["manifest.json"]
   if (!manifest) throw new Error("Import ZIP is missing manifest.json.")
   return strFromU8(manifest)
+}
+
+// ─── External-file import ────────────────────────────────────────────────────
+// "Import" accepts more than StructFlow's own backups: loose code/text files, a
+// whole folder, or a zip of files. Each file becomes one library entry, with its
+// language guessed from the extension; folders become projects.
+
+const EXT_TO_LANGUAGE: Record<string, Language> = {
+  md: "markdown", markdown: "markdown", mdown: "markdown", mkd: "markdown",
+  txt: "text", text: "text", log: "text",
+  ts: "typescript", tsx: "typescript", mts: "typescript", cts: "typescript",
+  js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
+  json: "json", jsonc: "json", json5: "json",
+  html: "html", htm: "html", xhtml: "html", xml: "html", svg: "html", vue: "html",
+  css: "css", scss: "css", sass: "css", less: "css",
+  sql: "sql",
+}
+
+/** Best-effort language guess from a file name's extension (defaults to plain text). */
+export function languageFromFilename(name: string): Language {
+  const ext = name.toLowerCase().split(".").pop() ?? ""
+  return EXT_TO_LANGUAGE[ext] ?? "text"
+}
+
+interface ImportedFile {
+  /** Path relative to the import root; may include "/" for files inside folders/zips. */
+  path: string
+  text: string
+}
+
+// Guardrails so importing a real folder/zip (which can contain node_modules,
+// build output, images, etc.) can't read gigabytes into memory and crash the tab.
+const MAX_IMPORT_FILES = 1000
+const MAX_FILE_BYTES = 512 * 1024 // 512 KB per file
+const MAX_TOTAL_BYTES = 32 * 1024 * 1024 // 32 MB across the whole import
+
+/** Directory names that are never worth importing; matched against any path segment. */
+const IGNORED_DIR_SEGMENTS = new Set([
+  "node_modules", ".git", ".svn", ".hg", "dist", "build", "out", "target",
+  ".next", ".nuxt", ".cache", ".turbo", ".parcel-cache", "coverage", "vendor",
+  "__pycache__", ".venv", "venv", ".idea", ".vscode", ".gradle", "bin", "obj",
+])
+
+/** File extensions that are binary; skipped before we ever read them. */
+const BINARY_EXTENSIONS = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "icns", "tif", "tiff", "avif",
+  "woff", "woff2", "ttf", "otf", "eot",
+  "zip", "gz", "tar", "rar", "7z", "bz2", "xz", "tgz",
+  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+  "mp3", "wav", "ogg", "flac", "m4a", "aac",
+  "mp4", "mov", "avi", "mkv", "webm",
+  "wasm", "exe", "dll", "so", "dylib", "bin", "dat", "class", "node",
+  "db", "sqlite", "sqlite3", "psd", "sketch", "fig",
+])
+
+function isIgnoredPath(path: string): boolean {
+  return path.split("/").some((segment) => IGNORED_DIR_SEGMENTS.has(segment))
+}
+
+function hasBinaryExtension(name: string): boolean {
+  return BINARY_EXTENSIONS.has(name.toLowerCase().split(".").pop() ?? "")
+}
+
+/** Cheap pre-read filter using path + size only (no file content loaded yet). */
+function isImportableCandidate(path: string, name: string, byteLength: number): boolean {
+  if (isJunkFile(name)) return false
+  if (isIgnoredPath(path)) return false
+  if (hasBinaryExtension(name)) return false
+  if (byteLength > MAX_FILE_BYTES) return false
+  return true
+}
+
+/**
+ * Import one or more files into the library.
+ *  - A single StructFlow backup (.zip or manifest .json) restores entries + projects.
+ *  - Anything else is ingested as external content: one entry per file, language
+ *    guessed from the extension, with folders (from a picked directory or inside a
+ *    zip) turned into projects. Unknown/binary files are skipped.
+ */
+export async function importFiles(
+  files: File[],
+): Promise<{ entries: Entry[]; projects: Project[]; skipped: number }> {
+  if (files.length === 0) return { entries: [], projects: [], skipped: 0 }
+
+  // 1) A single file might be a StructFlow backup → restore it.
+  if (files.length === 1) {
+    const backup = await tryReadBackup(files[0])
+    if (backup) return { ...remapImportedData(backup), skipped: 0 }
+
+    // A non-backup .zip is treated as a zip-of-files (grouped under the zip name).
+    if (files[0].name.toLowerCase().endsWith(".zip")) {
+      const { imported, skipped } = await readZipFiles(files[0])
+      if (imported.length === 0) throw new Error("No importable files found in that zip.")
+      return { ...buildLibraryFromFiles(imported, stripExtension(files[0].name)), skipped }
+    }
+  }
+
+  // 2) Loose files or a picked folder (webkitRelativePath carries the folder path).
+  const imported: ImportedFile[] = []
+  let skipped = 0
+  let totalBytes = 0
+  for (const file of files) {
+    const path = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name
+    if (
+      imported.length >= MAX_IMPORT_FILES ||
+      totalBytes >= MAX_TOTAL_BYTES ||
+      !isImportableCandidate(path, file.name, file.size)
+    ) {
+      skipped++
+      continue
+    }
+    const text = await readFileText(file)
+    if (looksBinary(text)) {
+      skipped++
+      continue
+    }
+    imported.push({ path, text })
+    totalBytes += file.size
+  }
+  if (imported.length === 0) throw new Error("No importable text files were found.")
+  return { ...buildLibraryFromFiles(imported), skipped }
+}
+
+/** Parse a file as a StructFlow backup, or return null if it isn't one. */
+async function tryReadBackup(file: File): Promise<StructFlowExportManifest | null> {
+  const lower = file.name.toLowerCase()
+
+  if (lower.endsWith(".zip")) {
+    let zipFiles: Record<string, Uint8Array>
+    try {
+      zipFiles = unzipSync(new Uint8Array(await file.arrayBuffer()))
+    } catch {
+      return null
+    }
+    const manifest = zipFiles["manifest.json"]
+    if (!manifest) return null
+    const parsed = safeJsonParse(strFromU8(manifest))
+    if (!looksLikeBackup(parsed)) return null
+    return validateManifest(parsed) // committed: surfaces schema/shape errors
+  }
+
+  if (lower.endsWith(".json")) {
+    const parsed = safeJsonParse(await readFileText(file))
+    if (!looksLikeBackup(parsed)) return null
+    return validateManifest(parsed)
+  }
+
+  return null
+}
+
+async function readZipFiles(file: File): Promise<{ imported: ImportedFile[]; skipped: number }> {
+  const zipFiles = unzipSync(new Uint8Array(await file.arrayBuffer()))
+  const imported: ImportedFile[] = []
+  let skipped = 0
+  let totalBytes = 0
+  for (const [path, bytes] of Object.entries(zipFiles)) {
+    if (path.endsWith("/")) continue // directory entry
+    const name = path.split("/").pop() ?? path
+    if (
+      imported.length >= MAX_IMPORT_FILES ||
+      totalBytes >= MAX_TOTAL_BYTES ||
+      !isImportableCandidate(path, name, bytes.length)
+    ) {
+      skipped++
+      continue
+    }
+    const text = strFromU8(bytes)
+    if (looksBinary(text)) {
+      skipped++
+      continue
+    }
+    imported.push({ path, text })
+    totalBytes += bytes.length
+  }
+  return { imported, skipped }
+}
+
+/**
+ * Turn imported files into entries + projects. A file's top-level folder segment
+ * becomes its project; bare files use `defaultProjectName` (e.g. the zip name) if
+ * given, otherwise they land with no project.
+ */
+function buildLibraryFromFiles(
+  files: ImportedFile[],
+  defaultProjectName?: string,
+): { entries: Entry[]; projects: Project[] } {
+  const projectsByName = new Map<string, Project>()
+  const ensureProject = (name: string): string => {
+    const existing = projectsByName.get(name)
+    if (existing) return existing.id
+    const project: Project = {
+      id: crypto.randomUUID(),
+      name,
+      color: PROJECT_COLORS[projectsByName.size % PROJECT_COLORS.length],
+      createdAt: Date.now(),
+    }
+    projectsByName.set(name, project)
+    return project.id
+  }
+
+  const entries = files.map((file) => {
+    const segments = file.path.split("/").filter(Boolean)
+    const folder = segments.length > 1 ? segments[0] : defaultProjectName
+    const projectId = folder ? ensureProject(folder) : null
+    const filename = segments[segments.length - 1] ?? file.path
+    return entryFromImportedFile(filename, file.text, projectId)
+  })
+
+  return { entries, projects: [...projectsByName.values()] }
+}
+
+function entryFromImportedFile(filename: string, text: string, projectId: string | null): Entry {
+  const now = Date.now()
+  return {
+    id: crypto.randomUUID(),
+    title: stripExtension(filename),
+    language: languageFromFilename(filename),
+    rawInput: text,
+    formattedOutput: text,
+    formatterVersion: STRUCTFLOW_APP_VERSION,
+    formatOptions: DEFAULT_OPTIONS,
+    source: "import",
+    projectId,
+    pinned: false,
+    tags: [],
+    lastOpenedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function looksLikeBackup(value: unknown): boolean {
+  return isRecord(value) && value.app === "StructFlow"
+}
+
+function safeJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+async function readFileText(file: File): Promise<string> {
+  return new TextDecoder().decode(new Uint8Array(await file.arrayBuffer()))
+}
+
+function stripExtension(name: string): string {
+  const base = name.split("/").pop() ?? name
+  return base.replace(/\.[^.]+$/, "").trim() || base
+}
+
+function isJunkFile(name: string): boolean {
+  return name === ".DS_Store" || name === "Thumbs.db" || name.startsWith("._") || name.startsWith(".git")
+}
+
+/** Heuristic: text with a NUL byte is almost certainly binary. */
+function looksBinary(text: string): boolean {
+  return /\x00/.test(text)
 }
 
 function remapImportedData(manifest: StructFlowExportManifest): { entries: Entry[]; projects: Project[] } {

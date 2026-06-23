@@ -16,6 +16,7 @@ import {
   MoreVertical,
   Archive,
   Upload,
+  FolderUp,
   Star,
   Tags,
   History,
@@ -27,7 +28,7 @@ import { Modal } from "./modal"
 import { IconButton } from "./icon-button"
 import { FloatingTooltip } from "./tooltip"
 import { formatCode } from "@/lib/formatter"
-import { copyToClipboard, downloadFile, exportEntriesAsZip, importEntriesFromFile, mimeFor, slugify } from "@/lib/io"
+import { copyToClipboard, downloadFile, exportEntriesAsZip, importFiles, mimeFor, slugify } from "@/lib/io"
 import {
   DEFAULT_OPTIONS,
   LANGUAGES,
@@ -105,8 +106,10 @@ export function Library({
     fileName: string
     entries: Entry[]
     projects: Project[]
+    skipped: number
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const folderInputRef = useRef<HTMLInputElement | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -199,16 +202,31 @@ export function Library({
     setExportOpen(false)
   }
 
-  const runImport = async (file: File | undefined) => {
-    if (!file) return
+  const runImport = async (fileList: FileList | null) => {
+    const files = fileList ? Array.from(fileList) : []
+    if (files.length === 0) return
     setImportError(null)
     try {
-      const imported = await importEntriesFromFile(file)
-      setPendingImport({ fileName: file.name, entries: imported.entries, projects: imported.projects })
+      const imported = await importFiles(files)
+      if (imported.entries.length === 0) {
+        setImportError("No importable files were found.")
+        return
+      }
+      const label =
+        files.length === 1
+          ? files[0].name
+          : `${imported.entries.length} files${imported.projects.length ? ` · ${imported.projects.length} folder(s)` : ""}`
+      setPendingImport({
+        fileName: label,
+        entries: imported.entries,
+        projects: imported.projects,
+        skipped: imported.skipped,
+      })
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Could not import StructFlow data.")
+      setImportError(err instanceof Error ? err.message : "Could not import these files.")
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = ""
+      if (folderInputRef.current) folderInputRef.current.value = ""
     }
   }
 
@@ -239,18 +257,36 @@ export function Library({
           <Archive className="h-4 w-4" />
         </IconButton>
         <IconButton
-          label="Import data"
+          label="Import files (or a StructFlow backup)"
           onClick={() => fileInputRef.current?.click()}
           className="border border-border bg-background"
         >
           <Upload className="h-4 w-4" />
         </IconButton>
+        <IconButton
+          label="Import a folder"
+          onClick={() => folderInputRef.current?.click()}
+          className="border border-border bg-background"
+        >
+          <FolderUp className="h-4 w-4" />
+        </IconButton>
         <input
           ref={fileInputRef}
           type="file"
-          accept=".zip,.json,application/zip,application/json"
+          multiple
+          accept=".zip,.json,.md,.markdown,.txt,.log,.ts,.tsx,.mts,.cts,.js,.jsx,.mjs,.cjs,.json5,.jsonc,.html,.htm,.xml,.svg,.vue,.css,.scss,.sass,.less,.sql"
           className="hidden"
-          onChange={(e) => void runImport(e.target.files?.[0])}
+          onChange={(e) => void runImport(e.target.files)}
+        />
+        <input
+          ref={folderInputRef}
+          type="file"
+          // @ts-expect-error non-standard but widely supported directory picker
+          webkitdirectory=""
+          directory=""
+          multiple
+          className="hidden"
+          onChange={(e) => void runImport(e.target.files)}
         />
         <IconButton
           label="New project"
@@ -462,6 +498,13 @@ export function Library({
                 <span className="font-mono text-muted-foreground">{pendingImport.entries.length}</span>
               </div>
             </div>
+            {pendingImport.skipped > 0 && (
+              <p className="text-[12px] text-muted-foreground">
+                {pendingImport.skipped} file{pendingImport.skipped === 1 ? "" : "s"} skipped —
+                binary, larger than 512&nbsp;KB, or inside ignored folders (e.g. node_modules,
+                .git, dist).
+              </p>
+            )}
           </div>
         )}
       </Modal>
