@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { toBlob } from "html-to-image"
 import { X, Copy, Check, Download, Loader2 } from "lucide-react"
 import { getLanguage, type Language } from "@/lib/types"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
@@ -32,7 +33,8 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
   const [title, setTitle] = useState(defaultTitle || `snippet.${meta.ext}`)
   const [showLineNumbers, setShowLineNumbers] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<null | "copy" | "download">(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -44,40 +46,44 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
 
   const lines = useMemo(() => (code ? code.split("\n") : []), [code])
 
+  const downloadBlob = (blob: Blob) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.download = `${(title || "snippet").replace(/[^\w.-]+/g, "-")}.png`
+    a.href = url
+    a.click()
+    // Defer the revoke so the browser's async download read isn't cut short.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  }
+
   const render = async (kind: "copy" | "download") => {
-    if (!cardRef.current) return
-    setBusy(true)
+    if (!cardRef.current || busy) return
+    setBusy(kind)
+    setError(null)
     try {
-      const blob = await renderElementToPng(cardRef.current, 2)
+      const blob = await toBlob(cardRef.current, { pixelRatio: 2, cacheBust: true })
       if (!blob) throw new Error("Could not render image")
 
       if (kind === "download") {
-        const a = document.createElement("a")
-        a.download = `${(title || "snippet").replace(/[^\w.-]+/g, "-")}.png`
-        a.href = URL.createObjectURL(blob)
-        a.click()
-        URL.revokeObjectURL(a.href)
+        downloadBlob(blob)
       } else {
         try {
           if (!navigator.clipboard || !("write" in navigator.clipboard)) {
-            throw new Error("Clipboard image API unavailable")
+            throw new Error("unavailable")
           }
           await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
           setCopied(true)
           setTimeout(() => setCopied(false), 1400)
         } catch {
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement("a")
-          a.download = `${(title || "snippet").replace(/[^\w.-]+/g, "-")}.png`
-          a.href = url
-          a.click()
-          URL.revokeObjectURL(url)
+          // Clipboard image API blocked/unavailable — fall back to a download.
+          downloadBlob(blob)
         }
       }
     } catch (err) {
       console.warn("StructFlow snapshot render failed:", (err as Error).message)
+      setError("Couldn't render the snapshot. Please try again.")
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -212,22 +218,23 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
           </div>
 
           <div className="mt-3 flex items-center justify-end gap-2">
+            {error && <span className="mr-auto text-[12px] text-red-500">{error}</span>}
             <button
               type="button"
               onClick={() => render("copy")}
-              disabled={busy}
+              disabled={busy !== null}
               className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium hover:bg-secondary disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : copied ? <Check className="h-3.5 w-3.5 text-[var(--success)]" /> : <Copy className="h-3.5 w-3.5" />}
+              {busy === "copy" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : copied ? <Check className="h-3.5 w-3.5 text-[var(--success)]" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : "Copy PNG"}
             </button>
             <button
               type="button"
               onClick={() => render("download")}
-              disabled={busy}
+              disabled={busy !== null}
               className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              {busy === "download" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               Download PNG
             </button>
           </div>
@@ -235,70 +242,6 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
       </div>
     </div>
   )
-}
-
-async function renderElementToPng(element: HTMLElement, pixelRatio: number): Promise<Blob | null> {
-  const rect = element.getBoundingClientRect()
-  const width = Math.ceil(rect.width)
-  const height = Math.ceil(rect.height)
-  if (!width || !height) return null
-
-  const clone = element.cloneNode(true) as HTMLElement
-  inlineComputedStyles(element, clone)
-  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml")
-
-  const markup = new XMLSerializer().serializeToString(clone)
-  const svg = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
-    `<foreignObject width="100%" height="100%">${markup}</foreignObject>`,
-    `</svg>`,
-  ].join("")
-
-  const image = await loadImage(URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })))
-  const canvas = document.createElement("canvas")
-  canvas.width = width * pixelRatio
-  canvas.height = height * pixelRatio
-  const ctx = canvas.getContext("2d")
-  if (!ctx) return null
-
-  ctx.scale(pixelRatio, pixelRatio)
-  ctx.drawImage(image, 0, 0)
-  return new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1))
-}
-
-function inlineComputedStyles(source: Element, clone: Element) {
-  if (source instanceof HTMLElement && clone instanceof HTMLElement) {
-    const computed = window.getComputedStyle(source)
-    for (const property of computed) {
-      clone.style.setProperty(
-        property,
-        computed.getPropertyValue(property),
-        computed.getPropertyPriority(property),
-      )
-    }
-  }
-
-  const sourceChildren = Array.from(source.children)
-  const cloneChildren = Array.from(clone.children)
-  sourceChildren.forEach((child, index) => {
-    const cloneChild = cloneChildren[index]
-    if (cloneChild) inlineComputedStyles(child, cloneChild)
-  })
-}
-
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.onload = () => {
-      URL.revokeObjectURL(url)
-      resolve(image)
-    }
-    image.onerror = (event) => {
-      URL.revokeObjectURL(url)
-      reject(event)
-    }
-    image.src = url
-  })
 }
 
 function ChipToggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
