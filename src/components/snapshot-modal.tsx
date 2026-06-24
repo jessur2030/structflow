@@ -70,7 +70,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
       const rect = node.getBoundingClientRect()
       const fitRatio = Math.min(MAX_CANVAS_PX / rect.width, MAX_CANVAS_PX / rect.height)
       const pixelRatio = Math.min(2, fitRatio)
-      if (pixelRatio < 1) setInfo("Large snapshot — scaled down to fit the image size limit.")
+      if (pixelRatio < 1) setInfo("Large snapshot - scaled down to fit the image size limit.")
 
       const blob = await toBlob(node, { pixelRatio, cacheBust: true })
       if (!blob) throw new Error("Could not render image")
@@ -86,7 +86,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
           setCopied(true)
           setTimeout(() => setCopied(false), 1400)
         } catch {
-          // Clipboard image API blocked/unavailable — fall back to a download.
+          // Clipboard image API blocked/unavailable - fall back to a download.
           downloadBlob(blob)
         }
       }

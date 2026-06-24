@@ -28,7 +28,7 @@ export const LANGUAGES: LanguageMeta[] = [
     id: "text",
     label: "Plain Text",
     hljs: "plaintext",
-    description: "Freeform notes and scratch text — no formatting applied.",
+    description: "Freeform notes and scratch text - no formatting applied.",
     ext: "txt",
   },
   {

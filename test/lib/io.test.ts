@@ -53,7 +53,7 @@ function jsonFile(name: string, obj: unknown): File {
   return new File([JSON.stringify(obj)], name, { type: "application/json" })
 }
 
-describe("importEntriesFromFile — happy path (StructFlow export)", () => {
+describe("importEntriesFromFile - happy path (StructFlow export)", () => {
   it("imports a StructFlow .zip export and remaps ids", async () => {
     const file = zipFile("structflow-export.zip", {
       "manifest.json": JSON.stringify(structflowManifest()),
@@ -78,7 +78,7 @@ describe("importEntriesFromFile — happy path (StructFlow export)", () => {
   })
 })
 
-describe("importEntriesFromFile — rejects non-StructFlow files", () => {
+describe("importEntriesFromFile - rejects non-StructFlow files", () => {
   it("reproduces the 'not a StructFlow export' error for a foreign manifest", async () => {
     // e.g. importing a browser extension manifest, or any other JSON
     const file = jsonFile("manifest.json", { name: "Some Extension", version: "1.0" })
@@ -117,7 +117,7 @@ describe("languageFromFilename", () => {
   })
 })
 
-describe("importFiles — restore path (single backup)", () => {
+describe("importFiles - restore path (single backup)", () => {
   it("still restores a StructFlow backup zip", async () => {
     const file = zipFile("backup.zip", { "manifest.json": JSON.stringify(structflowManifest()) })
     const { entries, projects } = await importFiles([file])
@@ -126,7 +126,7 @@ describe("importFiles — restore path (single backup)", () => {
   })
 })
 
-describe("importFiles — external content (the Obsidian/Postman-style import)", () => {
+describe("importFiles - external content (the Obsidian/Postman-style import)", () => {
   it("imports loose files as one entry each, language by extension, no project", async () => {
     const files = [
       new File(['{"a":1}'], "config.json", { type: "application/json" }),
@@ -171,7 +171,7 @@ describe("importFiles — external content (the Obsidian/Postman-style import)",
   })
 })
 
-describe("importFiles — guardrails (prevents reading huge folders into memory)", () => {
+describe("importFiles - guardrails (prevents reading huge folders into memory)", () => {
   it("skips files inside ignored directories (node_modules, .git, dist)", async () => {
     const files = [
       fileWithPath("proj/src/app.ts", "const a = 1"),

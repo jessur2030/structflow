@@ -448,7 +448,7 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
   bar.appendChild(btns)
   rootEl.appendChild(bar)
 
-  // Formatted (pretty, syntax-highlighted) view — the default.
+  // Formatted (pretty, syntax-highlighted) view - the default.
   const fmtPre = el("pre", "sf-fmt")
   fmtPre.replaceChildren(highlightJson(detected.data))
   rootEl.appendChild(fmtPre)

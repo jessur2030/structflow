@@ -500,7 +500,7 @@ export function Library({
             </div>
             {pendingImport.skipped > 0 && (
               <p className="text-[12px] text-muted-foreground">
-                {pendingImport.skipped} file{pendingImport.skipped === 1 ? "" : "s"} skipped —
+                {pendingImport.skipped} file{pendingImport.skipped === 1 ? "" : "s"} skipped -
                 binary, larger than 512&nbsp;KB, or inside ignored folders (e.g. node_modules,
                 .git, dist).
               </p>

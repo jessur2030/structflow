@@ -7,7 +7,7 @@ const opts = (overrides: Partial<FormatOptions> = {}): FormatOptions => ({
   ...overrides,
 })
 
-describe("formatCode — JSON", () => {
+describe("formatCode - JSON", () => {
   it("pretty-prints with 2-space indent by default", async () => {
     const res = await formatCode("json", '{"a":1,"b":2}', opts())
     expect(res.ok).toBe(true)
@@ -37,7 +37,7 @@ describe("formatCode — JSON", () => {
   })
 })
 
-describe("formatCode — other languages", () => {
+describe("formatCode - other languages", () => {
   it("returns empty output for blank input", async () => {
     const res = await formatCode("json", "   \n  ", opts())
     expect(res).toEqual({ ok: true, output: "" })
