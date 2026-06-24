@@ -35,6 +35,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState<null | "copy" | "download">(null)
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -57,11 +58,21 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
   }
 
   const render = async (kind: "copy" | "download") => {
-    if (!cardRef.current || busy) return
+    const node = cardRef.current
+    if (!node || busy) return
     setBusy(kind)
     setError(null)
+    setInfo(null)
     try {
-      const blob = await toBlob(cardRef.current, { pixelRatio: 2, cacheBust: true })
+      // Browsers cap canvas dimensions at ~16384px. Use a slightly conservative
+      // bound so rounding / measurement differences can't clip the edge.
+      const MAX_CANVAS_PX = 16000
+      const rect = node.getBoundingClientRect()
+      const fitRatio = Math.min(MAX_CANVAS_PX / rect.width, MAX_CANVAS_PX / rect.height)
+      const pixelRatio = Math.min(2, fitRatio)
+      if (pixelRatio < 1) setInfo("Large snapshot — scaled down to fit the image size limit.")
+
+      const blob = await toBlob(node, { pixelRatio, cacheBust: true })
       if (!blob) throw new Error("Could not render image")
 
       if (kind === "download") {
@@ -219,6 +230,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
 
           <div className="mt-3 flex items-center justify-end gap-2">
             {error && <span className="mr-auto text-[12px] text-red-500">{error}</span>}
+            {!error && info && <span className="mr-auto text-[12px] text-muted-foreground">{info}</span>}
             <button
               type="button"
               onClick={() => render("copy")}
