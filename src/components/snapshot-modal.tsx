@@ -122,7 +122,15 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
           </button>
         </div>
 
-        <div className="flex-1 overflow-auto bg-[var(--snap-checker)] p-4">
+        <div className="relative flex-1 overflow-auto bg-(--snap-checker) p-4">
+          {busy && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
+              <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-[13px] font-medium shadow-md">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {busy === "copy" ? "Copying image…" : "Generating image…"}
+              </div>
+            </div>
+          )}
           <div className="flex justify-center">
             <div
               ref={cardRef}
@@ -235,16 +243,17 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
               type="button"
               onClick={() => render("copy")}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium hover:bg-secondary disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium hover:bg-secondary disabled:opacity-50 cursor-pointer"
             >
-              {busy === "copy" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : copied ? <Check className="h-3.5 w-3.5 text-[var(--success)]" /> : <Copy className="h-3.5 w-3.5" />}
+            
+              {busy === "copy" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : "Copy PNG"}
             </button>
             <button
               type="button"
               onClick={() => render("download")}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
               {busy === "download" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               Download PNG

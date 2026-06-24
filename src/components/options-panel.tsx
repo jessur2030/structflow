@@ -54,7 +54,7 @@ export function OptionsPanel({ language, options, onChange }: OptionsPanelProps)
             step={10}
             value={options.printWidth}
             onChange={(e) => set("printWidth", Number(e.target.value))}
-            className="w-full accent-[var(--primary)]"
+            className="w-full accent-primary"
           />
         </Field>
       )}

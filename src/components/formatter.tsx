@@ -218,7 +218,7 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
             <Settings2 className="h-4 w-4" />
           </IconButton>
           <IconButton label="Copy result" onClick={handleCopy} disabled={!input}>
-            {copied ? <Check className="h-4 w-4 text-[var(--success)]" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
           </IconButton>
           <IconButton label="Export to file" onClick={handleExport} disabled={!input}>
             <Download className="h-4 w-4" />
@@ -401,7 +401,7 @@ function StatusPill({ status, empty }: { status: { ok: boolean; error?: string }
   if (empty) return null
   if (status.ok) {
     return (
-      <span className="flex items-center gap-1 text-[11px] text-[var(--success)]">
+      <span className="flex items-center gap-1 text-[11px] text-success">
         <CheckCircle2 className="h-3.5 w-3.5" /> Valid
       </span>
     )

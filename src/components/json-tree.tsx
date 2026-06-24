@@ -231,7 +231,7 @@ function CopyAction({
         className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-[color-mix(in_srgb,var(--syn-fg)_12%,transparent)] group-hover:opacity-100 syn-punctuation"
       >
         {copied ? (
-          <Check className="h-3 w-3 text-[var(--success)]" />
+          <Check className="h-3 w-3 text-success" />
         ) : icon === "path" ? (
           <Hash className="h-3 w-3" />
         ) : (

@@ -436,7 +436,7 @@ export function Library({
               for (const g of exportableGroups) next[g.key] = e.target.checked
               setSelected(next)
             }}
-            className="h-4 w-4 accent-[var(--primary)]"
+            className="h-4 w-4 accent-primary"
           />
           Select all
         </label>
@@ -450,7 +450,7 @@ export function Library({
                 type="checkbox"
                 checked={!!selected[g.key]}
                 onChange={(e) => setSelected((s) => ({ ...s, [g.key]: e.target.checked }))}
-                className="h-4 w-4 accent-[var(--primary)]"
+                className="h-4 w-4 accent-primary"
               />
               {g.color ? (
                 <Folder className="h-4 w-4 shrink-0" style={{ color: g.color }} />
@@ -1052,7 +1052,7 @@ function EntryRow({
   return (
     <div className="group relative flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60">
       {entry.pinned ? (
-        <Star className="h-4 w-4 shrink-0 fill-[var(--primary)] text-[var(--primary)]" />
+        <Star className="h-4 w-4 shrink-0 fill-primary text-primary" />
       ) : (
         <FileCode2 className="h-4 w-4 shrink-0 text-muted-foreground" />
       )}
@@ -1093,10 +1093,10 @@ function EntryRow({
           e.stopPropagation()
           onTogglePinned()
         }}>
-          <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-[var(--primary)]")} />
+          <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-primary")} />
         </RowAction>
         <RowAction label="Copy" onClick={copy}>
-          {copied ? <Check className="h-3.5 w-3.5 text-[var(--success)]" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
         </RowAction>
         <RowAction label="Export" onClick={exportEntry}>
           <Download className="h-3.5 w-3.5" />
@@ -1153,7 +1153,7 @@ function EntryRow({
               onMenuToggle()
             }}
           >
-            <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-[var(--primary)]")} />
+            <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-primary")} />
             {entry.pinned ? "Unpin" : "Pin"}
           </MenuItem>
           <MenuItem

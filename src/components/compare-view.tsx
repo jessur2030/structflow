@@ -33,16 +33,16 @@ interface Row {
 function ComparePane({ title, rows, border }: { title: string; rows: Row[]; border?: boolean }) {
   return (
     <div className={border ? "border-t border-[color-mix(in_srgb,var(--syn-gutter)_30%,transparent)] md:border-l md:border-t-0" : ""}>
-      <div className="sticky top-0 border-b border-[color-mix(in_srgb,var(--syn-gutter)_30%,transparent)] bg-[var(--syn-bg)] px-3 py-1.5 font-sans text-[11px] font-medium uppercase tracking-wide text-[var(--syn-gutter)]">
+      <div className="sticky top-0 border-b border-[color-mix(in_srgb,var(--syn-gutter)_30%,transparent)] bg-(--syn-bg) px-3 py-1.5 font-sans text-[11px] font-medium uppercase tracking-wide text-(--syn-gutter)">
         {title}
       </div>
       <pre className="overflow-x-auto py-2">
         {rows.map((row) => (
           <div
             key={row.lineNumber}
-            className={row.changed ? "bg-[var(--syn-match)]" : ""}
+            className={row.changed ? "bg-(--syn-match)" : ""}
           >
-            <span className="inline-block w-10 select-none pr-3 text-right text-[var(--syn-gutter)]">
+            <span className="inline-block w-10 select-none pr-3 text-right text-(--syn-gutter)">
               {row.lineNumber}
             </span>
             <code>{row.text || " "}</code>
