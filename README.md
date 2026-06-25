@@ -32,8 +32,9 @@ stored in your browser via IndexedDB.
 - **Code snapshot** - export the formatted output as a polished PNG: windowed card
   with traffic lights and filename, backdrop choices, padding, line numbers, and
   Copy PNG / Download PNG.
-- **Library** - save output to IndexedDB and organize it into projects/folders.
-  Each folder has an options menu to rename, add a new item, recolor (swatch
+- **Library** - save output to IndexedDB and organize it into nested folders.
+  Each folder has an options menu to rename, add a new item, create a nested
+  folder, recolor (swatch
   palette), or delete, plus full-text search and re-open / copy / export / delete
   per entry. "Add new item" opens the editor pre-targeted to that folder.
 - **Bulk export** - export all or selected folders as a single `.zip`: entries are
