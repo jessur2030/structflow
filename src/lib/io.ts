@@ -7,6 +7,7 @@ import {
   STRUCTFLOW_SCHEMA_VERSION,
   entryContent,
   getLanguage,
+  projectPath,
   type Entry,
   type EntrySource,
   type FormatOptions,
@@ -82,14 +83,14 @@ export function exportEntriesAsZip(
   projects: Project[],
   filename = `structflow-export-${new Date().toISOString().slice(0, 10)}.zip`,
 ) {
-  const projectName = new Map(projects.map((p) => [p.id, p.name]))
+  const projectById = new Map(projects.map((p) => [p.id, p]))
   const files: Record<string, Uint8Array> = {}
   const usedPaths = new Set<string>()
 
   for (const entry of entries) {
     const folder =
-      entry.projectId && projectName.has(entry.projectId)
-        ? sanitizeFolder(projectName.get(entry.projectId)!)
+      entry.projectId && projectById.has(entry.projectId)
+        ? projectPath(entry.projectId, projects).map(sanitizeFolder).join("/")
         : "No project"
     const ext = getLanguage(entry.language).ext
     const base = `${folder}/${slugify(entry.title)}`
@@ -110,8 +111,8 @@ export function exportEntriesAsZip(
     appVersion: STRUCTFLOW_APP_VERSION,
     exportedAt: new Date().toISOString(),
     counts: { projects: projects.length, entries: entries.length },
-    projects: projects.map((p) => ({ id: p.id, name: p.name, color: p.color, createdAt: p.createdAt })),
-    entries: entries.map((e) => ({ ...e, projectId: e.projectId && projectName.has(e.projectId) ? e.projectId : null })),
+    projects: projects.map((p) => ({ id: p.id, name: p.name, color: p.color, createdAt: p.createdAt, parentId: p.parentId ?? null })),
+    entries: entries.map((e) => ({ ...e, projectId: e.projectId && projectById.has(e.projectId) ? e.projectId : null })),
   }
   files["manifest.json"] = strToU8(JSON.stringify(manifest, null, 2))
 
@@ -333,29 +334,41 @@ function buildLibraryFromFiles(
   files: ImportedFile[],
   defaultProjectName?: string,
 ): { entries: Entry[]; projects: Project[] } {
-  const projectsByName = new Map<string, Project>()
-  const ensureProject = (name: string): string => {
-    const existing = projectsByName.get(name)
-    if (existing) return existing.id
-    const project: Project = {
-      id: crypto.randomUUID(),
-      name,
-      color: PROJECT_COLORS[projectsByName.size % PROJECT_COLORS.length],
-      createdAt: Date.now(),
+  // Each directory level becomes a nested project (parentId chain), keyed by its
+  // full path so "Work/SQL" and "Work/JS" share the same "Work" parent.
+  const projectsByPath = new Map<string, Project>()
+  const ensureFolderPath = (segments: string[]): string | null => {
+    let parentId: string | null = null
+    let pathKey = ""
+    for (const name of segments) {
+      pathKey = pathKey ? `${pathKey}/${name}` : name
+      let project = projectsByPath.get(pathKey)
+      if (!project) {
+        project = {
+          id: crypto.randomUUID(),
+          name,
+          color: PROJECT_COLORS[projectsByPath.size % PROJECT_COLORS.length],
+          createdAt: Date.now(),
+          parentId,
+        }
+        projectsByPath.set(pathKey, project)
+      }
+      parentId = project.id
     }
-    projectsByName.set(name, project)
-    return project.id
+    return parentId
   }
 
   const entries = files.map((file) => {
     const segments = file.path.split("/").filter(Boolean)
-    const folder = segments.length > 1 ? segments[0] : defaultProjectName
-    const projectId = folder ? ensureProject(folder) : null
-    const filename = segments[segments.length - 1] ?? file.path
+    const filename = segments.pop() ?? file.path
+    // A zip import nests everything under the zip name; a folder import already
+    // carries its root folder in the path; loose files have no folder at all.
+    const folderSegments = defaultProjectName ? [defaultProjectName, ...segments] : segments
+    const projectId = folderSegments.length ? ensureFolderPath(folderSegments) : null
     return entryFromImportedFile(filename, file.text, projectId)
   })
 
-  return { entries, projects: [...projectsByName.values()] }
+  return { entries, projects: [...projectsByPath.values()] }
 }
 
 function entryFromImportedFile(filename: string, text: string, projectId: string | null): Entry {
@@ -415,6 +428,11 @@ function remapImportedData(manifest: StructFlowExportManifest): { entries: Entry
     projectIds.set(project.id, id)
     return { ...project, id }
   })
+  // Second pass: re-point each folder's parentId to the regenerated parent id so
+  // the nested structure survives the re-id.
+  for (const project of projects) {
+    if (project.parentId) project.parentId = projectIds.get(project.parentId) ?? null
+  }
 
   const entries = manifest.entries.map((entry) => ({
     ...entry,
@@ -457,6 +475,7 @@ function validateProject(value: unknown): Project {
     name: requireString(value.name, "project.name"),
     color: requireString(value.color, "project.color"),
     createdAt: requireNumber(value.createdAt, "project.createdAt"),
+    parentId: typeof value.parentId === "string" ? value.parentId : null,
   }
 }
 

@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb"
-import { STRUCTFLOW_SCHEMA_VERSION, type Entry, type Project } from "./types"
+import { STRUCTFLOW_SCHEMA_VERSION, projectDescendantIds, type Entry, type Project } from "./types"
 
 interface StructFlowDB extends DBSchema {
   entries: {
@@ -19,17 +19,21 @@ let dbPromise: Promise<IDBPDatabase<StructFlowDB>> | null = null
 function getDB() {
   if (!dbPromise) {
     dbPromise = openDB<StructFlowDB>("structflow", STRUCTFLOW_SCHEMA_VERSION, {
+      // Migrations must be ADDITIVE — never drop a store or index that may hold
+      // user data. Create stores only if missing, and gate any future change on
+      // `oldVersion` (e.g. `if (oldVersion < 4) { ...add an index... }`) so a
+      // version bump migrates existing libraries instead of wiping them.
       upgrade(db) {
-        for (const name of Array.from(db.objectStoreNames)) {
-          db.deleteObjectStore(name)
+        if (!db.objectStoreNames.contains("entries")) {
+          const entries = db.createObjectStore("entries", { keyPath: "id" })
+          entries.createIndex("by-project", "projectId")
+          entries.createIndex("by-updated", "updatedAt")
         }
 
-        const entries = db.createObjectStore("entries", { keyPath: "id" })
-        entries.createIndex("by-project", "projectId")
-        entries.createIndex("by-updated", "updatedAt")
-
-        const projects = db.createObjectStore("projects", { keyPath: "id" })
-        projects.createIndex("by-created", "createdAt")
+        if (!db.objectStoreNames.contains("projects")) {
+          const projects = db.createObjectStore("projects", { keyPath: "id" })
+          projects.createIndex("by-created", "createdAt")
+        }
       },
     })
   }
@@ -91,14 +95,21 @@ export async function saveProjects(projects: Project[]): Promise<void> {
   await tx.done
 }
 
+/**
+ * Delete a folder and everything inside it: all descendant subfolders and every
+ * entry that belongs to the folder or any of its descendants (cascade delete).
+ */
 export async function deleteProject(id: string): Promise<void> {
   const db = await getDB()
-  const entries = await db.getAllFromIndex("entries", "by-project", id)
+  const allProjects = await db.getAll("projects")
+  const targetIds = [id, ...projectDescendantIds(id, allProjects)]
   const tx = db.transaction(["entries", "projects"], "readwrite")
-  for (const entry of entries) {
-    entry.projectId = null
-    await tx.objectStore("entries").put(entry)
+  for (const pid of targetIds) {
+    const entries = await tx.objectStore("entries").index("by-project").getAll(pid)
+    for (const entry of entries) {
+      await tx.objectStore("entries").delete(entry.id)
+    }
+    await tx.objectStore("projects").delete(pid)
   }
-  await tx.objectStore("projects").delete(id)
   await tx.done
 }

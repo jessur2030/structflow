@@ -78,7 +78,7 @@ export const DEFAULT_OPTIONS: FormatOptions = {
 }
 
 export const STRUCTFLOW_SCHEMA_VERSION = 3
-export const STRUCTFLOW_APP_VERSION = "1.1.1"
+export const STRUCTFLOW_APP_VERSION = "1.2.0"
 export const STRUCTFLOW_FORMATTER_VERSION = "2"
 
 export type EntrySource = "manual" | "context-menu" | "library" | "import"
@@ -105,6 +105,42 @@ export interface Project {
   name: string
   color: string
   createdAt: number
+  /** Parent folder id; null/undefined means a top-level folder. */
+  parentId?: string | null
+}
+
+/** Direct child folders of `parentId` (top-level folders when `parentId` is null). */
+export function projectChildren(parentId: string | null, projects: Project[]): Project[] {
+  return projects.filter((p) => (p.parentId ?? null) === parentId)
+}
+
+/** All descendant folder ids of `id` (children, grandchildren, …), excluding `id` itself. */
+export function projectDescendantIds(id: string, projects: Project[]): string[] {
+  const out: string[] = []
+  const walk = (parent: string) => {
+    for (const p of projects) {
+      if ((p.parentId ?? null) === parent) {
+        out.push(p.id)
+        walk(p.id)
+      }
+    }
+  }
+  walk(id)
+  return out
+}
+
+/** Breadcrumb folder names from root down to `id`, e.g. ["Work", "SQL"]. */
+export function projectPath(id: string | null, projects: Project[]): string[] {
+  const byId = new Map(projects.map((p) => [p.id, p]))
+  const names: string[] = []
+  const seen = new Set<string>()
+  let current = id ? byId.get(id) : undefined
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id)
+    names.unshift(current.name)
+    current = current.parentId ? byId.get(current.parentId) : undefined
+  }
+  return names
 }
 
 export interface StructFlowExportManifest {
