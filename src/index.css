@@ -93,6 +93,16 @@
   * {
     border-color: var(--border);
   }
+  /* Tailwind v4 dropped the default pointer cursor on buttons; restore it for
+     all interactive controls (disabled ones keep the default arrow). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"],
+  [role="option"],
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
   html,
   body,
   #root {

@@ -314,9 +314,9 @@ export function Library({
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        {entries.length === 0 ? (
+        {entries.length === 0 && projects.length === 0 ? (
           <EmptyLibrary />
-        ) : filtered.length === 0 ? (
+        ) : query.trim() && filtered.length === 0 ? (
           <div className="px-4 py-10 text-center text-[13px] text-muted-foreground">
             No entries match “{query}”.
           </div>
@@ -324,6 +324,8 @@ export function Library({
           <div className="py-1">
             {projects.map((project) => {
               const items = groups.get(project.id) ?? []
+              // While searching, hide folders that have no matching entries.
+              if (query.trim() && items.length === 0) return null
               const isCollapsed = collapsed[project.id]
               return (
                 <ProjectGroup
@@ -357,6 +359,7 @@ export function Library({
               )
             })}
 
+            {ungrouped.length > 0 && (
             <ProjectGroup
               project={null}
               count={ungrouped.length}
@@ -381,6 +384,7 @@ export function Library({
                 />
               ))}
             </ProjectGroup>
+            )}
           </div>
         )}
       </div>
