@@ -10,7 +10,7 @@
    interactive collapsible tree and a syntax-highlighted text view.
 2. A **multi-language formatter** in the Chrome side panel supporting JSON,
    JavaScript, TypeScript, HTML, CSS, Markdown, and SQL.
-3. A **saved-entries library** with projects/folders, search, and
+3. A **saved-entries library** with folders, search, and
    copy / save / export / re-open actions.
 4. **Dark + light mode** for both the viewer and the side panel.
 
@@ -42,7 +42,7 @@
    `use-theme.ts`, `io.ts` (clipboard/download).
 3. **Viewer + formatter UI** — `code-view`, `json-tree`, `options-panel`,
    `language-select`, `formatter` (the main editor view).
-4. **Library** — `library` view with projects/folders, search, per-entry actions,
+4. **Library** — `library` view with folders, search, per-entry actions,
    and the App shell tying tabs + theme + save modal together.
 
 ## Verification

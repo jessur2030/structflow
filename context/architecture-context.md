@@ -6,9 +6,12 @@
   unpacked MV3 extension and run in browser preview.
 - **Tailwind v4** (`@tailwindcss/vite`) — tokens/variables in `src/index.css`.
 - **Prettier (standalone + plugins)** + **sql-formatter** — formatting engine.
-- **highlight.js** — syntax highlighting (read-only views + snapshot).
-- **html-to-image** — DOM → PNG for the code snapshot exporter.
-- **fflate** — client-side `.zip` creation for bulk library export.
+- **lowlight** (highlight.js grammars) — syntax highlighting as a hast tree,
+  rendered to React `<span>`s in `highlighted-code.tsx` (no `innerHTML`).
+- **html-to-image** — DOM → PNG for the code snapshot exporter (adaptive
+  pixelRatio so large snapshots stay under the ~16384px canvas limit).
+- **marked** — Markdown lexer for the React-rendered preview (no DOMPurify).
+- **fflate** — client-side `.zip` creation for bulk library export and import.
 - **idb** — IndexedDB wrapper for the library.
 - **sharp** (dev) — `scripts/gen-icons.cjs` trims the logo + emits icon sizes.
 - **chrome.sidePanel** + service worker — opens StructFlow in the side panel.
@@ -54,7 +57,7 @@ src/
     snapshot-modal.tsx          # CodeSnap-style PNG exporter (windowed card, backdrops, Copy/Download PNG)
     support-button.tsx          # Header support popover (links from support-links.ts; inline GitHub SVG)
     theme-mode-toggle.tsx       # Dark/light toggle
-    library.tsx                 # Saved entries grouped by project/folder + search + folder ⋯ menu (rename/add/recolor/delete) + bulk export modal
+    library.tsx                 # Saved entries grouped by folder + search + folder ⋯ menu (rename/add/recolor/delete) + bulk export modal
     modal.tsx                   # Reusable modal (save dialog, confirms)
     icon-button.tsx             # Small icon button primitive
 ```
@@ -68,16 +71,18 @@ src/
 3. **Persist**: save action opens `modal` → writes an `Entry` (with optional
    `projectId`) to IndexedDB via `lib/storage.ts`.
 4. **Library**: `library.tsx` reads entries + projects from storage, groups by
-   project/folder, supports search and per-entry copy/export/re-open/delete.
+   folder, supports search and per-entry copy/export/re-open/delete.
 5. **Theme**: `use-theme.ts` toggles a class on the root element; tokens in
    `index.css` resolve colors for both viewer and panel.
 
 ## Storage model (IndexedDB)
 
-- **projects** — `{ id, name, color, createdAt }`. `color` is one of the shared
+- **projects** (folders) — `{ id, name, color, createdAt, parentId? }`. `parentId`
+  nests folders (null/absent = top-level). `color` is one of the shared
   `PROJECT_COLORS` (assigned randomly on create, user-editable via the folder menu).
+  Note: the `Project` type name is kept internally, but the UI calls these "folders".
 - **entries** — `{ id, title, language, content, projectId?, createdAt, updatedAt }`.
-  `projectId` is `null`/absent for ungrouped ("No project") entries.
+  `projectId` is `null`/absent for ungrouped ("No folder") entries.
 - Indexes on `projectId` and `updatedAt` for grouping + recent ordering.
 
 ## Library: folders, add-to-project, and bulk export
@@ -142,3 +147,25 @@ src/
   for the in-page viewer, and minimal permissions (incl. `storage`).
 - `background.ts` calls `chrome.sidePanel.open` (or sets panel behavior) on
   action click.
+
+## v1.2.0 subsystem notes
+
+- **Library folders are nested.** `Project` has an optional `parentId`
+  (top-level when null). Tree helpers in `types.ts`: `projectChildren`,
+  `projectDescendantIds`, `projectPath`. `library.tsx` renders folders
+  recursively (indent via the existing `pl-3` child wrapper) with a "New folder"
+  action and a cascade delete-with-confirm. `storage.ts` `deleteProject`
+  cascades to all descendant folders + their entries. Adding `parentId` needed
+  no DB migration (IndexedDB stores arbitrary objects).
+- **Import is a router** (`io.ts` `importFiles`): a single StructFlow backup
+  restores; anything else is ingested as content — loose files, a folder
+  (`webkitdirectory`), or a zip — rebuilding the full nested folder tree from
+  path segments. Guardrails skip `node_modules`/`.git`/`dist`/binaries with
+  file-count and byte caps; the preview shows a `skipped` count.
+- **Export** writes nested directory paths and stores each folder's `parentId`
+  in `manifest.json`; restore re-points `parentId` across id regeneration.
+- **Search** (`library.tsx`) matches folder/project names in addition to entry
+  fields; a folder-name match reveals its whole subtree.
+- **IndexedDB `upgrade()` is additive** (create-if-missing) — never drop a store
+  on a version bump; gate future changes on `oldVersion`.
+- **Tests**: Vitest in `test/` mirroring `src/` (`pnpm test`).

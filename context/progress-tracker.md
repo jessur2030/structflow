@@ -2,6 +2,43 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 13 — highlighting, testing, smart import, subfolders, data safety (v1.1.x → v1.2.0)
+
+### Data safety (critical, shipped while live)
+- [x] `storage.ts` IndexedDB `upgrade()` is now **additive** (create-store-if-missing) instead of dropping all stores on a version bump — existing users' libraries survive future schema bumps. Version stays at 3; future changes go in `if (oldVersion < N)` blocks. Never reintroduce a destructive upgrade.
+
+### Syntax highlighting
+- [x] Rewrote highlighting on **lowlight** (highlight.js grammars) returning a hast tree, rendered as React `<span>`s in `highlighted-code.tsx` — no `innerHTML`, accurate VS Code-style colors. Replaced an earlier hand-rolled regex tokenizer (sticky-regex bug produced monochrome output).
+- [x] Added `hljs-*` theme classes (`selector-pseudo`, `link`, `code`) to `index.css` to cover highlight.js v11 output.
+
+### Testing (new)
+- [x] Vitest set up; tests live in `test/` mirroring `src/` (`test/lib/*.test.ts`). `pnpm test` / `pnpm test:watch`. Config in `vite.config.ts` (`environment: node`).
+- [x] 47 tests: `formatter`, `highlight`, `io` (import/export, guardrails), `projects` (tree helpers).
+
+### Smart import (Obsidian/Postman-style)
+- [x] `io.ts` `importFiles(files)` router: a single StructFlow backup restores; anything else is ingested as external content — loose files, a folder (`webkitdirectory`), or a zip of files. Language detected by extension; unknown → plain text.
+- [x] Recreates the **full nested folder tree** from directory/zip paths (parentId chain). Guardrails: skips `node_modules`/`.git`/`dist`/binaries; caps 1000 files / 512 KB-file / 32 MB total; reports a `skipped` count in the preview.
+- [x] Library: two toolbar buttons — Import files, Import folder.
+
+### Subfolders (nested projects, unlimited depth)
+- [x] `Project.parentId` (optional, additive — no migration). Helpers in `types.ts`: `projectChildren`, `projectDescendantIds`, `projectPath`.
+- [x] `library.tsx`: recursive folder rendering (indent via existing `pl-3`), "New folder" in folder menu, cascade **delete with confirm** (shows nested-folder/entry counts). `storage.ts` `deleteProject` cascades descendants + their entries.
+- [x] Move/Save/Edit dropdowns show nested paths ("Work / SQL"). Export writes nested directory paths + `parentId`; import re-points `parentId` across id regeneration.
+- [x] Search now matches **folder/project names** too (a name match reveals the whole subtree), plus entry title/content/language/tags.
+- [x] Empty folders now show in the Library before any entry exists.
+
+### Snapshot fixes
+- [x] Copy/Download PNG fixed (canvas tainting) — back on `html-to-image`. Adaptive `pixelRatio` so very large snapshots fit the ~16384px canvas limit instead of truncating. Per-button spinner (no flicker) + loading overlay + surfaced errors + deferred object-URL revoke.
+
+### Polish
+- [x] Global base CSS restores `cursor: pointer` on buttons/menus (Tailwind v4 dropped it). `MenuItem` gets `role="menuitem"`; `ModalButton` gains a `danger` variant.
+- [x] Em-dashes removed from public/user-facing files (README, store copy, in-app strings); internal `context/` docs keep them.
+- [x] README install section + Chrome Web Store badges/link.
+
+### Verification (Phase 13)
+- [x] All flows driven in real Chrome (playwright-core vs `pnpm dev`): highlighting colors, snapshot PNG (small/wide/tall/huge), loose-file + deep-folder + zip import, nested-backup export→re-import round-trip, subfolder create/nest/cascade-delete, search by entry + folder name.
+- [x] 47 unit tests + typecheck + production build clean. Version bumped to 1.2.0 (package.json, public/manifest.json, `STRUCTFLOW_APP_VERSION`).
+
 ## Phase 1 — Scaffold (MV3 + Vite)
 - [x] Convert project from Next.js to Vite + React + TS
 - [x] `manifest.json` (side_panel, background, permissions)
