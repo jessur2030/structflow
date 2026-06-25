@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
   Search,
   FolderPlus,
@@ -36,6 +36,9 @@ import {
   entryContent,
   getLanguage,
   PROJECT_COLORS,
+  projectChildren,
+  projectDescendantIds,
+  projectPath,
   type Entry,
   type FormatOptions,
   type Language,
@@ -66,7 +69,7 @@ interface LibraryProps {
   onDeleteEntry: (id: string) => void
   onRenameEntry: (id: string, title: string) => void
   onMoveEntry: (id: string, projectId: string | null) => void
-  onCreateProject: (name: string) => void
+  onCreateProject: (name: string, parentId?: string | null) => void
   onRenameProject: (id: string, name: string) => void
   onRecolorProject: (id: string, color: string) => void
   onAddToProject: (projectId: string | null) => void
@@ -108,8 +111,35 @@ export function Library({
     projects: Project[]
     skipped: number
   } | null>(null)
+  const [newProjectParent, setNewProjectParent] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const folderInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Folders whose name matches the query — searching a folder name should surface
+  // the folder and everything inside it.
+  const nameMatchedFolders = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return new Set<string>()
+    return new Set(projects.filter((p) => p.name.toLowerCase().includes(q)).map((p) => p.id))
+  }, [projects, query])
+
+  // True when `projectId` or any of its ancestor folders matched the query by name.
+  const inMatchedFolderSubtree = useCallback(
+    (projectId: string | null): boolean => {
+      if (!projectId || nameMatchedFolders.size === 0) return false
+      const byId = new Map(projects.map((p) => [p.id, p]))
+      let cur = byId.get(projectId)
+      const seen = new Set<string>()
+      while (cur && !seen.has(cur.id)) {
+        seen.add(cur.id)
+        if (nameMatchedFolders.has(cur.id)) return true
+        cur = cur.parentId ? byId.get(cur.parentId) : undefined
+      }
+      return false
+    },
+    [projects, nameMatchedFolders],
+  )
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -123,7 +153,8 @@ export function Library({
           entryContent(entry).toLowerCase().includes(q) ||
           entry.rawInput.toLowerCase().includes(q) ||
           entry.language.toLowerCase().includes(q) ||
-          entry.tags.some((tag) => tag.toLowerCase().includes(q))
+          entry.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+          inMatchedFolderSubtree(entry.projectId)
         )
       })
       .sort((a, b) => {
@@ -131,7 +162,7 @@ export function Library({
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
         return b.updatedAt - a.updatedAt
       })
-  }, [entries, mode, query])
+  }, [entries, mode, query, inMatchedFolderSubtree])
 
   const groups = useMemo(() => {
     const map = new Map<string | null, Entry[]>()
@@ -149,11 +180,21 @@ export function Library({
   const submitProject = () => {
     const name = projectName.trim()
     if (name) {
-      onCreateProject(name)
+      onCreateProject(name, newProjectParent)
       setProjectName("")
+      setNewProjectParent(null)
       setNewProjectOpen(false)
     }
   }
+
+  const openNewProject = (parentId: string | null) => {
+    setNewProjectParent(parentId)
+    setProjectName("")
+    setNewProjectOpen(true)
+  }
+
+  /** "Work / SQL" style label for folder dropdowns. */
+  const projectLabel = (id: string) => projectPath(id, projects).join(" / ")
 
   const ungrouped = groups.get(null) ?? []
 
@@ -171,7 +212,7 @@ export function Library({
     () => [
       ...projects.map((p) => ({ key: p.id, name: p.name, color: p.color, count: countsByKey[p.id] ?? 0 })),
       ...(countsByKey.__none__ > 0
-        ? [{ key: "__none__", name: "No project", color: null as string | null, count: countsByKey.__none__ }]
+        ? [{ key: "__none__", name: "No folder", color: null as string | null, count: countsByKey.__none__ }]
         : []),
     ],
     [projects, countsByKey],
@@ -236,6 +277,73 @@ export function Library({
     setPendingImport(null)
   }
 
+  // While searching, a folder is shown if it (or any descendant) has a matching
+  // entry, OR the folder's name matches (then its whole subtree is revealed).
+  const visibleDuringSearch = useMemo(() => {
+    if (!query.trim()) return null
+    const set = new Set<string>()
+    const byId = new Map(projects.map((p) => [p.id, p]))
+    const addWithAncestors = (id: string) => {
+      let cur: Project | undefined = byId.get(id)
+      const seen = new Set<string>()
+      while (cur && !seen.has(cur.id)) {
+        seen.add(cur.id)
+        set.add(cur.id)
+        cur = cur.parentId ? byId.get(cur.parentId) : undefined
+      }
+    }
+    // Folders containing a matching entry (and their ancestors, so the path shows).
+    for (const p of projects) {
+      if ((groups.get(p.id)?.length ?? 0) > 0) addWithAncestors(p.id)
+    }
+    // Name-matched folders: reveal the folder, its ancestors, and all descendants.
+    for (const id of nameMatchedFolders) {
+      addWithAncestors(id)
+      for (const descendant of projectDescendantIds(id, projects)) set.add(descendant)
+    }
+    return set
+  }, [query, projects, groups, nameMatchedFolders])
+
+  const renderEntryRow = (entry: Entry) => (
+    <EntryRow
+      key={entry.id}
+      entry={entry}
+      projects={projects}
+      projectLabel={projectLabel}
+      menuOpen={menuFor === entry.id}
+      onMenuToggle={() => setMenuFor((m) => (m === entry.id ? null : entry.id))}
+      onOpen={() => onOpenEntry(entry)}
+      onDelete={() => onDeleteEntry(entry.id)}
+      onRename={(t) => onRenameEntry(entry.id, t)}
+      onMove={(pid) => onMoveEntry(entry.id, pid)}
+      onTogglePinned={() => onUpdateEntry(entry.id, { pinned: !entry.pinned })}
+      onDuplicate={() => onDuplicateEntry(entry.id)}
+      onEdit={() => setEditingEntry(entry)}
+    />
+  )
+
+  const renderFolder = (project: Project): React.ReactNode => {
+    if (visibleDuringSearch && !visibleDuringSearch.has(project.id)) return null
+    const items = groups.get(project.id) ?? []
+    return (
+      <ProjectGroup
+        key={project.id}
+        project={project}
+        count={items.length}
+        collapsed={collapsed[project.id]}
+        onToggle={() => toggle(project.id)}
+        onRename={(name) => onRenameProject(project.id, name)}
+        onRecolor={(color) => onRecolorProject(project.id, color)}
+        onAddItem={() => onAddToProject(project.id)}
+        onAddSubfolder={() => openNewProject(project.id)}
+        onDelete={() => setDeleteTarget(project)}
+      >
+        {projectChildren(project.id, projects).map(renderFolder)}
+        {items.map(renderEntryRow)}
+      </ProjectGroup>
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
@@ -289,8 +397,8 @@ export function Library({
           onChange={(e) => void runImport(e.target.files)}
         />
         <IconButton
-          label="New project"
-          onClick={() => setNewProjectOpen(true)}
+          label="New folder"
+          onClick={() => openNewProject(null)}
           className="border border-border bg-background"
         >
           <FolderPlus className="h-4 w-4" />
@@ -316,74 +424,24 @@ export function Library({
       <div className="min-h-0 flex-1 overflow-auto">
         {entries.length === 0 && projects.length === 0 ? (
           <EmptyLibrary />
-        ) : query.trim() && filtered.length === 0 ? (
+        ) : query.trim() && filtered.length === 0 && (visibleDuringSearch?.size ?? 0) === 0 ? (
           <div className="px-4 py-10 text-center text-[13px] text-muted-foreground">
-            No entries match “{query}”.
+            Nothing matches “{query}”.
           </div>
         ) : (
           <div className="py-1">
-            {projects.map((project) => {
-              const items = groups.get(project.id) ?? []
-              // While searching, hide folders that have no matching entries.
-              if (query.trim() && items.length === 0) return null
-              const isCollapsed = collapsed[project.id]
-              return (
-                <ProjectGroup
-                  key={project.id}
-                  project={project}
-                  count={items.length}
-                  collapsed={isCollapsed}
-                  onToggle={() => toggle(project.id)}
-                  onRename={(name) => onRenameProject(project.id, name)}
-                  onRecolor={(color) => onRecolorProject(project.id, color)}
-                  onAddItem={() => onAddToProject(project.id)}
-                  onDelete={() => onDeleteProject(project.id)}
-                >
-                  {items.map((entry) => (
-                    <EntryRow
-                      key={entry.id}
-                      entry={entry}
-                      projects={projects}
-                      menuOpen={menuFor === entry.id}
-                      onMenuToggle={() => setMenuFor((m) => (m === entry.id ? null : entry.id))}
-                      onOpen={() => onOpenEntry(entry)}
-                      onDelete={() => onDeleteEntry(entry.id)}
-                      onRename={(t) => onRenameEntry(entry.id, t)}
-                      onMove={(pid) => onMoveEntry(entry.id, pid)}
-                      onTogglePinned={() => onUpdateEntry(entry.id, { pinned: !entry.pinned })}
-                      onDuplicate={() => onDuplicateEntry(entry.id)}
-                      onEdit={() => setEditingEntry(entry)}
-                    />
-                  ))}
-                </ProjectGroup>
-              )
-            })}
+            {projectChildren(null, projects).map(renderFolder)}
 
             {ungrouped.length > 0 && (
-            <ProjectGroup
-              project={null}
-              count={ungrouped.length}
-              collapsed={collapsed["__none__"]}
-              onToggle={() => toggle("__none__")}
-              onAddItem={() => onAddToProject(null)}
-            >
-              {ungrouped.map((entry) => (
-                <EntryRow
-                  key={entry.id}
-                  entry={entry}
-                  projects={projects}
-                  menuOpen={menuFor === entry.id}
-                  onMenuToggle={() => setMenuFor((m) => (m === entry.id ? null : entry.id))}
-                  onOpen={() => onOpenEntry(entry)}
-                  onDelete={() => onDeleteEntry(entry.id)}
-                  onRename={(t) => onRenameEntry(entry.id, t)}
-                  onMove={(pid) => onMoveEntry(entry.id, pid)}
-                  onTogglePinned={() => onUpdateEntry(entry.id, { pinned: !entry.pinned })}
-                  onDuplicate={() => onDuplicateEntry(entry.id)}
-                  onEdit={() => setEditingEntry(entry)}
-                />
-              ))}
-            </ProjectGroup>
+              <ProjectGroup
+                project={null}
+                count={ungrouped.length}
+                collapsed={collapsed["__none__"]}
+                onToggle={() => toggle("__none__")}
+                onAddItem={() => onAddToProject(null)}
+              >
+                {ungrouped.map(renderEntryRow)}
+              </ProjectGroup>
             )}
           </div>
         )}
@@ -392,7 +450,7 @@ export function Library({
       <Modal
         open={newProjectOpen}
         onClose={() => setNewProjectOpen(false)}
-        title="New project"
+        title="New folder"
         footer={
           <>
             <ModalButton variant="ghost" onClick={() => setNewProjectOpen(false)}>
@@ -402,14 +460,71 @@ export function Library({
           </>
         }
       >
-        <input
-          autoFocus
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submitProject()}
-          placeholder="Project name"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
-        />
+        <div className="space-y-2">
+          {newProjectParent && (
+            <p className="text-[12px] text-muted-foreground">
+              Inside <span className="font-medium text-foreground">{projectLabel(newProjectParent)}</span>
+            </p>
+          )}
+          <input
+            autoFocus
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitProject()}
+            placeholder="Folder name"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete folder"
+        footer={
+          <>
+            <ModalButton variant="ghost" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </ModalButton>
+            <ModalButton
+              variant="danger"
+              onClick={() => {
+                if (deleteTarget) onDeleteProject(deleteTarget.id)
+                setDeleteTarget(null)
+              }}
+            >
+              Delete
+            </ModalButton>
+          </>
+        }
+      >
+        {deleteTarget && (() => {
+          const subIds = projectDescendantIds(deleteTarget.id, projects)
+          const idSet = new Set([deleteTarget.id, ...subIds])
+          const entryCount = entries.filter((e) => e.projectId && idSet.has(e.projectId)).length
+          return (
+            <p className="text-[13px] text-muted-foreground">
+              Delete <span className="font-medium text-foreground">{projectLabel(deleteTarget.id)}</span>?
+              {(subIds.length > 0 || entryCount > 0) && (
+                <>
+                  {" "}This permanently removes{" "}
+                  {subIds.length > 0 && (
+                    <span className="text-foreground">
+                      {subIds.length} nested folder{subIds.length === 1 ? "" : "s"}
+                    </span>
+                  )}
+                  {subIds.length > 0 && entryCount > 0 && " and "}
+                  {entryCount > 0 && (
+                    <span className="text-foreground">
+                      {entryCount} entr{entryCount === 1 ? "y" : "ies"}
+                    </span>
+                  )}
+                  . This can't be undone.
+                </>
+              )}
+            </p>
+          )
+        })()}
       </Modal>
 
       <Modal
@@ -494,7 +609,7 @@ export function Library({
             </p>
             <div className="rounded-md border border-border bg-background px-3 py-2">
               <div className="flex items-center justify-between">
-                <span>Projects</span>
+                <span>Folders</span>
                 <span className="font-mono text-muted-foreground">{pendingImport.projects.length}</span>
               </div>
               <div className="flex items-center justify-between">
@@ -534,6 +649,7 @@ function ProjectGroup({
   onRename,
   onRecolor,
   onAddItem,
+  onAddSubfolder,
   onDelete,
   children,
 }: {
@@ -544,6 +660,7 @@ function ProjectGroup({
   onRename?: (name: string) => void
   onRecolor?: (color: string) => void
   onAddItem?: () => void
+  onAddSubfolder?: () => void
   onDelete?: () => void
   children: React.ReactNode
 }) {
@@ -622,7 +739,7 @@ function ProjectGroup({
           />
         ) : (
           <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-            <span className="truncate text-[13px] font-medium">{project ? project.name : "No project"}</span>
+            <span className="truncate text-[13px] font-medium">{project ? project.name : "No folder"}</span>
             <span className="text-[11px] text-muted-foreground">{count}</span>
           </button>
         )}
@@ -650,7 +767,7 @@ function ProjectGroup({
             <button
               ref={menuBtnRef}
               type="button"
-              aria-label="Project options"
+              aria-label="Folder options"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((o) => !o)}
@@ -664,7 +781,7 @@ function ProjectGroup({
             </button>
           )}
           {project && (onRename || onRecolor || onDelete) && (
-            <FloatingTooltip anchorRef={menuBtnRef} label="Project options" open={menuTooltipOpen && !menuOpen} />
+            <FloatingTooltip anchorRef={menuBtnRef} label="Folder options" open={menuTooltipOpen && !menuOpen} />
           )}
         </div>
 
@@ -696,6 +813,16 @@ function ProjectGroup({
                 }}
               >
                 <Plus className="h-3.5 w-3.5" /> Add new item
+              </MenuItem>
+            )}
+            {onAddSubfolder && (
+              <MenuItem
+                onClick={() => {
+                  onAddSubfolder()
+                  setMenuOpen(false)
+                }}
+              >
+                <FolderPlus className="h-3.5 w-3.5" /> New folder
               </MenuItem>
             )}
             {onRecolor && (
@@ -871,16 +998,16 @@ function EntryEditorModal({
             </select>
           </label>
           <label className="space-y-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Project</span>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Folder</span>
             <select
               value={projectId ?? ""}
               onChange={(e) => setProjectId(e.target.value || null)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">No project</option>
+              <option value="">No folder</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
-                  {project.name}
+                  {projectPath(project.id, projects).join(" / ")}
                 </option>
               ))}
             </select>
@@ -975,6 +1102,7 @@ function ModeButton({
 function EntryRow({
   entry,
   projects,
+  projectLabel,
   menuOpen,
   onMenuToggle,
   onOpen,
@@ -987,6 +1115,7 @@ function EntryRow({
 }: {
   entry: Entry
   projects: Project[]
+  projectLabel: (id: string) => string
   menuOpen: boolean
   onMenuToggle: () => void
   onOpen: () => void
@@ -1176,7 +1305,7 @@ function EntryRow({
               onMenuToggle()
             }}
           >
-            <Inbox className="h-3.5 w-3.5" /> No project
+            <Inbox className="h-3.5 w-3.5" /> No folder
           </MenuItem>
           {projects.map((p) => (
             <MenuItem
@@ -1187,7 +1316,7 @@ function EntryRow({
               }}
             >
               <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
-              <span className="min-w-0 truncate">{p.name}</span>
+              <span className="min-w-0 truncate">{projectLabel(p.id)}</span>
             </MenuItem>
           ))}
           <div className="my-1 border-t border-border" />
@@ -1250,6 +1379,7 @@ function MenuItem({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       className={cn(
         "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-secondary",
@@ -1268,7 +1398,7 @@ export function ModalButton({
 }: {
   children: React.ReactNode
   onClick: () => void
-  variant?: "primary" | "ghost"
+  variant?: "primary" | "ghost" | "danger"
 }) {
   return (
     <button
@@ -1276,9 +1406,9 @@ export function ModalButton({
       onClick={onClick}
       className={cn(
         "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
-        variant === "primary"
-          ? "bg-primary text-primary-foreground hover:opacity-90"
-          : "border border-border bg-background hover:bg-secondary",
+        variant === "primary" && "bg-primary text-primary-foreground hover:opacity-90",
+        variant === "ghost" && "border border-border bg-background hover:bg-secondary",
+        variant === "danger" && "bg-red-600 text-white hover:bg-red-700",
       )}
     >
       {children}
@@ -1295,7 +1425,7 @@ function EmptyLibrary() {
       <div>
         <p className="text-[14px] font-medium">No saved entries yet</p>
         <p className="mt-1 text-[12.5px] text-muted-foreground">
-          Format something in the Formatter tab, then hit Save to keep it here. Organize entries into projects.
+          Format something in the Formatter tab, then hit Save to keep it here. Organize entries into folders.
         </p>
       </div>
     </div>

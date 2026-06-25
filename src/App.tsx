@@ -26,6 +26,7 @@ import {
   LANGUAGES,
   PROJECT_COLORS,
   STRUCTFLOW_FORMATTER_VERSION,
+  projectPath,
   type Entry,
   type EntrySource,
   type Language,
@@ -162,12 +163,13 @@ export default function App() {
     setTab("format")
   }
 
-  const handleCreateProject = async (name: string) => {
+  const handleCreateProject = async (name: string, parentId: string | null = null) => {
     const project: Project = {
       id: uid(),
       name,
       color: PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)],
       createdAt: Date.now(),
+      parentId,
     }
     await saveProject(project)
     await refresh()
@@ -328,17 +330,17 @@ export default function App() {
           </div>
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              <FolderInput className="h-3 w-3" /> Project
+              <FolderInput className="h-3 w-3" /> Folder
             </label>
             <select
               value={saveProjectId ?? ""}
               onChange={(e) => setSaveProjectId(e.target.value || null)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">No project</option>
+              <option value="">No folder</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {projectPath(p.id, projects).join(" / ")}
                 </option>
               ))}
             </select>
