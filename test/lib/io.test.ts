@@ -141,15 +141,21 @@ describe("importFiles - external content (the Obsidian/Postman-style import)", (
     expect(entries.find((e) => e.language === "typescript")?.rawInput).toBe("const x = 1")
   })
 
-  it("groups a picked folder into a project named after the top-level folder", async () => {
+  it("recreates the nested folder tree from a picked directory", async () => {
     const files = [
       fileWithPath("MyNotes/a.md", "# A"),
       fileWithPath("MyNotes/sub/b.sql", "select 1"),
     ]
     const { entries, projects } = await importFiles(files)
-    expect(projects).toHaveLength(1)
-    expect(projects[0].name).toBe("MyNotes")
-    expect(entries.every((e) => e.projectId === projects[0].id)).toBe(true)
+    // Two folders: MyNotes (top) and sub (child of MyNotes)
+    expect(projects).toHaveLength(2)
+    const root = projects.find((p) => p.name === "MyNotes")!
+    const sub = projects.find((p) => p.name === "sub")!
+    expect(root.parentId ?? null).toBe(null)
+    expect(sub.parentId).toBe(root.id)
+    // a.md lives in MyNotes, b.sql lives in MyNotes/sub
+    expect(entries.find((e) => e.title === "a")?.projectId).toBe(root.id)
+    expect(entries.find((e) => e.title === "b")?.projectId).toBe(sub.id)
   })
 
   it("imports a non-backup zip as files grouped under the zip name", async () => {
@@ -206,5 +212,37 @@ describe("importFiles - guardrails (prevents reading huge folders into memory)",
     const { entries, skipped } = await importFiles(files)
     expect(entries.map((e) => e.title)).toEqual(["small"])
     expect(skipped).toBe(1)
+  })
+
+  it("nests a zip that contains subfolders under the zip name", async () => {
+    const file = zipFile("project.zip", {
+      "schema.sql": "select 1",
+      "queries/report.sql": "select 2",
+    })
+    const { entries, projects } = await importFiles([file])
+    const root = projects.find((p) => p.name === "project")!
+    const sub = projects.find((p) => p.name === "queries")!
+    expect(root.parentId ?? null).toBe(null)
+    expect(sub.parentId).toBe(root.id)
+    expect(entries.find((e) => e.title === "schema")?.projectId).toBe(root.id)
+    expect(entries.find((e) => e.title === "report")?.projectId).toBe(sub.id)
+  })
+})
+
+describe("importFiles - nested backup restore", () => {
+  it("preserves parentId across the id regeneration", async () => {
+    const manifest = structflowManifest({
+      projects: [
+        { id: "work", name: "Work", color: "#000", createdAt: 1, parentId: null },
+        { id: "sql", name: "SQL", color: "#000", createdAt: 1, parentId: "work" },
+      ],
+      entries: [],
+    })
+    const { projects } = await importFiles([jsonFile("manifest.json", manifest)])
+    expect(projects).toHaveLength(2)
+    const work = projects.find((p) => p.name === "Work")!
+    const sql = projects.find((p) => p.name === "SQL")!
+    expect(work.id).not.toBe("work") // re-ided on import
+    expect(sql.parentId).toBe(work.id) // child re-pointed to the new parent id
   })
 })
