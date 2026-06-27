@@ -187,15 +187,16 @@ async function main() {
 }
 
 async function writeSmallPromo() {
+  const svg = await smallPromoSvg()
   await sharp({
     create: {
       width: 440,
       height: 280,
-      channels: 3,
+      channels: 4,
       background: "#0b1020",
     },
   })
-    .composite([{ input: Buffer.from(smallPromoSvg()) }])
+    .composite([{ input: Buffer.from(svg) }])
     .flatten({ background: "#0b1020" })
     .png()
     .toFile(join(outDir, "promo-small-440x280.png"))
@@ -237,10 +238,10 @@ async function writeMarqueePromo(sourcePath) {
 
 function marqueePromoSvg() {
   const description = wrap(
-    "StructFlow keeps formatting, previews, snapshots, and a local library in one fast local-first workspace.",
+    "An in-place code editor, JSON viewer, code snapshots, and a local snippet library, all in your browser side panel.",
     54,
   )
-  const pills = ["Local-first", "Markdown preview", "JSON tree", "PNG snapshots"]
+  const pills = ["20+ languages", "Auto-detect", "JSON tree", "Local-first"]
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560">
@@ -286,40 +287,56 @@ function marqueePromoSvg() {
   `
 }
 
-function smallPromoSvg() {
-  const description = [
-    "Format code, explore JSON,",
-    "and keep snippets close.",
-  ]
-
+// Promo small tile: three labeled pillars (Code / JSON / Notes) with lucide icons.
+const PROMO_SANS = "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+const PILLAR_ICONS = {
+  code: '<path d="M16 18 L22 12 L16 6"/><path d="M8 6 L2 12 L8 18"/>',
+  braces:
+    '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1 .9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1 .9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>',
+  note: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+}
+function strokeIcon(name, x, y, size, color) {
+  const s = size / 24
+  return `<g transform="translate(${x},${y}) scale(${s})" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${PILLAR_ICONS[name]}</g>`
+}
+function pillarChip(x, y, w, h, name, label, color) {
+  const cx = x + w / 2
+  return `<g>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16" fill="#161a28"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16" fill="${color}" fill-opacity="0.08"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="16" fill="none" stroke="${color}" stroke-opacity="0.35"/>
+    ${strokeIcon(name, cx - 18, y + 26, 36, color)}
+    <text x="${cx}" y="${y + h - 20}" fill="#f8fafc" font-family="${PROMO_SANS}" font-size="15" font-weight="700" text-anchor="middle">${label}</text>
+  </g>`
+}
+async function measureTextWidth(text, size, weight) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="140"><text x="20" y="100" font-family="${PROMO_SANS}" font-size="${size}" font-weight="${weight}" fill="#fff">${escapeXml(text)}</text></svg>`
+  const { info } = await sharp(Buffer.from(svg)).trim().png().toBuffer({ resolveWithObject: true })
+  return info.width
+}
+async function smallPromoSvg() {
+  const NAME = "StructFlow", FS = 27, FW = 800
+  const nameW = await measureTextWidth(NAME, FS, FW)
+  const logoSize = 30, gap = 11
+  const startX = Math.round((440 - (logoSize + gap + nameW)) / 2)
+  const cy = 42
+  const nameX = startX + logoSize + gap
+  const baseline = cy + Math.round(FS * 0.34)
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280">
       <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#0f172a"/>
-          <stop offset="0.6" stop-color="#0b1020"/>
-          <stop offset="1" stop-color="#071923"/>
-        </linearGradient>
-        <filter id="card-shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#020617" flood-opacity="0.42"/>
-        </filter>
+        <radialGradient id="pg1" cx="12%" cy="92%" r="70%"><stop offset="0" stop-color="#4f9cff" stop-opacity="0.16"/><stop offset="1" stop-color="#4f9cff" stop-opacity="0"/></radialGradient>
+        <radialGradient id="pg2" cx="92%" cy="8%" r="60%"><stop offset="0" stop-color="#14b8a6" stop-opacity="0.14"/><stop offset="1" stop-color="#14b8a6" stop-opacity="0"/></radialGradient>
       </defs>
-      <style>
-        text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      </style>
-      <rect width="440" height="280" fill="url(#bg)"/>
-      <circle cx="42" cy="252" r="94" fill="#4f9cff" opacity=".12"/>
-      <circle cx="404" cy="28" r="72" fill="#14b8a6" opacity=".1"/>
-
-      <g filter="url(#card-shadow)">
-        <rect x="34" y="34" width="372" height="212" rx="30" fill="#0b1221" fill-opacity="0.92" stroke="#f8fafc" stroke-opacity="0.08"/>
-      </g>
-
-      <g transform="translate(220 48)">
-        ${brandMark(-30, 0, 60)}
-        <text x="0" y="94" text-anchor="middle" fill="#f8fafc" font-size="38" font-weight="860">StructFlow</text>
-        ${description.map((line, index) => `<text x="0" y="${144 + index * 28}" text-anchor="middle" fill="#b8c3d6" font-size="20">${escapeXml(line)}</text>`).join("")}
-      </g>
+      <rect width="440" height="280" fill="#0b1020"/>
+      <rect width="440" height="280" fill="url(#pg1)"/>
+      <rect width="440" height="280" fill="url(#pg2)"/>
+      ${brandMark(startX, cy - logoSize / 2, logoSize)}
+      <text x="${nameX}" y="${baseline}" fill="#f8fafc" font-family="${PROMO_SANS}" font-size="${FS}" font-weight="${FW}">StructFlow</text>
+      ${pillarChip(42, 86, 104, 106, "code", "Code", "#6ea8fe")}
+      ${pillarChip(168, 86, 104, 106, "braces", "JSON", "#69D2AE")}
+      ${pillarChip(294, 86, 104, 106, "note", "Notes", "#E5A98A")}
+      <text x="220" y="232" fill="#9fb0c8" font-family="${PROMO_SANS}" font-size="14" text-anchor="middle">Runs locally in your browser side panel.</text>
     </svg>
   `
 }

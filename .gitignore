@@ -45,3 +45,6 @@ BROWSER_PUBLISHING.md
 AMO_SOURCE_SUBMISSION.md
 
 temp-assets/
+
+# Scratch promo experiments (final tiles live in store-assets/ root)
+store-assets/promo-options/

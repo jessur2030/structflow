@@ -15,6 +15,14 @@ stored in your browser via IndexedDB.
 
 ---
 
+## Screenshots
+
+| Editor | JSON tree | Library |
+| --- | --- | --- |
+| ![In-place code editor](store-assets/screenshot-05-editor.png) | ![JSON tree viewer](store-assets/screenshot-02-json-tree.png) | ![Snippet library](store-assets/screenshot-03-library.png) |
+
+---
+
 ## Features
 
 - **In-place code editor** - a single CodeMirror-based surface with live syntax
