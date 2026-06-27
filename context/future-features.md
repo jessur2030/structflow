@@ -21,6 +21,17 @@ Group ordering is rough priority within each section, not a roadmap.
 - [ ] Per-language remembered options (e.g. tab width per language).
 - [ ] Format-on-paste toggle.
 
+## Code execution (sandboxed runner)
+- [ ] Run a JS/TS snippet and show console output + return value/errors (REPL-style "Run" action).
+  - Must run in a manifest `sandbox` page (MV3 CSP forbids eval/new Function in the panel itself),
+    isolated from extension APIs, communicating via postMessage.
+  - Execute inside a Web Worker so runaway/infinite loops can be killed via terminate() on a timeout.
+  - TS needs transpiling first — lean toward `sucrase` (tiny, strips types, no type-check) over
+    `esbuild-wasm` (heavier, several MB).
+  - MVP scope: JS + TS console only, no DOM, no network (stays local + on-brand). DOM/preview later.
+  - Trade-offs to weigh before committing: shifts identity from "format/view/keep" toward a
+    playground; executing arbitrary code draws extra store-review scrutiny; added bundle weight.
+
 ## Notes mode (Markdown / Plain Text)
 - [ ] Autosave drafts so notes persist without an explicit save.
 - [ ] Markdown checklists / task tracking.
