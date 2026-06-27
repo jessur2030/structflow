@@ -1,58 +1,64 @@
-# StructFlow — Build Plan
+# StructFlow — Build Plan / Overview
 
-> The plan used to build the current codebase. StructFlow is a Chrome MV3 side-panel
-> extension that is a JSON viewer + multi-language code formatter with an
-> IndexedDB-backed saved-entries library.
+> A high-level overview of what StructFlow is and the decisions behind it. For the
+> detailed file map see `architecture-context.md`; for shipped-per-phase history see
+> `progress-tracker.md`; for the ideas backlog see `future-features.md`. Current
+> version: 1.4.0.
+
+StructFlow is a Chrome/Firefox **MV3 side-panel extension**: an in-place code editor,
+a JSON viewer (in the panel **and** on raw JSON pages), a code-snapshot PNG exporter,
+and an IndexedDB-backed snippet/notes library. Markdown and Plain Text are first-class,
+so it doubles as a lightweight note-taker. Everything runs locally — no accounts, no
+servers, no network calls.
 
 ## Goals
 
-1. A **JSON viewer** that can parse, format, and pretty-print JSON, with both an
-   interactive collapsible tree and a syntax-highlighted text view.
-2. A **multi-language formatter** in the Chrome side panel supporting JSON,
-   JavaScript, TypeScript, HTML, CSS, Markdown, and SQL.
-3. A **saved-entries library** with folders, search, and
-   copy / save / export / re-open actions.
-4. **Dark + light mode** for both the viewer and the side panel.
+1. **In-place code editor** (CodeMirror 6) with live syntax highlighting + line numbers;
+   one surface that toggles Edit / Preview (Markdown) / Tree (JSON) / Diff. Format
+   rewrites the buffer in place.
+2. **20+ languages**, two tiers: *formatted* (Markdown, JSON, JS, TS, HTML, CSS, SQL,
+   YAML) and *highlight-only* (Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Shell,
+   TOML, Dockerfile, Kotlin, Swift).
+3. **JSON viewer**: collapsible tree with search + highlighted text view, plus a
+   content-script viewer that takes over raw `.json` pages.
+4. **Notes**: Markdown-first with live preview; Plain Text is a no-format scratchpad.
+5. **Library**: nested folders, search, import/export (.zip), pinned/tags/recent.
+6. **Snapshots**: render formatted code to a shareable PNG.
+7. **Personalization**: light/dark app + 19 syntax themes (incl. the author's Aura Noir
+   family); an in-panel Settings screen. Local-first throughout.
 
 ## Decisions (confirmed with user)
 
-| Question        | Decision                                                            |
-| --------------- | ------------------------------------------------------------------- |
-| Build target    | Both — previewable web app now, real MV3 extension wiring (Vite)    |
-| Storage         | **IndexedDB** (via `idb`)                                           |
-| JSON viewer     | Both interactive tree + pretty-printed text                         |
-| Languages       | All: JSON, JS, TS, HTML, CSS, Markdown, SQL                         |
-| Formatter defaults | VS Code-like defaults, with extra options exposed                |
+| Question | Decision |
+| --- | --- |
+| Build target | Previewable web app **and** real MV3 extension (Vite) |
+| Editor | **CodeMirror 6** — not Monaco (MV3 CSP + bundle size); grammars lazy-loaded |
+| Highlighting | Editor = CodeMirror/Lezer; read-only views = **lowlight** (no `innerHTML`); both themed by one `--syn-*` CSS-var set |
+| Languages | Two-tier: format what has a real formatter, highlight the rest |
+| Auto-detect | Conservative detect on paste into a fresh buffer, with one-click Undo |
+| Storage | **IndexedDB** (via `idb`) for the library; `localStorage` for prefs/draft |
+| Settings | **In-panel** screen (not a separate options page) |
+| Themes | Aura Noir family added; first-run default is mode-aware (light/dark) |
+| Data safety | IndexedDB `upgrade()` stays additive — never drop a store (live users) |
 
-## Tech Stack
+## Tech stack
 
-- **Vite + React + TypeScript** — builds to a static bundle that loads as an
-  unpacked MV3 extension and also runs in a normal browser preview.
-- **Prettier (standalone + plugins)** — JS/TS/HTML/CSS/Markdown/JSON formatting.
-- **sql-formatter** — SQL indentation/spacing cleanup only.
-- **highlight.js** — read-only syntax highlighting in the text/code view.
-- **idb** — thin IndexedDB wrapper for the library (entries + projects).
-- **chrome.sidePanel + service worker** — opens StructFlow in the side panel.
-
-## Build Phases
-
-1. **Scaffold** — convert from Next.js to Vite MV3: `manifest.json`, side-panel
-   HTML entry, `background.ts` service worker, theme CSS, icons.
-2. **Core libs** — `types.ts`, `formatter.ts` (engine), `storage.ts` (IndexedDB),
-   `use-theme.ts`, `io.ts` (clipboard/download).
-3. **Viewer + formatter UI** — `code-view`, `json-tree`, `options-panel`,
-   `language-select`, `formatter` (the main editor view).
-4. **Library** — `library` view with folders, search, per-entry actions,
-   and the App shell tying tabs + theme + save modal together.
+- **Vite + React 19 + TypeScript**, **Tailwind v4** (tokens in `src/index.css`).
+- **CodeMirror 6** — the in-place editor (per-language grammars lazy-loaded).
+- **Prettier (standalone + plugins)** + **sql-formatter** — formatting engine (incl. YAML).
+- **lowlight / highlight.js** — read-only highlighting (Markdown code blocks, snapshot).
+- **marked** — Markdown lexer rendered to React elements (no `innerHTML`).
+- **html-to-image** (PNG snapshots), **fflate** (library .zip), **idb** (IndexedDB).
+- **chrome.sidePanel / Firefox `sidebar_action`** + service worker + content script.
 
 ## Verification
 
-- Dev server runs clean on Vite.
-- Verified in-browser at side-panel width (≈400px): format JSON → valid badge +
-  highlighting, tree view + search, dark mode, save to library → IndexedDB
-  persistence → Library tab shows the saved entry.
+- `pnpm test` (Vitest, node env), `pnpm exec tsc --noEmit`, `pnpm build` stay clean.
+- UI changes verified in **real Chrome** with playwright-core against `pnpm dev`
+  (system Chrome, ~400px side-panel width) — not just unit tests.
+- Per-store packages: `pnpm package:chrome | firefox | edge`; AMO source via `git archive`.
 
 ## How to load in Chrome
 
-`pnpm build` → `chrome://extensions` → enable Developer mode →
-"Load unpacked" → select `dist/`. Click the toolbar icon to open the side panel.
+`pnpm build` → `chrome://extensions` → enable Developer mode → "Load unpacked" →
+select `dist/`. Click the toolbar icon (or the shortcut) to open the side panel.
