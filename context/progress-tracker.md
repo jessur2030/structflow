@@ -2,6 +2,117 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 16 — two-tier languages, auto-detect, picker, themes, settings (v1.4.0, uncommitted)
+
+### Two-tier language model
+- [x] `LANGUAGES` (`types.ts`) is the single source of truth, with `formattable` +
+  `mime` fields. **Tier 1 (format + highlight)** added **YAML** (Prettier). **Tier 2
+  (highlight + store only, ~13)**: Python, Go, Rust, Java, C/C++, C#, PHP, Ruby,
+  Shell, TOML, Dockerfile, Kotlin, Swift. The "Format & Beautify" button now hides
+  whenever `!getLanguage(lang).formattable` (generalizes the old Plain Text case).
+- [x] Editor grammars lazy-load per language (`cm-languages.ts`: official
+  `@codemirror/lang-*` where available, else `@codemirror/legacy-modes`). Read-only
+  views register the matching highlight.js grammars (`highlight.ts`). `io.ts`
+  `mimeFor` derives from meta; `EXT_TO_LANGUAGE` extended for smart import.
+
+### Auto-detect on paste
+- [x] `detect.ts` `detectLanguage` — conservative (returns null unless confident,
+  reuses `validate("json")`). Fires from the CodeMirror paste handler only when the
+  paste starts a fresh buffer (empty OR a full-selection replace). `formatter.tsx`
+  shows a self-dismissing "Detected X · Undo" chip; never switches if unchanged.
+
+### Searchable language picker
+- [x] `language-select.tsx` rebuilt as a searchable combobox: search box, **Recent**
+  section (persisted), per-language icons, keyboard nav (↑↓/Enter/Esc/Home/End),
+  listbox/option a11y roles, and a "formats" badge on Tier 1.
+
+### Syntax themes
+- [x] Added the author's **Aura Noir family** (9: 7 dark + 2 light) to
+  `syntax-themes.ts` AND the in-page viewer's inlined list in `content.ts`
+  (additive — existing 8 kept). Added a dedicated **`type` slot** (`--syn-type`,
+  falls back to `func`) wired in `cm-theme.ts` + `index.css` for accurate type/class
+  coloring. **First-run default is mode-aware**: `aura-day` (light) / `aura-noir-modern`
+  (dark), persisted once; user choice wins thereafter.
+
+### In-page viewer settings
+- [x] `settings-button.tsx` — header gear popover with an "Auto-format JSON pages"
+  toggle that writes `chrome.storage.local["structflow_inpage_enabled"]` (the content
+  script already gated on it). Aura themes also available in the in-page viewer.
+
+### UX fixes
+- [x] Empty buffer now opens in **Edit** (was Preview for Markdown → "Nothing to
+  preview yet"). Editor placeholder simplified.
+
+### Verification (Phase 16)
+- [x] 70 Vitest tests (added `detect` + `language-metadata` integrity). Typecheck +
+  build + `package:chrome` clean. Driven in real Chrome: auto-detect across
+  languages + Undo, searchable picker + recents, Tier 2 (Python) highlight with
+  Format hidden, YAML formatting, theme switching, first-run light/dark defaults,
+  settings toggle. Version bumped to 1.4.0 (3 spots).
+
+## Phase 15 — unified in-place editor (v1.3.0, uncommitted)
+
+- [x] Replaced the split INPUT(plain textarea)/OUTPUT(read-only) model with ONE
+  in-place **CodeMirror 6** editor (`code-editor.tsx`): live syntax highlighting,
+  line numbers, bracket matching, undo history; themed entirely through the existing
+  `--syn-*` vars (`cm-theme.ts` — `synHighlightStyle` maps Lezer tags → vars,
+  `synEditorTheme` for chrome). Controlled value-sync guard (`value !== doc`) avoids
+  cursor jump. CSP-safe, no `innerHTML`.
+- [x] Shared **`EditorSurface`** (`editor-surface.tsx`): one surface, four modes —
+  **Edit / Preview (Markdown) / Tree (JSON) / Diff** — consumed by both
+  `formatter.tsx` and `focus-view.tsx` (Full view now uses the same editor).
+- [x] **Diff mode** (`diff-view.tsx`, renamed from compare-view): current buffer vs
+  `formatCode(buffer)` computed on demand. Format-in-place via `handleFormatNow`
+  (`setInput(res.output)`); removed the separate `output` string + 180ms debounce.
+- [x] Deleted dead `code-view.tsx` + `compare-view.tsx`. Verified in real Chrome;
+  typecheck + tests + build clean. Version 1.3.0.
+
+## Phase 14 — terminology, Full view, formatter UX polish (v1.2.0, uncommitted)
+
+### Terminology: "folder" everywhere (Obsidian-style)
+- [x] Unified UI wording: dropped the "project" / "subfolder" mix. UI now says
+  **folder** at every level (`New folder`, `Folder options`, `No folder`, `Folders`,
+  "create folders inside folders"). The `Project` TYPE name is kept internally
+  (no code churn). Nesting is implied by where you create the folder.
+- [x] Updated user-facing docs (README, STORE_LISTING) + internal context docs.
+
+### Full view (focus mode) — `src/components/focus-view.tsx` (new)
+- [x] Fullscreen overlay (reuses the snapshot-modal pattern, Escape to close) with
+  an Obsidian-style **book/pen toggle**: pen = full-height editable source,
+  book = live rendered preview. Markdown renders live (`MarkdownPreview source={input}`);
+  other languages show a highlighted read-only `CodeView`. Centered readable width
+  for presenting. Defaults to preview for Markdown.
+- [x] Wired into `formatter.tsx`: `Maximize2` "Full view" toolbar button + `showFocus`
+  state + `Cmd/Ctrl+Shift+F` shortcut. Edits sync back to the formatter input
+  (persist via App draft autosave). Plain textarea editing for now (CodeMirror-class
+  editor deferred).
+
+### Formatter UX polish (`formatter.tsx`)
+- [x] **Hybrid toolbar**: primary icons stay visible (Format options, Copy, Full view,
+  Save); secondary actions moved into a `MoreVertical` "More actions" overflow menu
+  (Export to file, Code snapshot, Clear). Clear is destructive + below a divider, away
+  from Save. Outside-click/Escape close.
+- [x] **Format & Beautify** button hidden for Plain Text (pure pass-through no-op);
+  small gap added so the input's last line no longer clips against it. Formatting is
+  already live (180ms debounce), so the button is an explicit-format affordance.
+- [x] OUTPUT now defaults to **Preview** for Markdown (note-first), formatted view for others.
+
+### Store listing (`STORE_LISTING.md`)
+- [x] Opening line reframed to "JSON, code snippets, and notes" (was "JSON and code").
+  Em-dashes minimized across the pasteable copy. Library bullet + shortcut + v1.2.0
+  "What's new" updated. Source of truth in git; paste into the Chrome dashboard manually.
+
+### Verification (Phase 14)
+- [x] Driven in real Chrome (playwright-core): Full view open/edit/preview/sync/close;
+  hybrid toolbar + overflow menu; Markdown preview default; format button hidden for text.
+- [x] Typecheck + 47 tests + production build clean.
+
+### Not done / next
+- [ ] Commit + rebuild store packages (chrome/firefox/edge + source zip) for the 1.2.0 release.
+- [ ] Optional: jsdom + Testing Library component tests (Library folders, focus view).
+- [ ] Optional: true in-editor highlighting (CodeMirror-class) for a real text editor.
+- [ ] Optional: "Format options" tooltip looks slightly detached (tooltip-position tweak).
+
 ## Phase 13 — highlighting, testing, smart import, subfolders, data safety (v1.1.x → v1.2.0)
 
 ### Data safety (critical, shipped while live)

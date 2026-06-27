@@ -6,8 +6,11 @@
   unpacked MV3 extension and run in browser preview.
 - **Tailwind v4** (`@tailwindcss/vite`) — tokens/variables in `src/index.css`.
 - **Prettier (standalone + plugins)** + **sql-formatter** — formatting engine.
-- **lowlight** (highlight.js grammars) — syntax highlighting as a hast tree,
-  rendered to React `<span>`s in `highlighted-code.tsx` (no `innerHTML`).
+- **CodeMirror 6** (`@codemirror/*` + `@lezer/highlight`) — the in-place editor;
+  per-language grammars (`lang-*` / `legacy-modes`) are lazy-loaded in `cm-languages.ts`.
+- **lowlight** (highlight.js grammars) — syntax highlighting for read-only views
+  (Markdown code blocks, snapshot) as a hast tree → React `<span>`s in
+  `highlighted-code.tsx` (no `innerHTML`).
 - **html-to-image** — DOM → PNG for the code snapshot exporter (adaptive
   pixelRatio so large snapshots stay under the ~16384px canvas limit).
 - **marked** — Markdown lexer for the React-rendered preview (no DOMPurify).
@@ -37,25 +40,33 @@ src/
     logo-source.png             # Source brand art (input to gen-icons.cjs)
     logo.png                    # Trimmed header logo
   lib/
-    types.ts                    # Shared types: Language (markdown|text|ts|js|json|html|css|sql), FormatOptions, Entry, Project, LANGUAGES, PROJECT_COLORS
-    formatter.ts                # format(code, lang, options) -> Prettier / sql-formatter; `text` is pass-through
+    types.ts                    # Shared types: Language (Tier 1: markdown|text|ts|js|json|html|css|sql|yaml; Tier 2 highlight-only: python|go|rust|java|cpp|csharp|php|ruby|shell|toml|dockerfile|kotlin|swift), LanguageMeta (formattable/mime), FormatOptions, Entry, Project, LANGUAGES
+    formatter.ts                # format(code, lang, options) -> Prettier / sql-formatter; `text` + Tier 2 pass through
+    detect.ts                   # detectLanguage(text) -> Language|null (conservative auto-detect on paste)
+    cm-languages.ts             # loadLanguageSupport(lang): lazy-imported CodeMirror grammars (lang-* + legacy-modes)
+    cm-theme.ts                 # synHighlightStyle (Lezer tags -> --syn-* vars) + synEditorTheme (editor chrome)
     storage.ts                  # IndexedDB CRUD: entries + projects (via idb)
-    syntax-themes.ts            # Syntax theme defs + getSyntaxTheme + syntaxThemeVars (CSS var map)
+    syntax-themes.ts            # Syntax theme defs (incl. Aura Noir family) + getSyntaxTheme + syntaxThemeVars (CSS var map)
     use-theme.ts                # App theme hook (dark|light)
-    use-syntax-theme.ts         # Syntax/editor theme hook (read/persist/apply)
+    use-syntax-theme.ts         # Syntax theme hook; first-run default is mode-aware (aura-day/aura-noir-modern)
     support-links.ts            # EDITABLE config: GitHub / Buy Me a Coffee / Sponsor links
-    io.ts                       # Clipboard copy + file download + slugify + exportEntriesAsZip (fflate) + MIME map
+    io.ts                       # Clipboard copy + file download + slugify + exportEntriesAsZip (fflate) + mimeFor (from meta)
     utils.ts                    # cn() class merge + misc helpers
   components/
-    formatter.tsx               # Main editor: input, format, view toggle, toolbar, snapshot trigger
-    code-view.tsx               # Highlighted text view w/ line numbers + wrap (hljs)
+    formatter.tsx               # Main panel: toolbar, language picker, format-in-place, detect chip, snapshot/save; hosts EditorSurface
+    code-editor.tsx             # CodeMirror 6 in-place editor (controlled; highlight + line numbers; paste auto-detect)
+    editor-surface.tsx          # Shared mode switcher + dispatch (Edit/Preview/Tree/Diff); used by formatter + focus-view
+    diff-view.tsx               # Diff mode: current buffer vs formatCode(buffer), computed on demand
+    highlighted-code.tsx        # lowlight hast -> React spans (read-only highlighting; no innerHTML)
     markdown-preview.tsx        # Rendered Markdown preview (toggles vs source)
     json-tree.tsx               # Interactive collapsible JSON tree + search
     options-panel.tsx           # Formatter options (tab width, quotes, semicolons, sort keys switch, ...)
-    language-select.tsx         # Language picker dropdown (Markdown default, Plain Text 2nd)
+    language-select.tsx         # Searchable language picker (search + Recent + icons + keyboard nav)
     syntax-theme-select.tsx     # Editor/JSON syntax theme picker
     snapshot-modal.tsx          # CodeSnap-style PNG exporter (windowed card, backdrops, Copy/Download PNG)
+    focus-view.tsx              # Fullscreen "Full view": renders the same EditorSurface, larger/centered
     support-button.tsx          # Header support popover (links from support-links.ts; inline GitHub SVG)
+    settings-button.tsx         # Header gear popover: toggle the in-page JSON viewer (chrome.storage.local)
     theme-mode-toggle.tsx       # Dark/light toggle
     library.tsx                 # Saved entries grouped by folder + search + folder ⋯ menu (rename/add/recolor/delete) + bulk export modal
     modal.tsx                   # Reusable modal (save dialog, confirms)
@@ -64,10 +75,13 @@ src/
 
 ## Data flow
 
-1. **Format**: `formatter.tsx` reads input + selected `Language` + `FormatOptions`
-   → calls `lib/formatter.ts` → returns formatted string (or parse error).
-2. **View**: formatted JSON can render as `code-view` (text) or `json-tree`
-   (interactive). Other languages render in `code-view`.
+1. **Edit/format**: `code-editor.tsx` is the single in-place editor bound to the
+   formatter `input`. "Format & Beautify" (or Cmd/Ctrl+Enter) calls
+   `lib/formatter.ts` and rewrites the buffer in place. Tier 2 languages + `text`
+   pass through (no formatter); the button hides when `!meta.formattable`.
+2. **Modes**: `editor-surface.tsx` toggles the one surface between **Edit**
+   (`code-editor`), **Preview** (`markdown-preview`, Markdown), **Tree**
+   (`json-tree`, JSON), and **Diff** (`diff-view`). No permanent output panel.
 3. **Persist**: save action opens `modal` → writes an `Entry` (with optional
    `projectId`) to IndexedDB via `lib/storage.ts`.
 4. **Library**: `library.tsx` reads entries + projects from storage, groups by
@@ -148,8 +162,41 @@ src/
 - `background.ts` calls `chrome.sidePanel.open` (or sets panel behavior) on
   action click.
 
+## v1.3.0–1.4.0 subsystem notes
+
+- **Unified editor (v1.3.0)**: the split INPUT(textarea)/OUTPUT(read-only) model was
+  replaced by one in-place **CodeMirror 6** editor (`code-editor.tsx`) + a shared
+  `editor-surface.tsx` mode switcher (Edit/Preview/Tree/Diff). Themed via the existing
+  `--syn-*` vars (`cm-theme.ts`: `synHighlightStyle` maps Lezer tags → vars;
+  `synEditorTheme` for chrome). The controlled value-sync uses a `value !== doc` guard
+  to avoid cursor jump. Format rewrites the buffer in place (no separate `output`).
+  `code-view.tsx` + `compare-view.tsx` were removed; `diff-view.tsx` replaces compare.
+- **Two-tier languages (v1.4.0)**: `LANGUAGES` carries `formattable` + `mime`. Tier 1
+  formats (Prettier/sql-formatter, incl. YAML); Tier 2 (~13) is highlight-only and the
+  formatter `switch` passes it through. Editor grammars lazy-load (`cm-languages.ts`);
+  read-only views register highlight.js grammars (`highlight.ts`). Adding a `Language`
+  means updating both `syntax-themes.ts`-adjacent maps and `content.ts` only where noted.
+- **Auto-detect on paste (v1.4.0)**: `detect.ts` `detectLanguage` (conservative) runs
+  from the CodeMirror paste handler when the paste starts a fresh buffer; the
+  "Detected X · Undo" chip lives in `formatter.tsx`.
+- **Syntax themes**: added the Aura Noir family (9) to `syntax-themes.ts` AND
+  `content.ts` (keep both in sync). New `type` slot (`--syn-type`). First-run default
+  is mode-aware (`use-syntax-theme.ts` + `content.ts`).
+- **In-page viewer toggle**: `settings-button.tsx` writes
+  `chrome.storage.local["structflow_inpage_enabled"]`; `content.ts` `main()` bails when off.
+
 ## v1.2.0 subsystem notes
 
+- **Full view / focus mode** (`focus-view.tsx`): fullscreen overlay opened from the
+  formatter's `Maximize2` button (or `Cmd/Ctrl+Shift+F`). Renders the same
+  `EditorSurface` as the main panel (just larger/centered), so editing + the
+  Edit/Preview/Tree/Diff modes are identical inline and fullscreen.
+- **Formatter toolbar is hybrid**: primary icons visible (Format options, Copy, Full
+  view, Save) + a `MoreVertical` overflow menu for Export / Snapshot / Clear. The
+  "Format & Beautify" button rewrites in place and is hidden when the language is not
+  `formattable`. An empty buffer opens in Edit; Markdown with content opens in Preview.
+- **Terminology**: the UI says "folder" everywhere; the `Project` type name is kept
+  internally (see Phase 14 in `progress-tracker.md`).
 - **Library folders are nested.** `Project` has an optional `parentId`
   (top-level when null). Tree helpers in `types.ts`: `projectChildren`,
   `projectDescendantIds`, `projectPath`. `library.tsx` renders folders
