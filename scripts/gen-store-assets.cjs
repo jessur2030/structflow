@@ -58,11 +58,18 @@ const jsonSample = JSON.stringify(
   2,
 )
 
-const tsSample = `type Plan="free"|"pro"
-
-const canExport=(p:Plan)=>{
-return p==="pro"
+const tsSample = `interface User {
+  id: number
+  name: string
+  plan: "free" | "pro"
 }
+
+function greet(user: User): string {
+  return \`Welcome back, \${user.name}!\`
+}
+
+const ada: User = { id: 124, name: "Ada", plan: "pro" }
+console.log(greet(ada))
 `
 
 const jsSample = `const response = await fetch("/api/users");
@@ -79,7 +86,7 @@ const screenshots = [
     language: "markdown",
     input: markdownSample,
     setup: async (page) => {
-      await page.clickLabel("Rendered preview")
+      await page.clickLabel("Preview")
     },
   },
   {
@@ -106,16 +113,18 @@ const screenshots = [
     language: "javascript",
     input: jsSample,
     setup: async (page) => {
-      await page.clickLabel("Code snapshot")
+      // "Code snapshot" now lives in the "More actions" overflow menu.
+      await page.clickLabel("More actions")
+      await page.clickText("Code snapshot")
     },
   },
   {
-    file: "screenshot-05-compare-view.png",
+    // The in-place CodeMirror editor (headline 1.4.0 change): TypeScript opens in
+    // Edit mode with live syntax highlighting under the Aura Noir Modern theme.
+    file: "screenshot-05-editor.png",
     language: "typescript",
     input: tsSample,
-    setup: async (page) => {
-      await page.clickLabel("Compare input and output")
-    },
+    setup: async () => {},
   },
 ]
 
@@ -383,7 +392,7 @@ function stateScript(language, input, seedLibrary) {
   return `
     (async () => {
       localStorage.setItem("structflow_theme", "dark");
-      localStorage.setItem("structflow_syntax_theme", "vscode-dark");
+      localStorage.setItem("structflow_syntax_theme", "aura-noir-modern");
       localStorage.setItem("structflow_options", ${JSON.stringify(JSON.stringify(defaults))});
       localStorage.setItem("structflow_formatter_draft", ${JSON.stringify(JSON.stringify({ language, input }))});
       if (${seedLibrary ? "true" : "false"}) {

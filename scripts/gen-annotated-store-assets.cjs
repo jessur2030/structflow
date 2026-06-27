@@ -39,10 +39,10 @@ const items = [
     accent: "#ec4899",
   },
   {
-    source: "screenshot-05-compare-view.png",
-    title: "Compare before and after",
-    body: "See exactly what changed when StructFlow formats code, with input and output shown side by side.",
-    pills: ["Before / after", "Changed lines", "Keyboard shortcuts"],
+    source: "screenshot-05-editor.png",
+    title: "A real code editor",
+    body: "Edit in place with live syntax highlighting and line numbers across 20+ languages, with auto-detect on paste.",
+    pills: ["20+ languages", "Auto-detect", "Aura themes"],
     accent: "#8b5cf6",
   },
 ]

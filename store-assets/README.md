@@ -13,7 +13,7 @@ pnpm assets:store:annotated  # Builds annotated versions from the real screensho
 - `plain/screenshot-02-json-tree.png` - 1280x800
 - `plain/screenshot-03-library.png` - 1280x800
 - `plain/screenshot-04-snapshot-modal.png` - 1280x800
-- `plain/screenshot-05-compare-view.png` - 1280x800
+- `plain/screenshot-05-editor.png` - 1280x800
 - `promo-small-440x280.png` - 440x280
 - `promo-marquee-1400x560.png` - 1400x560
 
@@ -25,7 +25,7 @@ The same plain screenshots are also kept at the top level for quick upload.
 - `annotated/screenshot-02-json-tree-annotated.png` - 1280x800
 - `annotated/screenshot-03-library-annotated.png` - 1280x800
 - `annotated/screenshot-04-snapshot-modal-annotated.png` - 1280x800
-- `annotated/screenshot-05-compare-view-annotated.png` - 1280x800
+- `annotated/screenshot-05-editor-annotated.png` - 1280x800
 
 Use `public/icons/icon-128.png` as the store icon.
 
