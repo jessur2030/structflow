@@ -1,15 +1,11 @@
 # Support
 
-For help with StructFlow, use the public project repository once it is published.
+Need help with StructFlow? Open an issue on GitHub:
 
-Recommended support URL for the Chrome Web Store:
+<https://github.com/jessur2030/structflow/issues>
 
-```text
-https://github.com/jessur2030/structflow/issues
-```
-
-Make sure GitHub issues are enabled on the public repository before submitting
-to the store.
+StructFlow runs entirely in your browser — your snippets and notes never leave
+your device — so please don't share private data when asking for help (see below).
 
 ## What To Include
 

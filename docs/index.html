@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StructFlow — JSON viewer, code editor & notes for your browser side panel</title>
+    <meta
+      name="description"
+      content="StructFlow is a local-first browser side-panel extension: an in-place code editor with live highlighting, a JSON viewer, code snapshots, and a searchable snippet library. Everything stays on your device."
+    />
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.65;
+        color: #cdd6e4;
+        background:
+          radial-gradient(circle at 18% 88%, rgba(79, 156, 255, 0.12), transparent 30%),
+          radial-gradient(circle at 88% 6%, rgba(20, 184, 166, 0.1), transparent 28%),
+          #0b1020;
+        min-height: 100vh;
+      }
+      .wrap { max-width: 720px; margin: 0 auto; padding: 64px 24px 96px; }
+      header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+      header h1 { font-size: 28px; margin: 0; color: #f8fafc; letter-spacing: -0.01em; }
+      .tag { color: #9fb0c8; font-size: 16px; margin: 0 0 36px; }
+      h2 { color: #f1f5f9; font-size: 18px; margin: 40px 0 12px; }
+      p { margin: 0 0 14px; }
+      a { color: #6ea8fe; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      ul { padding-left: 20px; }
+      li { margin: 6px 0; }
+      .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0 8px; }
+      .card {
+        display: block; padding: 16px 18px; border: 1px solid #1e2740; border-radius: 12px;
+        background: rgba(255, 255, 255, 0.02); color: #e2e8f0; transition: border-color .15s, background .15s;
+      }
+      .card:hover { border-color: #2f3e63; background: rgba(255, 255, 255, 0.04); text-decoration: none; }
+      .card strong { display: block; font-size: 15px; color: #f8fafc; margin-bottom: 2px; }
+      .card span { font-size: 13px; color: #93a0b8; }
+      footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #1a2236; color: #7e8aa3; font-size: 13px; }
+      @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header><h1>StructFlow</h1></header>
+      <p class="tag">A local-first JSON viewer, code editor, and snippet library that lives in your browser's side panel.</p>
+
+      <p>
+        Edit on one syntax-highlighted surface with auto-detect on paste, beautify 8 languages and
+        highlight 20+ more, explore JSON as a tree, snapshot code to a PNG, and keep a searchable
+        library of notes and snippets — all offline. Nothing you write leaves your device.
+      </p>
+
+      <div class="cards">
+        <a class="card" href="https://chromewebstore.google.com/detail/structflow/gnjabohddgleaghkhglofkepfmadclmj">
+          <strong>Get it for Chrome →</strong><span>Chrome Web Store</span>
+        </a>
+        <a class="card" href="https://github.com/jessur2030/structflow">
+          <strong>Source on GitHub →</strong><span>Code, issues, releases</span>
+        </a>
+        <a class="card" href="./privacy.html">
+          <strong>Privacy policy →</strong><span>What's stored (spoiler: only locally)</span>
+        </a>
+        <a class="card" href="./support.html">
+          <strong>Support →</strong><span>Get help, report a bug</span>
+        </a>
+      </div>
+
+      <footer>
+        StructFlow is open source under Apache-2.0 ·
+        <a href="https://github.com/jessur2030/structflow">github.com/jessur2030/structflow</a>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StructFlow — Privacy Policy</title>
+    <meta name="description" content="StructFlow privacy policy: a local-first extension that collects no data. Everything stays in your browser." />
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.65; color: #cdd6e4; background: #0b1020; min-height: 100vh;
+      }
+      .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 96px; }
+      a { color: #6ea8fe; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .back { font-size: 14px; color: #93a0b8; }
+      h1 { color: #f8fafc; font-size: 28px; margin: 16px 0 4px; letter-spacing: -0.01em; }
+      .date { color: #7e8aa3; font-size: 14px; margin: 0 0 28px; }
+      h2 { color: #f1f5f9; font-size: 18px; margin: 32px 0 10px; }
+      p { margin: 0 0 14px; }
+      ul { padding-left: 20px; } li { margin: 6px 0; }
+      code { background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+      .lede { font-size: 17px; color: #e2e8f0; }
+      footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid #1a2236; color: #7e8aa3; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <a class="back" href="./index.html">← StructFlow</a>
+      <h1>Privacy Policy</h1>
+      <p class="date">Effective date: 2026-06-27</p>
+
+      <p class="lede">
+        StructFlow is a local-first browser extension for formatting code, viewing JSON, taking
+        notes, and saving snippets. <strong>It collects nothing.</strong>
+      </p>
+
+      <h2>Data collection</h2>
+      <p>StructFlow does not collect, transmit, sell, or share personal data. It uses no analytics,
+        tracking pixels, remote logging, advertising identifiers, or AI services.</p>
+
+      <h2>Local storage</h2>
+      <p>StructFlow stores app data locally in your browser:</p>
+      <ul>
+        <li>Saved library entries — raw input, formatted output, titles, tags, folder assignments, pinned state, and timestamps.</li>
+        <li>Folders and their display colors.</li>
+        <li>Formatter draft content.</li>
+        <li>Preferences: app theme, syntax theme, default language, recently used languages, and the in-page JSON viewer on/off setting.</li>
+        <li>Temporary selected text sent from the right-click menu into the side panel.</li>
+      </ul>
+      <p>This data stays on your device unless you manually export it.</p>
+
+      <h2>Permissions</h2>
+      <ul>
+        <li><code>sidePanel</code> — shows the app in the browser's side panel.</li>
+        <li><code>storage</code> — stores your preferences and temporary context-menu input.</li>
+        <li><code>contextMenus</code> — adds a right-click action to open StructFlow with selected text.</li>
+        <li>Content script access on pages — detects raw JSON pages and renders the optional in-page JSON viewer (which you can turn off in Settings). The script only reads the page it is rendering.</li>
+      </ul>
+
+      <h2>Network use</h2>
+      <p>StructFlow makes no network requests for formatting, storage, analytics, or licensing.</p>
+
+      <h2>Exported files</h2>
+      <p>When you export, StructFlow creates files locally and downloads them to your device. Exported
+        ZIP files may contain your saved snippets, notes, titles, tags, folder names, and metadata.</p>
+
+      <h2>Contact</h2>
+      <p>Questions or concerns? Open an issue at
+        <a href="https://github.com/jessur2030/structflow/issues">github.com/jessur2030/structflow/issues</a>.</p>
+
+      <footer><a href="./index.html">StructFlow</a> · <a href="./support.html">Support</a> · Apache-2.0</footer>
+    </div>
+  </body>
+</html>

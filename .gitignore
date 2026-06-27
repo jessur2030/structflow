@@ -38,7 +38,8 @@ Thumbs.db
 
 STORE_LISTING.md
 
-docs/
+# Internal planning doc only — the docs/ HTML is the public GitHub Pages site
+docs/prod-readiness-plan.md
 
 BROWSER_PUBLISHING.md
 AMO_SOURCE_SUBMISSION.md
