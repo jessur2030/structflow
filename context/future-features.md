@@ -14,7 +14,7 @@ Group ordering is rough priority within each section, not a roadmap.
 
 ## Formatting & languages
 - [ ] SQL dialect-aware formatting (Postgres / MySQL / T-SQL presets).
-- [ ] More languages: YAML, TOML, XML (standalone), GraphQL, Python (via plugin).
+- [x] More languages (v1.4.0): YAML (formats) + highlight-only Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Shell, TOML, Dockerfile, Kotlin, Swift. Still wanted: GraphQL, standalone XML.
 - [ ] Minify / compact mode (one-line JSON, minified JS/CSS).
 - [ ] JSON ↔ YAML and JSON ↔ CSV converters.
 - [ ] JSON repair (fix trailing commas, single quotes, unquoted keys).
@@ -33,7 +33,7 @@ Group ordering is rough priority within each section, not a roadmap.
     playground; executing arbitrary code draws extra store-review scrutiny; added bundle weight.
 
 ## Notes mode (Markdown / Plain Text)
-- [ ] Autosave drafts so notes persist without an explicit save.
+- [x] Autosave drafts so notes persist without an explicit save (formatter draft autosaves to localStorage).
 - [ ] Markdown checklists / task tracking.
 - [ ] Slash commands and snippet insertion.
 - [ ] Word/char count + reading time for notes.

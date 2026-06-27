@@ -66,7 +66,8 @@ src/
     snapshot-modal.tsx          # CodeSnap-style PNG exporter (windowed card, backdrops, Copy/Download PNG)
     focus-view.tsx              # Fullscreen "Full view": renders the same EditorSurface, larger/centered
     support-button.tsx          # Header support popover (links from support-links.ts; inline GitHub SVG)
-    settings-button.tsx         # Header gear popover: toggle the in-page JSON viewer (chrome.storage.local)
+    settings-button.tsx         # Header gear; opens the in-panel Settings view
+    settings-view.tsx           # Full-panel Settings: appearance, syntax theme, default language, in-page toggle, data (export/import/clear), about
     theme-mode-toggle.tsx       # Dark/light toggle
     library.tsx                 # Saved entries grouped by folder + search + folder ⋯ menu (rename/add/recolor/delete) + bulk export modal
     modal.tsx                   # Reusable modal (save dialog, confirms)
@@ -182,8 +183,14 @@ src/
 - **Syntax themes**: added the Aura Noir family (9) to `syntax-themes.ts` AND
   `content.ts` (keep both in sync). New `type` slot (`--syn-type`). First-run default
   is mode-aware (`use-syntax-theme.ts` + `content.ts`).
-- **In-page viewer toggle**: `settings-button.tsx` writes
-  `chrome.storage.local["structflow_inpage_enabled"]`; `content.ts` `main()` bails when off.
+- **Settings screen**: the header gear (`settings-button.tsx`) opens an in-panel
+  `settings-view.tsx` (App holds `settingsOpen`, renders it in place of the tab content).
+  Sections: General (appearance, syntax theme, default language `structflow_default_language`),
+  In-page JSON viewer (the Auto-format toggle → `chrome.storage.local["structflow_inpage_enabled"]`,
+  which `content.ts` `main()` bails on when off), Data (export/import via `io.ts`; `clearAll()`
+  behind a Modal confirm), About (version, shortcut link, support links). Theme + syntax-theme
+  live ONLY here now (removed from the header) and share App state. Chose in-panel over a
+  dedicated `options.html` page (too few settings to justify it; avoids cross-document sync).
 
 ## v1.2.0 subsystem notes
 
