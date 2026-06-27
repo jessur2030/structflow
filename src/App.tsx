@@ -5,7 +5,6 @@ import { Formatter, type SaveEntryPayload } from "./components/formatter"
 import { Library, ModalButton } from "./components/library"
 import { Modal } from "./components/modal"
 import { ThemeModeToggle } from "./components/theme-mode-toggle"
-import { SyntaxThemeSelect } from "./components/syntax-theme-select"
 import { SupportButton } from "./components/support-button"
 import { SettingsButton } from "./components/settings-button"
 import { SettingsView } from "./components/settings-view"
@@ -272,7 +271,6 @@ export default function App() {
           <span className="text-[15px] font-semibold tracking-tight">StructFlow</span>
         </div>
         <div className="ml-auto flex items-center gap-1">
-          {tab === "format" && <SyntaxThemeSelect value={syntaxThemeId} onChange={setSyntaxTheme} />}
           <SupportButton />
           <SettingsButton onOpen={() => setSettingsOpen(true)} />
           <ThemeModeToggle mode={mode} resolved={resolved} onChange={setMode} />
