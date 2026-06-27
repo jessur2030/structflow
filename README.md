@@ -17,18 +17,32 @@ stored in your browser via IndexedDB.
 
 ## Features
 
-- **Multi-language formatting** - Markdown (default), Plain Text, TypeScript,
-  JavaScript, JSON, HTML, CSS, SQL. VS Code-style defaults plus options for tab
-  width, quotes, semicolons, print width, wrapping, and alphabetical key sorting.
+- **In-place code editor** - a single CodeMirror-based surface with live syntax
+  highlighting and line numbers. "Format & Beautify" rewrites your text in place,
+  and the same surface toggles between **Edit**, **Preview** (Markdown), **Tree**
+  (JSON), and **Diff** (exactly what formatting would change) - no separate
+  input/output panels.
+- **20+ languages** - beautify (format) for Markdown, JSON, JavaScript,
+  TypeScript, HTML, CSS, SQL, and YAML; highlight-and-keep for Python, Go, Rust,
+  Java, C/C++, C#, PHP, Ruby, Shell, TOML, Dockerfile, Kotlin, and Swift. VS
+  Code-style format options for tab width, quotes, semicolons, print width,
+  wrapping, and alphabetical key sorting.
+- **Auto-detect on paste** - paste into an empty editor and the language is set
+  automatically (JSON, HTML, CSS, SQL, TypeScript/JavaScript, Python, and more),
+  with a one-click **Undo**. A searchable language picker with Recent items, icons,
+  and keyboard navigation covers manual switching.
 - **Note-taking** - Plain Text is a pure pass-through (never reformatted) and
   Markdown ships with a rendered preview that toggles against the source.
 - **JSON viewer** - collapsible tree with key/value search, copy-path, copy-value,
   and type color-coding, plus a highlighted text view with line numbers.
 - **In-page JSON viewer** - a content script takes over raw `.json` pages and JSON
   responses, rendering a Formatted (default) / Tree / Raw view with its own
-  Editor & JSON theme picker and search.
-- **Syntax themes** - VS Code, GitHub, Monokai, Dracula, Nord, Solarized and more,
-  applied independently of the app's light/dark chrome.
+  Editor & JSON theme picker and search. Turn it off anytime from the panel's
+  **Settings** (gear) menu.
+- **Syntax themes** - the author's **Aura Noir** family (7 dark + 2 light) plus
+  VS Code, GitHub, Monokai, Dracula, Nord, and Solarized, applied independently of
+  the app's light/dark chrome. A fresh install starts on a light or dark theme that
+  matches your browser.
 - **Code snapshot** - export the formatted output as a polished PNG: windowed card
   with traffic lights and filename, backdrop choices, padding, line numbers, and
   Copy PNG / Download PNG.
@@ -115,7 +129,8 @@ node scripts/gen-icons.cjs
 - **Vite + React 19 + TypeScript**
 - **Tailwind CSS v4** (design tokens in `src/index.css`)
 - **Prettier (standalone)** + **sql-formatter** - formatting engine
-- **highlight.js** - syntax highlighting
+- **CodeMirror 6** - the in-place editor (per-language grammars are lazy-loaded)
+- **lowlight / highlight.js** - syntax highlighting for read-only views
 - **marked** + **DOMPurify** - Markdown preview
 - **html-to-image** - DOM → PNG snapshots
 - **fflate** - client-side `.zip` for bulk library export

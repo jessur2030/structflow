@@ -1,10 +1,26 @@
 # Changelog
 
+## 1.4.0
+
+- Many more languages. The editor now highlights 20+ languages. The ones with a real formatter still beautify on demand: Markdown, JSON, JavaScript, TypeScript, HTML, CSS, SQL, and now **YAML**. The rest are highlight-and-keep only: Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Shell, TOML, Dockerfile, Kotlin, and Swift. The "Format & Beautify" button hides for languages that have no formatter (like Plain Text).
+- Auto-detect on paste. Paste code into an empty editor and StructFlow picks the language for you (JSON, HTML, CSS, SQL, TypeScript/JavaScript, Python, and more), with a one-click "Undo" if it guesses wrong. It stays conservative, so plain notes are never disturbed.
+- New language picker. Searchable, with a Recent section, per-language icons, and full keyboard navigation, instead of a plain dropdown.
+- New themes. Added the **Aura Noir** family (Aura Noir plus Modern, Aurora, Ember, Rose, Forest, and Crimson) and two light themes (Aura Lumen, Aura Day). A fresh install now starts on a light or dark theme that matches your browser, so the code surface never clashes with the UI. Highlighting also gained a dedicated color for type/class names for more accurate output.
+- In-page JSON viewer: a new Settings menu (gear icon) lets you turn off auto-formatting of raw JSON pages if you'd rather leave them as-is. The new themes are available there too.
+
+## 1.3.0
+
+- Rebuilt the formatter around a single in-place code editor. Instead of typing into a plain box and watching a separate output panel, you now edit on one syntax-highlighted surface with line numbers (CodeMirror-class). "Format & Beautify" rewrites your text in place.
+- One surface, four modes: Edit, Preview (rendered Markdown), Tree (JSON), and Diff (see exactly what formatting would change). The output is no longer a permanent second panel.
+- Full view uses the same editor, so editing feels identical whether inline or fullscreen.
+
 ## 1.2.0
 
 - Library: nested folders with unlimited depth. Create a folder inside any folder from its menu, see the tree with indentation, and delete a folder with a confirmation that cascades to the folders and entries inside it.
 - Import: smarter import. A StructFlow backup restores your library; anything else is brought in as content. Import loose files, a whole folder (Obsidian-style, including nested folders), or a zip of files. Language is detected from the file extension, folders are recreated, and binaries plus heavy directories (node_modules, .git, dist) are skipped with size limits.
 - Search: now matches folder names in addition to entry title, content, language, and tags. Matching a folder name reveals everything inside it.
+- Full view: open any document fullscreen with an edit/preview toggle (book/pen). Markdown renders live at a readable width, which is great for presenting. Opens with the expand button or Ctrl/Cmd+Shift+F.
+- Cleaner formatter toolbar: the most-used actions stay visible and the rest (export, snapshot, clear) move into a "More actions" menu, with Clear separated so it is harder to hit by accident. Markdown opens in preview by default.
 - Consistent terminology: organizational containers are now called "folders" everywhere (previously a mix of "project" and "subfolder").
 - Reliability: library data now survives future updates. Database migrations are additive, so a schema change upgrades your saved entries instead of clearing them.
 - Save, move, and edit menus show the full nested folder path (for example, "Work / SQL").
