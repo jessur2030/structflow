@@ -53,19 +53,8 @@ export function downloadFile(filename: string, content: string, mime = "text/pla
   URL.revokeObjectURL(url)
 }
 
-const MIME: Record<Language, string> = {
-  markdown: "text/markdown",
-  text: "text/plain",
-  typescript: "text/typescript",
-  javascript: "text/javascript",
-  json: "application/json",
-  html: "text/html",
-  css: "text/css",
-  sql: "application/sql",
-}
-
 export function mimeFor(language: Language): string {
-  return MIME[language] ?? "text/plain"
+  return getLanguage(language).mime ?? "text/plain"
 }
 
 export function slugify(input: string): string {
@@ -164,6 +153,20 @@ const EXT_TO_LANGUAGE: Record<string, Language> = {
   html: "html", htm: "html", xhtml: "html", xml: "html", svg: "html", vue: "html",
   css: "css", scss: "css", sass: "css", less: "css",
   sql: "sql",
+  yaml: "yaml", yml: "yaml",
+  py: "python", pyw: "python",
+  go: "go",
+  rs: "rust",
+  java: "java",
+  cpp: "cpp", cc: "cpp", cxx: "cpp", "c++": "cpp", c: "cpp", h: "cpp", hpp: "cpp",
+  cs: "csharp",
+  php: "php",
+  rb: "ruby",
+  sh: "shell", bash: "shell", zsh: "shell",
+  toml: "toml",
+  dockerfile: "dockerfile",
+  kt: "kotlin", kts: "kotlin",
+  swift: "swift",
 }
 
 /** Best-effort language guess from a file name's extension (defaults to plain text). */

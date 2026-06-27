@@ -145,6 +145,17 @@
   padding: 0 2px;
 }
 
+/* CodeMirror editor host: let the editor fill its container and scroll. */
+.cm-host .cm-editor {
+  height: 100%;
+}
+.cm-host .cm-scroller {
+  padding: 0.25rem 0;
+}
+.cm-host .cm-gutters {
+  padding-right: 2px;
+}
+
 /* JSON tree token colors */
 .syntax-surface .syn-key {
   color: var(--syn-key);
@@ -181,9 +192,13 @@
 .syntax-surface .hljs-literal,
 .syntax-surface .hljs-section,
 .syntax-surface .hljs-doctag,
-.syntax-surface .hljs-type,
 .syntax-surface .hljs-built_in {
   color: var(--syn-keyword);
+}
+.syntax-surface .hljs-type,
+.syntax-surface .hljs-title.class_,
+.syntax-surface .hljs-title.class_.inherited__ {
+  color: var(--syn-type);
 }
 .syntax-surface .hljs-string,
 .syntax-surface .hljs-meta-string,

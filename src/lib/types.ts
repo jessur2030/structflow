@@ -1,4 +1,5 @@
 export type Language =
+  // Tier 1 — format + highlight
   | "markdown"
   | "text"
   | "typescript"
@@ -7,22 +8,47 @@ export type Language =
   | "html"
   | "css"
   | "sql"
+  | "yaml"
+  // Tier 2 — highlight + store only (no formatter)
+  | "python"
+  | "go"
+  | "rust"
+  | "java"
+  | "cpp"
+  | "csharp"
+  | "php"
+  | "ruby"
+  | "shell"
+  | "toml"
+  | "dockerfile"
+  | "kotlin"
+  | "swift"
 
 export interface LanguageMeta {
   id: Language
   label: string
+  /** highlight.js grammar name used for read-only views (preview, snapshot). */
   hljs: string
   description: string
   ext: string
+  mime: string
+  /** True when StructFlow can beautify it (Prettier/sql-formatter). Drives the Format button. */
+  formattable: boolean
+  /** Seeds the "Common" section of the language picker before any recents exist. */
+  common?: boolean
 }
 
 export const LANGUAGES: LanguageMeta[] = [
+  // ---- Tier 1: format + highlight ----
   {
     id: "markdown",
     label: "Markdown",
     hljs: "markdown",
     description: "Write notes and docs; normalize headings, lists, and fences.",
     ext: "md",
+    mime: "text/markdown",
+    formattable: true,
+    common: true,
   },
   {
     id: "text",
@@ -30,6 +56,9 @@ export const LANGUAGES: LanguageMeta[] = [
     hljs: "plaintext",
     description: "Freeform notes and scratch text - no formatting applied.",
     ext: "txt",
+    mime: "text/plain",
+    formattable: false,
+    common: true,
   },
   {
     id: "typescript",
@@ -37,6 +66,9 @@ export const LANGUAGES: LanguageMeta[] = [
     hljs: "typescript",
     description: "Keep TS types and generics readable.",
     ext: "ts",
+    mime: "text/typescript",
+    formattable: true,
+    common: true,
   },
   {
     id: "javascript",
@@ -44,11 +76,174 @@ export const LANGUAGES: LanguageMeta[] = [
     hljs: "javascript",
     description: "Format modern JS with consistent spacing and quotes.",
     ext: "js",
+    mime: "text/javascript",
+    formattable: true,
+    common: true,
   },
-  { id: "json", label: "JSON", hljs: "json", description: "Pretty-print JSON objects and arrays.", ext: "json" },
-  { id: "html", label: "HTML", hljs: "xml", description: "Beautify markup for templates and code blocks.", ext: "html" },
-  { id: "css", label: "CSS", hljs: "css", description: "Format CSS and utility stacks.", ext: "css" },
-  { id: "sql", label: "SQL", hljs: "sql", description: "Clean up SQL indentation and spacing.", ext: "sql" },
+  {
+    id: "json",
+    label: "JSON",
+    hljs: "json",
+    description: "Pretty-print JSON objects and arrays.",
+    ext: "json",
+    mime: "application/json",
+    formattable: true,
+    common: true,
+  },
+  {
+    id: "html",
+    label: "HTML",
+    hljs: "xml",
+    description: "Beautify markup for templates and code blocks.",
+    ext: "html",
+    mime: "text/html",
+    formattable: true,
+  },
+  {
+    id: "css",
+    label: "CSS",
+    hljs: "css",
+    description: "Format CSS and utility stacks.",
+    ext: "css",
+    mime: "text/css",
+    formattable: true,
+  },
+  {
+    id: "sql",
+    label: "SQL",
+    hljs: "sql",
+    description: "Clean up SQL indentation and spacing.",
+    ext: "sql",
+    mime: "application/sql",
+    formattable: true,
+  },
+  {
+    id: "yaml",
+    label: "YAML",
+    hljs: "yaml",
+    description: "Format config and manifests with consistent indentation.",
+    ext: "yaml",
+    mime: "application/yaml",
+    formattable: true,
+  },
+  // ---- Tier 2: highlight + store only ----
+  {
+    id: "python",
+    label: "Python",
+    hljs: "python",
+    description: "Highlight and keep Python snippets.",
+    ext: "py",
+    mime: "text/x-python",
+    formattable: false,
+  },
+  {
+    id: "go",
+    label: "Go",
+    hljs: "go",
+    description: "Highlight and keep Go snippets.",
+    ext: "go",
+    mime: "text/x-go",
+    formattable: false,
+  },
+  {
+    id: "rust",
+    label: "Rust",
+    hljs: "rust",
+    description: "Highlight and keep Rust snippets.",
+    ext: "rs",
+    mime: "text/x-rust",
+    formattable: false,
+  },
+  {
+    id: "java",
+    label: "Java",
+    hljs: "java",
+    description: "Highlight and keep Java snippets.",
+    ext: "java",
+    mime: "text/x-java",
+    formattable: false,
+  },
+  {
+    id: "cpp",
+    label: "C / C++",
+    hljs: "cpp",
+    description: "Highlight and keep C and C++ snippets.",
+    ext: "cpp",
+    mime: "text/x-c++src",
+    formattable: false,
+  },
+  {
+    id: "csharp",
+    label: "C#",
+    hljs: "csharp",
+    description: "Highlight and keep C# snippets.",
+    ext: "cs",
+    mime: "text/x-csharp",
+    formattable: false,
+  },
+  {
+    id: "php",
+    label: "PHP",
+    hljs: "php",
+    description: "Highlight and keep PHP snippets.",
+    ext: "php",
+    mime: "application/x-php",
+    formattable: false,
+  },
+  {
+    id: "ruby",
+    label: "Ruby",
+    hljs: "ruby",
+    description: "Highlight and keep Ruby snippets.",
+    ext: "rb",
+    mime: "text/x-ruby",
+    formattable: false,
+  },
+  {
+    id: "shell",
+    label: "Shell",
+    hljs: "bash",
+    description: "Highlight and keep shell scripts.",
+    ext: "sh",
+    mime: "application/x-sh",
+    formattable: false,
+  },
+  {
+    id: "toml",
+    label: "TOML",
+    hljs: "ini",
+    description: "Highlight and keep TOML config.",
+    ext: "toml",
+    mime: "application/toml",
+    formattable: false,
+  },
+  {
+    id: "dockerfile",
+    label: "Dockerfile",
+    hljs: "dockerfile",
+    description: "Highlight and keep Dockerfiles.",
+    ext: "dockerfile",
+    mime: "text/x-dockerfile",
+    formattable: false,
+  },
+  {
+    id: "kotlin",
+    label: "Kotlin",
+    hljs: "kotlin",
+    description: "Highlight and keep Kotlin snippets.",
+    ext: "kt",
+    mime: "text/x-kotlin",
+    formattable: false,
+  },
+  {
+    id: "swift",
+    label: "Swift",
+    hljs: "swift",
+    description: "Highlight and keep Swift snippets.",
+    ext: "swift",
+    mime: "text/x-swift",
+    formattable: false,
+  },
 ]
 
 export function getLanguage(id: Language): LanguageMeta {
@@ -78,7 +273,7 @@ export const DEFAULT_OPTIONS: FormatOptions = {
 }
 
 export const STRUCTFLOW_SCHEMA_VERSION = 3
-export const STRUCTFLOW_APP_VERSION = "1.2.0"
+export const STRUCTFLOW_APP_VERSION = "1.4.0"
 export const STRUCTFLOW_FORMATTER_VERSION = "2"
 
 export type EntrySource = "manual" | "context-menu" | "library" | "import"

@@ -30,6 +30,15 @@ interface SyntaxTheme {
 
 // Inlined palettes (kept in sync with src/lib/syntax-themes.ts).
 const SYNTAX_THEMES: SyntaxTheme[] = [
+  { id: "aura-noir", base: "dark", colors: { bg: "#14151B", fg: "#ABB5C8", gutter: "#434B5E", key: "#75C3CB", string: "#E59E8A", number: "#ED926B", boolean: "#ED926B", null: "#ED926B", comment: "#6A9955", keyword: "#C2A3FF", func: "#69D2AE", attr: "#75C3CB", punctuation: "#BCC6D8", match: "#2B3245" } },
+  { id: "aura-noir-modern", base: "dark", colors: { bg: "#14151B", fg: "#D4D4D4", gutter: "#434B5E", key: "#9CDCFE", string: "#CE9178", number: "#B5CEA8", boolean: "#4FC1FF", null: "#4FC1FF", comment: "#6A9955", keyword: "#569CD6", func: "#DCDCAA", attr: "#9CDCFE", punctuation: "#D4D4D4", match: "#2B3245" } },
+  { id: "aura-noir-aurora", base: "dark", colors: { bg: "#14151B", fg: "#ABB5C8", gutter: "#434B5E", key: "#7FC8D0", string: "#E5A98A", number: "#F0B884", boolean: "#F0B884", null: "#F0B884", comment: "#6A9955", keyword: "#45C7D4", func: "#6FE0C0", attr: "#7FC8D0", punctuation: "#BCCAD0", match: "#2B3245" } },
+  { id: "aura-noir-ember", base: "dark", colors: { bg: "#14151B", fg: "#ABB5C8", gutter: "#434B5E", key: "#9CC8D0", string: "#D98E70", number: "#F08868", boolean: "#F08868", null: "#F08868", comment: "#6A9955", keyword: "#E8A85C", func: "#F0C674", attr: "#9CC8D0", punctuation: "#CAC2B6", match: "#2B3245" } },
+  { id: "aura-noir-rose", base: "dark", colors: { bg: "#14151B", fg: "#ABB5C8", gutter: "#434B5E", key: "#85C8D0", string: "#E5A98A", number: "#F08080", boolean: "#F08080", null: "#F08080", comment: "#6A9955", keyword: "#E68FB8", func: "#7FD0E0", attr: "#85C8D0", punctuation: "#C8C0CC", match: "#2B3245" } },
+  { id: "aura-noir-forest", base: "dark", colors: { bg: "#14151B", fg: "#ABB5C8", gutter: "#434B5E", key: "#85C8D0", string: "#E5A98A", number: "#E0B070", boolean: "#E0B070", null: "#E0B070", comment: "#6A9955", keyword: "#4DBE8E", func: "#E6C878", attr: "#85C8D0", punctuation: "#BAC8C2", match: "#2B3245" } },
+  { id: "aura-noir-crimson", base: "dark", colors: { bg: "#14151B", fg: "#ABB5C8", gutter: "#434B5E", key: "#85C8D0", string: "#E5A98A", number: "#F0B884", boolean: "#F0B884", null: "#F0B884", comment: "#6A9955", keyword: "#E06A78", func: "#E6C878", attr: "#85C8D0", punctuation: "#CCC0C4", match: "#2B3245" } },
+  { id: "aura-lumen", base: "light", colors: { bg: "#FBFBFD", fg: "#2E3440", gutter: "#BCC2D2", key: "#2A5A9A", string: "#B5523C", number: "#1C7E5A", boolean: "#0F62C4", null: "#0F62C4", comment: "#4C8A3F", keyword: "#6E4FD0", func: "#8A6A1F", attr: "#2A5A9A", punctuation: "#4A4F5C", match: "#6E4FD033" } },
+  { id: "aura-day", base: "light", colors: { bg: "#FBFBFD", fg: "#2E3440", gutter: "#BCC2D2", key: "#2A5A9A", string: "#B5523C", number: "#1C7E5A", boolean: "#0F62C4", null: "#0F62C4", comment: "#4C8A3F", keyword: "#1F6FD6", func: "#8A6A1F", attr: "#2A5A9A", punctuation: "#4A4F5C", match: "#1F6FD633" } },
   { id: "vscode-dark", base: "dark", colors: { bg: "#1e1e1e", fg: "#d4d4d4", gutter: "#858585", key: "#9cdcfe", string: "#ce9178", number: "#b5cea8", boolean: "#569cd6", null: "#569cd6", comment: "#6a9955", keyword: "#c586c0", func: "#dcdcaa", attr: "#9cdcfe", punctuation: "#808080", match: "#613214" } },
   { id: "vscode-light", base: "light", colors: { bg: "#ffffff", fg: "#1f1f1f", gutter: "#999999", key: "#0451a5", string: "#a31515", number: "#098658", boolean: "#0000ff", null: "#0000ff", comment: "#008000", keyword: "#af00db", func: "#795e26", attr: "#0451a5", punctuation: "#7a7a7a", match: "#ffe9a8" } },
   { id: "github-dark", base: "dark", colors: { bg: "#0d1117", fg: "#e6edf3", gutter: "#6e7681", key: "#79c0ff", string: "#a5d6ff", number: "#79c0ff", boolean: "#79c0ff", null: "#ff7b72", comment: "#8b949e", keyword: "#ff7b72", func: "#d2a8ff", attr: "#7ee787", punctuation: "#8b949e", match: "#3b2e0a" } },
@@ -57,7 +66,7 @@ interface Settings {
 function readSettings(): Promise<Settings> {
   return new Promise((resolve) => {
     const fallback: Settings = {
-      syntaxTheme: getSyntaxTheme("vscode-dark"),
+      syntaxTheme: getSyntaxTheme("aura-noir-modern"),
       appDark: true,
       enabled: true,
     }
@@ -70,7 +79,6 @@ function readSettings(): Promise<Settings> {
         const rawSyn = res?.[SYNTAX_KEY]
         const rawTheme = res?.[THEME_KEY]
         const rawEnabled = res?.[ENABLED_KEY]
-        const synId = typeof rawSyn === "string" ? rawSyn : "vscode-dark"
         const themeMode =
           rawTheme === "dark" || rawTheme === "light" || rawTheme === "system"
             ? rawTheme
@@ -81,6 +89,9 @@ function readSettings(): Promise<Settings> {
             : themeMode === "light"
               ? false
               : window.matchMedia("(prefers-color-scheme: dark)").matches
+        // First-run default matches the app's light/dark so the viewer never
+        // mismatches the rest of the UI before the user picks a theme.
+        const synId = typeof rawSyn === "string" ? rawSyn : appDark ? "aura-noir-modern" : "aura-day"
         resolve({
           syntaxTheme: getSyntaxTheme(synId),
           appDark,
@@ -519,6 +530,15 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
 
 function themeLabel(id: string): string {
   const map: Record<string, string> = {
+    "aura-noir": "Aura Noir",
+    "aura-noir-modern": "Aura Noir Modern",
+    "aura-noir-aurora": "Aura Noir Aurora",
+    "aura-noir-ember": "Aura Noir Ember",
+    "aura-noir-rose": "Aura Noir Rose",
+    "aura-noir-forest": "Aura Noir Forest",
+    "aura-noir-crimson": "Aura Noir Crimson",
+    "aura-lumen": "Aura Lumen",
+    "aura-day": "Aura Day",
     "vscode-dark": "VS Code Dark+",
     "vscode-light": "VS Code Light+",
     "github-dark": "GitHub Dark",

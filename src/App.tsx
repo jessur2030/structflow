@@ -7,6 +7,7 @@ import { Modal } from "./components/modal"
 import { ThemeModeToggle } from "./components/theme-mode-toggle"
 import { SyntaxThemeSelect } from "./components/syntax-theme-select"
 import { SupportButton } from "./components/support-button"
+import { SettingsButton } from "./components/settings-button"
 import { useTheme } from "./lib/use-theme"
 import { useSyntaxTheme } from "./lib/use-syntax-theme"
 import {
@@ -244,6 +245,7 @@ export default function App() {
         <div className="ml-auto flex items-center gap-1">
           {tab === "format" && <SyntaxThemeSelect value={syntaxThemeId} onChange={setSyntaxTheme} />}
           <SupportButton />
+          <SettingsButton />
           <ThemeModeToggle mode={mode} resolved={resolved} onChange={setMode} />
         </div>
       </header>

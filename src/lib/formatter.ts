@@ -5,6 +5,7 @@ import * as pluginTypescript from "prettier/plugins/typescript"
 import * as pluginHtml from "prettier/plugins/html"
 import * as pluginPostcss from "prettier/plugins/postcss"
 import * as pluginMarkdown from "prettier/plugins/markdown"
+import * as pluginYaml from "prettier/plugins/yaml"
 import { format as formatSql } from "sql-formatter"
 import type { FormatOptions, Language } from "./types"
 
@@ -122,6 +123,14 @@ export async function formatCode(
         const out = await prettier.format(input, {
           parser: "markdown",
           plugins: [pluginMarkdown],
+          ...prettierBase(opts),
+        })
+        return { ok: true, output: out }
+      }
+      case "yaml": {
+        const out = await prettier.format(input, {
+          parser: "yaml",
+          plugins: [pluginYaml],
           ...prettierBase(opts),
         })
         return { ok: true, output: out }

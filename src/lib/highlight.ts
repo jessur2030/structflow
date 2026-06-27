@@ -7,10 +7,26 @@ import css from "highlight.js/lib/languages/css"
 import markdown from "highlight.js/lib/languages/markdown"
 import sql from "highlight.js/lib/languages/sql"
 import plaintext from "highlight.js/lib/languages/plaintext"
+import yaml from "highlight.js/lib/languages/yaml"
+import python from "highlight.js/lib/languages/python"
+import go from "highlight.js/lib/languages/go"
+import rust from "highlight.js/lib/languages/rust"
+import java from "highlight.js/lib/languages/java"
+import cpp from "highlight.js/lib/languages/cpp"
+import csharp from "highlight.js/lib/languages/csharp"
+import php from "highlight.js/lib/languages/php"
+import ruby from "highlight.js/lib/languages/ruby"
+import bash from "highlight.js/lib/languages/bash"
+import ini from "highlight.js/lib/languages/ini"
+import dockerfile from "highlight.js/lib/languages/dockerfile"
+import kotlin from "highlight.js/lib/languages/kotlin"
+import swift from "highlight.js/lib/languages/swift"
 import type { Root } from "hast"
 
 // Only the languages StructFlow supports are registered, so the bundle ships
-// just these grammars rather than all of highlight.js.
+// just these grammars rather than all of highlight.js. Names match the `hljs`
+// field in LANGUAGES (types.ts) — Tier 2 grammars keep read-only views
+// (snapshot, markdown code blocks) highlighting consistently with the editor.
 const lowlight = createLowlight({
   json,
   javascript,
@@ -20,6 +36,20 @@ const lowlight = createLowlight({
   markdown,
   sql,
   plaintext,
+  yaml,
+  python,
+  go,
+  rust,
+  java,
+  cpp,
+  csharp,
+  php,
+  ruby,
+  bash,
+  ini,
+  dockerfile,
+  kotlin,
+  swift,
 })
 
 /**
@@ -61,6 +91,32 @@ function normalizeLanguage(language: string): string {
     case "md":
     case "mdown":
       return "markdown"
+    case "py":
+      return "python"
+    case "rb":
+      return "ruby"
+    case "sh":
+    case "zsh":
+    case "shell":
+      return "bash"
+    case "yml":
+      return "yaml"
+    case "rs":
+      return "rust"
+    case "kt":
+    case "kts":
+      return "kotlin"
+    case "cs":
+      return "csharp"
+    case "toml":
+      return "ini"
+    case "c":
+    case "h":
+    case "hpp":
+    case "c++":
+      return "cpp"
+    case "golang":
+      return "go"
     case "":
       return ""
     default:
