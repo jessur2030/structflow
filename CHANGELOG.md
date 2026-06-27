@@ -6,7 +6,7 @@
 - Auto-detect on paste. Paste code into an empty editor and StructFlow picks the language for you (JSON, HTML, CSS, SQL, TypeScript/JavaScript, Python, and more), with a one-click "Undo" if it guesses wrong. It stays conservative, so plain notes are never disturbed.
 - New language picker. Searchable, with a Recent section, per-language icons, and full keyboard navigation, instead of a plain dropdown.
 - New themes. Added the **Aura Noir** family (Aura Noir plus Modern, Aurora, Ember, Rose, Forest, and Crimson) and two light themes (Aura Lumen, Aura Day). A fresh install now starts on a light or dark theme that matches your browser, so the code surface never clashes with the UI. Highlighting also gained a dedicated color for type/class names for more accurate output.
-- In-page JSON viewer: a new Settings menu (gear icon) lets you turn off auto-formatting of raw JSON pages if you'd rather leave them as-is. The new themes are available there too.
+- New Settings screen (gear icon): appearance, syntax theme, default language for new notes, the in-page JSON viewer toggle, data export/import and "clear all", and an About section with version and your keyboard shortcut. The new themes are available in the in-page viewer too.
 
 ## 1.3.0
 

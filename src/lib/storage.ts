@@ -96,6 +96,20 @@ export async function saveProjects(projects: Project[]): Promise<void> {
 }
 
 /**
+ * Wipe all saved entries and folders. Clears the records inside the object
+ * stores; it never drops the stores themselves, so the additive-migration
+ * guarantee is preserved (see storage upgrade() note). Destructive — callers
+ * must confirm first.
+ */
+export async function clearAll(): Promise<void> {
+  const db = await getDB()
+  const tx = db.transaction(["entries", "projects"], "readwrite")
+  await tx.objectStore("entries").clear()
+  await tx.objectStore("projects").clear()
+  await tx.done
+}
+
+/**
  * Delete a folder and everything inside it: all descendant subfolders and every
  * entry that belongs to the folder or any of its descendants (cascade delete).
  */

@@ -8,9 +8,11 @@ import { ThemeModeToggle } from "./components/theme-mode-toggle"
 import { SyntaxThemeSelect } from "./components/syntax-theme-select"
 import { SupportButton } from "./components/support-button"
 import { SettingsButton } from "./components/settings-button"
+import { SettingsView } from "./components/settings-view"
 import { useTheme } from "./lib/use-theme"
 import { useSyntaxTheme } from "./lib/use-syntax-theme"
 import {
+  clearAll,
   deleteEntry,
   deleteProject,
   getAllEntries,
@@ -37,10 +39,20 @@ import { cn } from "./lib/utils"
 
 type Tab = "format" | "library"
 const DRAFT_KEY = "structflow_formatter_draft"
+const DEFAULT_LANG_KEY = "structflow_default_language"
 
 interface FormatterDraft {
   language: Language
   input: string
+}
+
+function loadDefaultLanguage(): Language {
+  try {
+    const v = localStorage.getItem(DEFAULT_LANG_KEY)
+    if (isLanguage(v)) return v
+  } catch {
+  }
+  return "markdown"
 }
 
 function loadDraft(): FormatterDraft {
@@ -57,7 +69,7 @@ function loadDraft(): FormatterDraft {
     }
   } catch {
   }
-  return { language: "markdown", input: "" }
+  return { language: loadDefaultLanguage(), input: "" }
 }
 
 function isLanguage(value: unknown): value is Language {
@@ -69,6 +81,8 @@ export default function App() {
   const { syntaxThemeId, setSyntaxTheme } = useSyntaxTheme()
   const [initialDraft] = useState(loadDraft)
   const [tab, setTab] = useState<Tab>("format")
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [defaultLanguage, setDefaultLanguage] = useState<Language>(loadDefaultLanguage)
 
   const [language, setLanguage] = useState<Language>(initialDraft.language)
   const [input, setInput] = useState(initialDraft.input)
@@ -235,6 +249,21 @@ export default function App() {
     await refresh()
   }
 
+  const handleChangeDefaultLanguage = (lang: Language) => {
+    setDefaultLanguage(lang)
+    try {
+      localStorage.setItem(DEFAULT_LANG_KEY, lang)
+    } catch {
+    }
+    // Apply immediately only when the editor is empty, so a draft is never overridden.
+    if (!input.trim()) setLanguage(lang)
+  }
+
+  const handleClearAll = async () => {
+    await clearAll()
+    await refresh()
+  }
+
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">
@@ -245,11 +274,29 @@ export default function App() {
         <div className="ml-auto flex items-center gap-1">
           {tab === "format" && <SyntaxThemeSelect value={syntaxThemeId} onChange={setSyntaxTheme} />}
           <SupportButton />
-          <SettingsButton />
+          <SettingsButton onOpen={() => setSettingsOpen(true)} />
           <ThemeModeToggle mode={mode} resolved={resolved} onChange={setMode} />
         </div>
       </header>
 
+      {settingsOpen ? (
+        <div className="min-h-0 flex-1">
+          <SettingsView
+            onClose={() => setSettingsOpen(false)}
+            themeMode={mode}
+            onChangeThemeMode={setMode}
+            syntaxThemeId={syntaxThemeId}
+            onChangeSyntaxTheme={setSyntaxTheme}
+            defaultLanguage={defaultLanguage}
+            onChangeDefaultLanguage={handleChangeDefaultLanguage}
+            entries={entries}
+            projects={projects}
+            onImportData={handleImportData}
+            onClearAll={handleClearAll}
+          />
+        </div>
+      ) : (
+        <>
       <div className="flex border-b border-border px-2">
         <TabButton active={tab === "format"} onClick={() => setTab("format")}>
           <Wand2 className="h-3.5 w-3.5" /> Formatter
@@ -305,6 +352,8 @@ export default function App() {
           />
         )}
       </main>
+        </>
+      )}
 
       <Modal
         open={saveOpen}

@@ -34,10 +34,16 @@ Legend: [x] done · [~] partial · [ ] not started
   coloring. **First-run default is mode-aware**: `aura-day` (light) / `aura-noir-modern`
   (dark), persisted once; user choice wins thereafter.
 
-### In-page viewer settings
-- [x] `settings-button.tsx` — header gear popover with an "Auto-format JSON pages"
-  toggle that writes `chrome.storage.local["structflow_inpage_enabled"]` (the content
-  script already gated on it). Aura themes also available in the in-page viewer.
+### Settings screen
+- [x] In-panel **Settings view** (`settings-view.tsx`) opened from the header gear
+  (`settings-button.tsx` is now just a gear `IconButton`). Single grouped column —
+  **General** (Appearance, Syntax theme, **Default language** for new notes →
+  `structflow_default_language`), **In-page JSON viewer** (the Auto-format toggle moved
+  here; same `chrome.storage.local["structflow_inpage_enabled"]` key), **Data**
+  (Export/Import reuse `io.ts`; **Clear all** via new `storage.ts` `clearAll()` behind a
+  Modal confirm — clears records only, never drops stores), **About** (version, shortcut
+  link to `chrome://extensions/shortcuts`, support links). Theme + syntax-theme stay in
+  the header too and auto-sync (shared App state). Aura themes also in the in-page viewer.
 
 ### UX fixes
 - [x] Empty buffer now opens in **Edit** (was Preview for Markdown → "Nothing to
