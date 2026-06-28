@@ -64,6 +64,29 @@ describe("detectLanguage", () => {
     expect(detectLanguage("- apples\n- bananas\n- cherries\n")).toBeNull()
   })
 
+  it("does not mistake prose with the word 'public'/'private' for TypeScript", () => {
+    expect(
+      detectLanguage("They publish those assets to a public storefront for free sharing."),
+    ).not.toBe("typescript")
+    expect(detectLanguage("Keep your private notes private until you decide to share.")).not.toBe(
+      "typescript",
+    )
+  })
+
+  it("still detects TypeScript access modifiers in real member syntax", () => {
+    expect(detectLanguage("class A {\n  private readonly id: number = 1\n}")).toBe("typescript")
+    expect(detectLanguage("class S {\n  public static getInstance() {}\n}")).toBe("typescript")
+  })
+
+  it("detects Markdown from rich prose (bold spans, mixed list markers)", () => {
+    expect(detectLanguage("**The Concept:** a brief.\n\n**The Plan:** ship it soon.")).toBe(
+      "markdown",
+    )
+    expect(detectLanguage("1. **Blueprint**\n\n- _Vibe:_ professional\n- _Why:_ universal")).toBe(
+      "markdown",
+    )
+  })
+
   it("handles large valid JSON without hanging", () => {
     const big = JSON.stringify({ items: Array.from({ length: 5000 }, (_, i) => ({ i, v: `x${i}` })) })
     expect(detectLanguage(big)).toBe("json")

@@ -23,16 +23,30 @@ export function detectLanguage(text: string): Language | null {
     return "json"
   }
 
-  // 1.5. Strong Markdown markers that don't appear in source code — a fenced
-  // code block, a table, or a link. Checked before the code heuristics so a
-  // markdown doc wrapping a JS/TS snippet is recognized as markdown.
+  // 1.5. Markdown. Strong markers that don't appear in source code classify
+  // immediately (a fenced block, a table, a link, or two-plus bold spans);
+  // checked before the code heuristics so a markdown doc wrapping a JS/TS snippet
+  // — or rich prose like a project brief — is recognized as markdown.
+  const boldSpans = sample.match(/\*\*(?=\S)[^\n*]*[A-Za-z][^\n*]*\*\*/g)?.length ?? 0
   if (
     /(?:^|\n)\s*(?:```|~~~)/.test(sample) ||
     /\[[^\]]+\]\([^)]+\)/.test(sample) ||
-    /(?:^|\n)\|.+\|.*\n\|[\s:|-]+\|/.test(sample)
+    /(?:^|\n)\|.+\|.*\n\|[\s:|-]+\|/.test(sample) ||
+    boldSpans >= 2
   ) {
     return "markdown"
   }
+
+  // 1.6. Weaker, ambiguous markers — a bullet list, an ordered list, a single
+  // bold span, or `_emphasis_`. Each is a false-positive risk alone (a bullet
+  // clashes with a YAML sequence `- a`; `**kwargs` looks like a bold span), so
+  // require at least TWO distinct kinds together before calling it markdown.
+  let mdSignals = 0
+  if (/(?:^|\n)[ \t]*[-*+][ \t]+\S/.test(sample)) mdSignals++ // bullet list
+  if (/(?:^|\n)[ \t]*\d+[.)][ \t]+\S/.test(sample)) mdSignals++ // ordered list
+  if (boldSpans >= 1) mdSignals++ // a bold span
+  if (/(?:^|\s)_(?=\S)[^_\n]+?_(?=\s|[.,:;!?)]|$)/.test(sample)) mdSignals++ // emphasis
+  if (mdSignals >= 2) return "markdown"
 
   // 2. HTML — a recognized tag, closing tag, or doctype.
   if (
@@ -63,11 +77,18 @@ export function detectLanguage(text: string): Language | null {
 
   // 5. TypeScript vs JavaScript. Strong TS keywords stand on their own (they have
   // no JS-base statement); otherwise require a JS base, then look for annotations.
+  // NB: access modifiers (`public`/`private`/...) are common English words, so
+  // they only count in real member-declaration syntax: optional further
+  // modifiers, an identifier, then a member token (`(`, `:`, `=`, `?`, `<`).
+  // A bare `public storefront` in prose must NOT register as TypeScript.
   const strongTs =
     /\binterface\s+[A-Za-z_]\w*/.test(sample) ||
     /\btype\s+[A-Za-z_]\w*\s*[=<]/.test(sample) ||
     /\benum\s+\w+/.test(sample) ||
-    /\b(?:public|private|protected|readonly|implements)\s/.test(sample)
+    /\b(?:public|private|protected|readonly)\s+(?:static\s+|readonly\s+|abstract\s+|async\s+)*[\w$]+\s*[(:=?<]/.test(
+      sample,
+    ) ||
+    /\bimplements\s+[A-Z]/.test(sample)
   if (strongTs) return "typescript"
 
   const jsBase =
