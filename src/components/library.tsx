@@ -53,6 +53,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
+import { Button } from "./ui/button"
 type LibraryMode = "all" | "pinned" | "recent"
 type EntryPatch = Partial<
   Pick<
@@ -1255,19 +1256,11 @@ export function ModalButton({
   onClick: () => void
   variant?: "primary" | "ghost" | "danger"
 }) {
+  const mapped = variant === "primary" ? "default" : variant === "ghost" ? "outline" : "destructive"
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
-        variant === "primary" && "bg-primary text-primary-foreground hover:opacity-90",
-        variant === "ghost" && "border border-border bg-background hover:bg-secondary",
-        variant === "danger" && "bg-red-600 text-white hover:bg-red-700",
-      )}
-    >
+    <Button type="button" size="sm" variant={mapped} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   )
 }
 
