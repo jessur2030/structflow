@@ -59,6 +59,11 @@ function renderBlock(token: MarkdownToken, key: number | string, headingCounts: 
   switch (token.type) {
     case "space":
       return null
+    case "checkbox":
+      // GFM task-list marker (first child of a task list_item).
+      return (
+        <input key={key} type="checkbox" checked={Boolean(token.checked)} readOnly disabled />
+      )
     case "hr":
       return <hr key={key} />
     case "heading": {
@@ -86,15 +91,32 @@ function renderBlock(token: MarkdownToken, key: number | string, headingCounts: 
       const ListTag = token.ordered ? "ol" : "ul"
       return (
         <ListTag key={key} start={token.start || undefined}>
-          {(token.items ?? []).map((item: MarkdownToken, index: number) => (
-            <li key={index}>
-              {item.tokens?.length
-                ? item.tokens.map((child: MarkdownToken, childIndex: number) =>
-                    renderBlock(child, childIndex, new Map()),
-                  )
-                : renderInline(item.tokens, item.text)}
-            </li>
-          ))}
+          {(token.items ?? []).map((item: MarkdownToken, index: number) => {
+            // Task items render checkbox + label inline; the block path would
+            // drop the label to the next line.
+            if (item.task) {
+              const label = (item.tokens ?? []).filter(
+                (child: MarkdownToken) => child.type !== "checkbox",
+              )
+              return (
+                <li key={index}>
+                  <input type="checkbox" checked={Boolean(item.checked)} readOnly disabled />{" "}
+                  {label.map((child: MarkdownToken) =>
+                    renderInline(child.tokens, child.text),
+                  )}
+                </li>
+              )
+            }
+            return (
+              <li key={index}>
+                {item.tokens?.length
+                  ? item.tokens.map((child: MarkdownToken, childIndex: number) =>
+                      renderBlock(child, childIndex, new Map()),
+                    )
+                  : renderInline(item.tokens, item.text)}
+              </li>
+            )
+          })}
         </ListTag>
       )
     }
@@ -166,6 +188,8 @@ function renderInline(tokens?: MarkdownToken[], fallback = ""): ReactNode {
         return token.tokens?.length ? renderInline(token.tokens, token.text) : token.text
       case "escape":
         return token.text
+      case "checkbox":
+        return <input key={index} type="checkbox" checked={Boolean(token.checked)} readOnly disabled />
       case "strong":
         return <strong key={index}>{renderInline(token.tokens, token.text)}</strong>
       case "em":
