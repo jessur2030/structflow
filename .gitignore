@@ -49,3 +49,6 @@ temp-assets/
 
 # Scratch promo experiments (final tiles live in store-assets/ root)
 store-assets/promo-options/
+# Claude Code local settings (session permission allowlists)
+.claude/settings.json
+.claude/settings.local.json

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Search,
   FolderPlus,
@@ -45,48 +45,14 @@ import {
   type Project,
 } from "@/lib/types"
 import { cn } from "@/lib/utils"
-
-/**
- * Place an absolutely-positioned dropdown so it stays inside the scrollable list
- * (the `[data-menu-boundary]` ancestor) instead of being clipped by its
- * `overflow`. Opens on whichever side has more room and caps the height so a long
- * folder list scrolls inside the menu rather than overflowing the container.
- */
-function useMenuPlacement(
-  menuOpen: boolean,
-  btnRef: React.RefObject<HTMLElement | null>,
-  menuRef: React.RefObject<HTMLElement | null>,
-): { up: boolean; maxHeight: number | null } {
-  const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number | null }>({
-    up: false,
-    maxHeight: null,
-  })
-  useLayoutEffect(() => {
-    if (!menuOpen) return
-    const btn = btnRef.current
-    const menu = menuRef.current
-    if (!btn || !menu) return
-    // `top-full`/`bottom-full` anchor to the offsetParent (the row), not the
-    // button, so measure that to keep the JS math aligned with the CSS.
-    const anchor = (menu.offsetParent as HTMLElement | null) ?? btn
-    const aRect = anchor.getBoundingClientRect()
-    const bounds = menu.closest<HTMLElement>("[data-menu-boundary]")?.getBoundingClientRect()
-    const gap = 8
-    const top = (bounds?.top ?? 0) + gap
-    const bottom = (bounds?.bottom ?? window.innerHeight) - gap
-    const spaceBelow = bottom - aRect.bottom
-    const spaceAbove = aRect.top - top
-    const needed = menu.scrollHeight
-    let up: boolean
-    if (needed <= spaceBelow) up = false
-    else if (needed <= spaceAbove) up = true
-    else up = spaceAbove > spaceBelow
-    const avail = up ? spaceAbove : spaceBelow
-    setPlacement({ up, maxHeight: needed > avail ? Math.max(Math.floor(avail), 140) : null })
-  }, [menuOpen, btnRef, menuRef])
-  return placement
-}
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
 type LibraryMode = "all" | "pinned" | "recent"
 type EntryPatch = Partial<
   Pick<
@@ -462,7 +428,7 @@ export function Library({
         </ModeButton>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto" data-menu-boundary>
+      <div className="min-h-0 flex-1 overflow-auto">
         {entries.length === 0 && projects.length === 0 ? (
           <EmptyLibrary />
         ) : query.trim() && filtered.length === 0 && (visibleDuringSearch?.size ?? 0) === 0 ? (
@@ -710,29 +676,8 @@ function ProjectGroup({
   const [menuOpen, setMenuOpen] = useState(false)
   const [addTooltipOpen, setAddTooltipOpen] = useState(false)
   const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
   const addBtnRef = useRef<HTMLButtonElement | null>(null)
-
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointer = (e: PointerEvent) => {
-      const t = e.target as Node
-      if (menuRef.current?.contains(t) || menuBtnRef.current?.contains(t)) return
-      setMenuOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false)
-    }
-    document.addEventListener("pointerdown", onPointer)
-    document.addEventListener("keydown", onKey)
-    return () => {
-      document.removeEventListener("pointerdown", onPointer)
-      document.removeEventListener("keydown", onKey)
-    }
-  }, [menuOpen])
-
-  const menuPlacement = useMenuPlacement(menuOpen, menuBtnRef, menuRef)
 
   if (project === null && count === 0) return null
 
@@ -797,113 +742,88 @@ function ProjectGroup({
             <FloatingTooltip anchorRef={addBtnRef} label="Add new item" open={addTooltipOpen} />
           )}
           {project && (onRename || onRecolor || onDelete) && (
-            <button
-              ref={menuBtnRef}
-              type="button"
-              aria-label="Folder options"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((o) => !o)}
-              onPointerEnter={() => setMenuTooltipOpen(true)}
-              onPointerLeave={() => setMenuTooltipOpen(false)}
-              onFocus={() => setMenuTooltipOpen(true)}
-              onBlur={() => setMenuTooltipOpen(false)}
-              className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <MoreVertical className="h-3.5 w-3.5" />
-            </button>
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  ref={menuBtnRef}
+                  type="button"
+                  aria-label="Folder options"
+                  onPointerEnter={() => setMenuTooltipOpen(true)}
+                  onPointerLeave={() => setMenuTooltipOpen(false)}
+                  onFocus={() => setMenuTooltipOpen(true)}
+                  onBlur={() => setMenuTooltipOpen(false)}
+                  className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {onRename && (
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setName(project.name)
+                      setRenaming(true)
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Rename
+                  </DropdownMenuItem>
+                )}
+                {onAddItem && (
+                  <DropdownMenuItem onSelect={() => onAddItem()}>
+                    <Plus className="h-3.5 w-3.5" /> Add new item
+                  </DropdownMenuItem>
+                )}
+                {onAddSubfolder && (
+                  <DropdownMenuItem onSelect={() => onAddSubfolder()}>
+                    <FolderPlus className="h-3.5 w-3.5" /> New folder
+                  </DropdownMenuItem>
+                )}
+                {onRecolor && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      Color
+                    </DropdownMenuLabel>
+                    <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
+                      {PROJECT_COLORS.map((c) => {
+                        const active = c === project.color
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            aria-label={`Set color ${c}`}
+                            onClick={() => {
+                              onRecolor(c)
+                              setMenuOpen(false)
+                            }}
+                            className={cn(
+                              "flex h-5 w-5 items-center justify-center rounded-full ring-offset-1 ring-offset-popover transition-transform hover:scale-110",
+                              active && "ring-2 ring-ring",
+                            )}
+                            style={{ backgroundColor: c }}
+                          >
+                            {active && <Check className="h-3 w-3 text-background" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={() => onDelete()}>
+                      <Trash2 className="h-3.5 w-3.5" /> Delete folder
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {project && (onRename || onRecolor || onDelete) && (
             <FloatingTooltip anchorRef={menuBtnRef} label="Folder options" open={menuTooltipOpen && !menuOpen} />
           )}
         </div>
-
-        {menuOpen && project && (
-          <div
-            ref={menuRef}
-            role="menu"
-            style={menuPlacement.maxHeight ? { maxHeight: menuPlacement.maxHeight } : undefined}
-            className={cn(
-              "absolute right-2 z-30 w-48 overflow-y-auto rounded-lg border border-border bg-popover py-1 text-[13px] shadow-xl",
-              menuPlacement.up ? "bottom-full mb-1" : "top-full mt-1",
-            )}
-          >
-            {onRename && (
-              <MenuItem
-                onClick={() => {
-                  setName(project.name)
-                  setRenaming(true)
-                  setMenuOpen(false)
-                }}
-              >
-                <Pencil className="h-3.5 w-3.5" /> Rename
-              </MenuItem>
-            )}
-            {onAddItem && (
-              <MenuItem
-                onClick={() => {
-                  onAddItem()
-                  setMenuOpen(false)
-                }}
-              >
-                <Plus className="h-3.5 w-3.5" /> Add new item
-              </MenuItem>
-            )}
-            {onAddSubfolder && (
-              <MenuItem
-                onClick={() => {
-                  onAddSubfolder()
-                  setMenuOpen(false)
-                }}
-              >
-                <FolderPlus className="h-3.5 w-3.5" /> New folder
-              </MenuItem>
-            )}
-            {onRecolor && (
-              <>
-                <div className="my-1 border-t border-border" />
-                <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Color</div>
-                <div className="flex flex-wrap gap-1.5 px-3 py-1.5">
-                  {PROJECT_COLORS.map((c) => {
-                    const active = c === project.color
-                    return (
-                      <button
-                        key={c}
-                        type="button"
-                        aria-label={`Set color ${c}`}
-                        onClick={() => {
-                          onRecolor(c)
-                          setMenuOpen(false)
-                        }}
-                        className={cn(
-                          "flex h-5 w-5 items-center justify-center rounded-full ring-offset-1 ring-offset-popover transition-transform hover:scale-110",
-                          active && "ring-2 ring-ring",
-                        )}
-                        style={{ backgroundColor: c }}
-                      >
-                        {active && <Check className="h-3 w-3 text-background" />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-            {onDelete && (
-              <>
-                <div className="my-1 border-t border-border" />
-                <MenuItem
-                  destructive
-                  onClick={() => {
-                    onDelete()
-                    setMenuOpen(false)
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Delete folder
-                </MenuItem>
-              </>
-            )}
-          </div>
-        )}
       </div>
       {!collapsed && <div className="pl-3">{children}</div>}
     </div>
@@ -1164,29 +1084,8 @@ function EntryRow({
   const [renaming, setRenaming] = useState(false)
   const [title, setTitle] = useState(entry.title)
   const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
   const meta = getLanguage(entry.language)
-
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointer = (e: PointerEvent) => {
-      const t = e.target as Node
-      if (menuRef.current?.contains(t) || menuBtnRef.current?.contains(t)) return
-      onMenuToggle()
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onMenuToggle()
-    }
-    document.addEventListener("pointerdown", onPointer)
-    document.addEventListener("keydown", onKey)
-    return () => {
-      document.removeEventListener("pointerdown", onPointer)
-      document.removeEventListener("keydown", onKey)
-    }
-  }, [menuOpen, onMenuToggle])
-
-  const menuPlacement = useMenuPlacement(menuOpen, menuBtnRef, menuRef)
 
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1260,104 +1159,57 @@ function EntryRow({
         <RowAction label="Export" onClick={exportEntry}>
           <Download className="h-3.5 w-3.5" />
         </RowAction>
-        <button
-          ref={menuBtnRef}
-          type="button"
-          aria-label="More"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          onPointerEnter={() => setMenuTooltipOpen(true)}
-          onPointerLeave={() => setMenuTooltipOpen(false)}
-          onFocus={() => setMenuTooltipOpen(true)}
-          onBlur={() => setMenuTooltipOpen(false)}
-          onClick={(e) => {
-            e.stopPropagation()
-            onMenuToggle()
-          }}
-          className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <MoreVertical className="h-3.5 w-3.5" />
-        </button>
+        <DropdownMenu open={menuOpen} onOpenChange={(o) => o !== menuOpen && onMenuToggle()}>
+          <DropdownMenuTrigger asChild>
+            <button
+              ref={menuBtnRef}
+              type="button"
+              aria-label="More"
+              onPointerEnter={() => setMenuTooltipOpen(true)}
+              onPointerLeave={() => setMenuTooltipOpen(false)}
+              onFocus={() => setMenuTooltipOpen(true)}
+              onBlur={() => setMenuTooltipOpen(false)}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <MoreVertical className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onSelect={() => onEdit()}>
+              <Info className="h-3.5 w-3.5" /> Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setRenaming(true)}>
+              <Pencil className="h-3.5 w-3.5" /> Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onTogglePinned()}>
+              <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-primary")} />
+              {entry.pinned ? "Unpin" : "Pin"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onDuplicate()}>
+              <CopyPlus className="h-3.5 w-3.5" /> Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Move to
+            </DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => onMove(null)}>
+              <Inbox className="h-3.5 w-3.5" /> No folder
+            </DropdownMenuItem>
+            {projects.map((p) => (
+              <DropdownMenuItem key={p.id} onSelect={() => onMove(p.id)}>
+                <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
+                <span className="min-w-0 truncate">{projectLabel(p.id)}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onSelect={() => onDelete()}>
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <FloatingTooltip anchorRef={menuBtnRef} label="More actions" open={menuTooltipOpen && !menuOpen} />
-
-      {menuOpen && (
-        <div
-          ref={menuRef}
-          role="menu"
-          style={menuPlacement.maxHeight ? { maxHeight: menuPlacement.maxHeight } : undefined}
-          className={cn(
-            "absolute right-2 z-30 w-44 overflow-y-auto rounded-lg border border-border bg-popover py-1 text-[13px] shadow-xl",
-            menuPlacement.up ? "bottom-full mb-1" : "top-full mt-1",
-          )}
-        >
-          <MenuItem
-            onClick={() => {
-              onEdit()
-              onMenuToggle()
-            }}
-          >
-            <Info className="h-3.5 w-3.5" /> Details
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              setRenaming(true)
-              onMenuToggle()
-            }}
-          >
-            <Pencil className="h-3.5 w-3.5" /> Rename
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              onTogglePinned()
-              onMenuToggle()
-            }}
-          >
-            <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-primary")} />
-            {entry.pinned ? "Unpin" : "Pin"}
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              onDuplicate()
-              onMenuToggle()
-            }}
-          >
-            <CopyPlus className="h-3.5 w-3.5" /> Duplicate
-          </MenuItem>
-          <div className="my-1 border-t border-border" />
-          <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Move to</div>
-          <MenuItem
-            onClick={() => {
-              onMove(null)
-              onMenuToggle()
-            }}
-          >
-            <Inbox className="h-3.5 w-3.5" /> No folder
-          </MenuItem>
-          {projects.map((p) => (
-            <MenuItem
-              key={p.id}
-              onClick={() => {
-                onMove(p.id)
-                onMenuToggle()
-              }}
-            >
-              <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
-              <span className="min-w-0 truncate">{projectLabel(p.id)}</span>
-            </MenuItem>
-          ))}
-          <div className="my-1 border-t border-border" />
-          <MenuItem
-            destructive
-            onClick={() => {
-              onDelete()
-              onMenuToggle()
-            }}
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
-          </MenuItem>
-        </div>
-      )}
     </div>
   )
 }
@@ -1391,30 +1243,6 @@ function RowAction({
       </button>
       <FloatingTooltip anchorRef={ref} label={label} open={showTooltip} />
     </>
-  )
-}
-
-function MenuItem({
-  onClick,
-  children,
-  destructive,
-}: {
-  onClick: () => void
-  children: React.ReactNode
-  destructive?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onClick}
-      className={cn(
-        "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-secondary",
-        destructive && "text-destructive",
-      )}
-    >
-      {children}
-    </button>
   )
 }
 
