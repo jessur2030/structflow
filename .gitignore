@@ -37,6 +37,7 @@ out/
 Thumbs.db
 
 STORE_LISTING.md
+CLAUDE.md
 
 # Internal planning doc only — the docs/ HTML is the public GitHub Pages site
 docs/prod-readiness-plan.md
