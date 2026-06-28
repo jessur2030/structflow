@@ -54,6 +54,17 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
 import { Button } from "./ui/button"
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core"
 type LibraryMode = "all" | "pinned" | "recent"
 type EntryPatch = Partial<
   Pick<
@@ -110,6 +121,10 @@ export function Library({
   const [projectName, setProjectName] = useState("")
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
+  const [draggingEntry, setDraggingEntry] = useState<Entry | null>(null)
+  // Require a small move before a drag starts so row clicks and the action
+  // buttons keep working.
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const [exportOpen, setExportOpen] = useState(false)
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [importError, setImportError] = useState<string | null>(null)
@@ -312,6 +327,19 @@ export function Library({
     return set
   }, [query, projects, groups, nameMatchedFolders])
 
+  const onDragStart = (e: DragStartEvent) => {
+    setDraggingEntry(entries.find((x) => x.id === String(e.active.id)) ?? null)
+  }
+  const onDragEnd = (e: DragEndEvent) => {
+    setDraggingEntry(null)
+    const overId = e.over?.id
+    if (overId == null) return
+    const entryId = String(e.active.id)
+    const target = overId === "__root__" ? null : String(overId)
+    const ent = entries.find((x) => x.id === entryId)
+    if (ent && ent.projectId !== target) onMoveEntry(entryId, target)
+  }
+
   const renderEntryRow = (entry: Entry) => (
     <EntryRow
       key={entry.id}
@@ -437,21 +465,31 @@ export function Library({
             Nothing matches “{query}”.
           </div>
         ) : (
-          <div className="py-1">
-            {projectChildren(null, projects).map(renderFolder)}
+          <DndContext sensors={dndSensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+            <div className="py-1">
+              {projectChildren(null, projects).map(renderFolder)}
 
-            {ungrouped.length > 0 && (
-              <ProjectGroup
-                project={null}
-                count={ungrouped.length}
-                collapsed={collapsed["__none__"]}
-                onToggle={() => toggle("__none__")}
-                onAddItem={() => onAddToProject(null)}
-              >
-                {ungrouped.map(renderEntryRow)}
-              </ProjectGroup>
-            )}
-          </div>
+              {ungrouped.length > 0 && (
+                <ProjectGroup
+                  project={null}
+                  count={ungrouped.length}
+                  collapsed={collapsed["__none__"]}
+                  onToggle={() => toggle("__none__")}
+                  onAddItem={() => onAddToProject(null)}
+                >
+                  {ungrouped.map(renderEntryRow)}
+                </ProjectGroup>
+              )}
+            </div>
+            <DragOverlay dropAnimation={null}>
+              {draggingEntry ? (
+                <div className="pointer-events-none flex items-center gap-1.5 rounded-md border border-border bg-popover px-2 py-1 text-[13px] font-medium shadow-lg">
+                  <FileCode2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="max-w-50 truncate">{draggingEntry.title}</span>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
 
@@ -679,6 +717,7 @@ function ProjectGroup({
   const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
   const addBtnRef = useRef<HTMLButtonElement | null>(null)
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: project ? project.id : "__root__" })
 
   if (project === null && count === 0) return null
 
@@ -690,7 +729,13 @@ function ProjectGroup({
 
   return (
     <div className="mb-0.5">
-      <div className="group relative flex items-center gap-1.5 px-2 py-1.5 hover:bg-secondary/40">
+      <div
+        ref={setDropRef}
+        className={cn(
+          "group relative flex items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-secondary/40",
+          isOver && "bg-primary/10 ring-2 ring-primary ring-inset",
+        )}
+      >
         <button type="button" onClick={onToggle} className="flex shrink-0 items-center" aria-label={collapsed ? "Expand" : "Collapse"}>
           <ChevronRight className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", !collapsed && "rotate-90")} />
         </button>
@@ -1087,6 +1132,7 @@ function EntryRow({
   const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
   const meta = getLanguage(entry.language)
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: entry.id })
 
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1109,7 +1155,15 @@ function EntryRow({
   }
 
   return (
-    <div className="group relative flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60">
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        "group relative flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60",
+        isDragging && "opacity-40",
+      )}
+    >
       {entry.pinned ? (
         <Star className="h-4 w-4 shrink-0 fill-primary text-primary" />
       ) : (
