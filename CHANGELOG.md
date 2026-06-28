@@ -1,9 +1,14 @@
 # Changelog
 
+## 1.4.1
+
+- Auto-detect on paste now focuses on the two formats it can recognize with high confidence: **JSON** and **Markdown**. A pasted note reliably opens its rendered preview, and pasted JSON opens its tree. Other content (code, HTML, CSS, SQL, and so on) keeps your current language; pick it from the language menu in one click. This removes the occasional wrong guess, such as prose being treated as TypeScript.
+- Markdown preview fixes: bullet and numbered lists now show their markers, and GFM task lists (`- [ ]` / `- [x]`) render real checkboxes.
+
 ## 1.4.0
 
 - Many more languages. The editor now highlights 20+ languages. The ones with a real formatter still beautify on demand: Markdown, JSON, JavaScript, TypeScript, HTML, CSS, SQL, and now **YAML**. The rest are highlight-and-keep only: Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Shell, TOML, Dockerfile, Kotlin, and Swift. The "Format & Beautify" button hides for languages that have no formatter (like Plain Text).
-- Auto-detect on paste. Paste code into an empty editor and StructFlow picks the language for you (JSON, HTML, CSS, SQL, TypeScript/JavaScript, Python, and more), with a one-click "Undo" if it guesses wrong. It stays conservative, so plain notes are never disturbed.
+- Auto-detect on paste. Paste into an empty editor and StructFlow sets the language for you, with a one-click "Undo". It stays conservative, so plain notes are never disturbed. (Refined in 1.4.1 to JSON + Markdown.)
 - New language picker. Searchable, with a Recent section, per-language icons, and full keyboard navigation, instead of a plain dropdown.
 - New themes. Added the **Aura Noir** family (Aura Noir plus Modern, Aurora, Ember, Rose, Forest, and Crimson) and two light themes (Aura Lumen, Aura Day). A fresh install now starts on a light or dark theme that matches your browser, so the code surface never clashes with the UI. Highlighting also gained a dedicated color for type/class names for more accurate output.
 - New Settings screen (gear icon): appearance, syntax theme, default language for new notes, the in-page JSON viewer toggle, data export/import and "clear all", and an About section with version and your keyboard shortcut. The new themes are available in the in-page viewer too.

@@ -2,7 +2,19 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
-## Phase 16 — two-tier languages, auto-detect, picker, themes, settings (v1.4.0, uncommitted)
+## Phase 17 — detect scope + markdown preview fixes (v1.4.1)
+- [x] Scoped auto-detect to JSON + Markdown only (`detect.ts`). Removed the fuzzy
+  code heuristics (HTML/CSS/SQL/TS/JS/Python/Shell) that mis-detected prose as
+  TypeScript. Everything except JSON/Markdown returns null and keeps the current
+  language. Linear-time bold-span regex (fixes ReDoS on a large unterminated `**`).
+- [x] Markdown preview: bullet/numbered list markers restored (`index.css`; Tailwind
+  preflight had reset `list-style`); GFM task lists render real checkboxes
+  (`markdown-preview.tsx`, checkbox + label inline).
+- [x] Detect test suite rewritten for the new scope (JSON + Markdown only, code -> null,
+  ReDoS guard). Verified in real Chrome with actual paste events.
+- [x] Version bumped to 1.4.1 (3 spots).
+
+## Phase 16 — two-tier languages, auto-detect, picker, themes, settings (v1.4.0)
 
 ### Two-tier language model
 - [x] `LANGUAGES` (`types.ts`) is the single source of truth, with `formattable` +
@@ -16,10 +28,12 @@ Legend: [x] done · [~] partial · [ ] not started
   `mimeFor` derives from meta; `EXT_TO_LANGUAGE` extended for smart import.
 
 ### Auto-detect on paste
-- [x] `detect.ts` `detectLanguage` — conservative (returns null unless confident,
-  reuses `validate("json")`). Fires from the CodeMirror paste handler only when the
-  paste starts a fresh buffer (empty OR a full-selection replace). `formatter.tsx`
-  shows a self-dismissing "Detected X · Undo" chip; never switches if unchanged.
+- [x] `detect.ts` `detectLanguage` (scoped to JSON + Markdown in v1.4.1). Returns
+  null unless confident; detects only JSON (reuses `validate("json")`) and Markdown
+  (structural markers). Everything else returns null and keeps the current language.
+  Fires from the CodeMirror paste handler only when the paste starts a fresh buffer
+  (empty OR a full-selection replace). `formatter.tsx` shows a self-dismissing
+  "Detected X · Undo" chip; never switches if unchanged.
 
 ### Searchable language picker
 - [x] `language-select.tsx` rebuilt as a searchable combobox: search box, **Recent**

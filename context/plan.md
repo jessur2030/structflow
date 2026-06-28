@@ -3,7 +3,7 @@
 > A high-level overview of what StructFlow is and the decisions behind it. For the
 > detailed file map see `architecture-context.md`; for shipped-per-phase history see
 > `progress-tracker.md`; for the ideas backlog see `future-features.md`. Current
-> version: 1.4.0.
+> version: 1.4.1.
 
 StructFlow is a Chrome/Firefox **MV3 side-panel extension**: an in-place code editor,
 a JSON viewer (in the panel **and** on raw JSON pages), a code-snapshot PNG exporter,
@@ -35,7 +35,7 @@ servers, no network calls.
 | Editor | **CodeMirror 6** — not Monaco (MV3 CSP + bundle size); grammars lazy-loaded |
 | Highlighting | Editor = CodeMirror/Lezer; read-only views = **lowlight** (no `innerHTML`); both themed by one `--syn-*` CSS-var set |
 | Languages | Two-tier: format what has a real formatter, highlight the rest |
-| Auto-detect | Conservative detect on paste into a fresh buffer, with one-click Undo |
+| Auto-detect | JSON + Markdown only, on paste into a fresh buffer, with one-click Undo |
 | Storage | **IndexedDB** (via `idb`) for the library; `localStorage` for prefs/draft |
 | Settings | **In-panel** screen (not a separate options page) |
 | Themes | Aura Noir family added; first-run default is mode-aware (light/dark) |

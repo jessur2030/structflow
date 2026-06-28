@@ -36,10 +36,10 @@ stored in your browser via IndexedDB.
   Java, C/C++, C#, PHP, Ruby, Shell, TOML, Dockerfile, Kotlin, and Swift. VS
   Code-style format options for tab width, quotes, semicolons, print width,
   wrapping, and alphabetical key sorting.
-- **Auto-detect on paste** - paste into an empty editor and the language is set
-  automatically (JSON, HTML, CSS, SQL, TypeScript/JavaScript, Python, and more),
+- **Auto-detect on paste** - paste into an empty editor and JSON or Markdown is set
+  automatically (the two high-confidence formats, which unlock the tree and preview),
   with a one-click **Undo**. A searchable language picker with Recent items, icons,
-  and keyboard navigation covers manual switching.
+  and keyboard navigation covers everything else.
 - **Note-taking** - Plain Text is a pure pass-through (never reformatted) and
   Markdown ships with a rendered preview that toggles against the source.
 - **JSON viewer** - collapsible tree with key/value search, copy-path, copy-value,

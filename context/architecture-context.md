@@ -42,7 +42,7 @@ src/
   lib/
     types.ts                    # Shared types: Language (Tier 1: markdown|text|ts|js|json|html|css|sql|yaml; Tier 2 highlight-only: python|go|rust|java|cpp|csharp|php|ruby|shell|toml|dockerfile|kotlin|swift), LanguageMeta (formattable/mime), FormatOptions, Entry, Project, LANGUAGES
     formatter.ts                # format(code, lang, options) -> Prettier / sql-formatter; `text` + Tier 2 pass through
-    detect.ts                   # detectLanguage(text) -> Language|null (conservative auto-detect on paste)
+    detect.ts                   # detectLanguage(text) -> Language|null (auto-detect on paste; JSON + Markdown only)
     cm-languages.ts             # loadLanguageSupport(lang): lazy-imported CodeMirror grammars (lang-* + legacy-modes)
     cm-theme.ts                 # synHighlightStyle (Lezer tags -> --syn-* vars) + synEditorTheme (editor chrome)
     storage.ts                  # IndexedDB CRUD: entries + projects (via idb)
@@ -177,8 +177,10 @@ src/
   formatter `switch` passes it through. Editor grammars lazy-load (`cm-languages.ts`);
   read-only views register highlight.js grammars (`highlight.ts`). Adding a `Language`
   means updating both `syntax-themes.ts`-adjacent maps and `content.ts` only where noted.
-- **Auto-detect on paste (v1.4.0)**: `detect.ts` `detectLanguage` (conservative) runs
-  from the CodeMirror paste handler when the paste starts a fresh buffer; the
+- **Auto-detect on paste (v1.4.0; scoped to JSON + Markdown in v1.4.1)**: `detect.ts`
+  `detectLanguage` runs from the CodeMirror paste handler when the paste starts a
+  fresh buffer. Detects only JSON (real parse) and Markdown (structural markers);
+  everything else returns `null` and keeps the current language. The
   "Detected X · Undo" chip lives in `formatter.tsx`.
 - **Syntax themes**: added the Aura Noir family (9) to `syntax-themes.ts` AND
   `content.ts` (keep both in sync). New `type` slot (`--syn-type`). First-run default
