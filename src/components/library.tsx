@@ -46,6 +46,47 @@ import {
 } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
+/**
+ * Place an absolutely-positioned dropdown so it stays inside the scrollable list
+ * (the `[data-menu-boundary]` ancestor) instead of being clipped by its
+ * `overflow`. Opens on whichever side has more room and caps the height so a long
+ * folder list scrolls inside the menu rather than overflowing the container.
+ */
+function useMenuPlacement(
+  menuOpen: boolean,
+  btnRef: React.RefObject<HTMLElement | null>,
+  menuRef: React.RefObject<HTMLElement | null>,
+): { up: boolean; maxHeight: number | null } {
+  const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number | null }>({
+    up: false,
+    maxHeight: null,
+  })
+  useLayoutEffect(() => {
+    if (!menuOpen) return
+    const btn = btnRef.current
+    const menu = menuRef.current
+    if (!btn || !menu) return
+    // `top-full`/`bottom-full` anchor to the offsetParent (the row), not the
+    // button, so measure that to keep the JS math aligned with the CSS.
+    const anchor = (menu.offsetParent as HTMLElement | null) ?? btn
+    const aRect = anchor.getBoundingClientRect()
+    const bounds = menu.closest<HTMLElement>("[data-menu-boundary]")?.getBoundingClientRect()
+    const gap = 8
+    const top = (bounds?.top ?? 0) + gap
+    const bottom = (bounds?.bottom ?? window.innerHeight) - gap
+    const spaceBelow = bottom - aRect.bottom
+    const spaceAbove = aRect.top - top
+    const needed = menu.scrollHeight
+    let up: boolean
+    if (needed <= spaceBelow) up = false
+    else if (needed <= spaceAbove) up = true
+    else up = spaceAbove > spaceBelow
+    const avail = up ? spaceAbove : spaceBelow
+    setPlacement({ up, maxHeight: needed > avail ? Math.max(Math.floor(avail), 140) : null })
+  }, [menuOpen, btnRef, menuRef])
+  return placement
+}
+
 type LibraryMode = "all" | "pinned" | "recent"
 type EntryPatch = Partial<
   Pick<
@@ -421,7 +462,7 @@ export function Library({
         </ModeButton>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto" data-menu-boundary>
         {entries.length === 0 && projects.length === 0 ? (
           <EmptyLibrary />
         ) : query.trim() && filtered.length === 0 && (visibleDuringSearch?.size ?? 0) === 0 ? (
@@ -667,7 +708,6 @@ function ProjectGroup({
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(project?.name ?? "")
   const [menuOpen, setMenuOpen] = useState(false)
-  const [menuUp, setMenuUp] = useState(false)
   const [addTooltipOpen, setAddTooltipOpen] = useState(false)
   const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -692,14 +732,7 @@ function ProjectGroup({
     }
   }, [menuOpen])
 
-  useLayoutEffect(() => {
-    if (!menuOpen) return
-    const btn = menuBtnRef.current
-    const menu = menuRef.current
-    if (!btn || !menu) return
-    const spaceBelow = window.innerHeight - btn.getBoundingClientRect().bottom
-    setMenuUp(spaceBelow < menu.offsetHeight + 12)
-  }, [menuOpen])
+  const menuPlacement = useMenuPlacement(menuOpen, menuBtnRef, menuRef)
 
   if (project === null && count === 0) return null
 
@@ -789,9 +822,10 @@ function ProjectGroup({
           <div
             ref={menuRef}
             role="menu"
+            style={menuPlacement.maxHeight ? { maxHeight: menuPlacement.maxHeight } : undefined}
             className={cn(
-              "absolute right-2 z-30 w-48 overflow-hidden rounded-lg border border-border bg-popover py-1 text-[13px] shadow-xl",
-              menuUp ? "bottom-full mb-1" : "top-full mt-1",
+              "absolute right-2 z-30 w-48 overflow-y-auto rounded-lg border border-border bg-popover py-1 text-[13px] shadow-xl",
+              menuPlacement.up ? "bottom-full mb-1" : "top-full mt-1",
             )}
           >
             {onRename && (
@@ -1129,7 +1163,6 @@ function EntryRow({
   const [copied, setCopied] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [title, setTitle] = useState(entry.title)
-  const [menuUp, setMenuUp] = useState(false)
   const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const menuBtnRef = useRef<HTMLButtonElement | null>(null)
@@ -1153,14 +1186,7 @@ function EntryRow({
     }
   }, [menuOpen, onMenuToggle])
 
-  useLayoutEffect(() => {
-    if (!menuOpen) return
-    const btn = menuBtnRef.current
-    const menu = menuRef.current
-    if (!btn || !menu) return
-    const spaceBelow = window.innerHeight - btn.getBoundingClientRect().bottom
-    setMenuUp(spaceBelow < menu.offsetHeight + 12)
-  }, [menuOpen])
+  const menuPlacement = useMenuPlacement(menuOpen, menuBtnRef, menuRef)
 
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1259,9 +1285,10 @@ function EntryRow({
         <div
           ref={menuRef}
           role="menu"
+          style={menuPlacement.maxHeight ? { maxHeight: menuPlacement.maxHeight } : undefined}
           className={cn(
-            "absolute right-2 z-30 w-44 overflow-hidden rounded-lg border border-border bg-popover py-1 text-[13px] shadow-xl",
-            menuUp ? "bottom-full mb-1" : "top-full mt-1",
+            "absolute right-2 z-30 w-44 overflow-y-auto rounded-lg border border-border bg-popover py-1 text-[13px] shadow-xl",
+            menuPlacement.up ? "bottom-full mb-1" : "top-full mt-1",
           )}
         >
           <MenuItem
