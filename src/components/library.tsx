@@ -503,7 +503,9 @@ export function Library({
         </ModeButton>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div className="min-h-0 flex-1 overflow-auto">
         {entries.length === 0 && projects.length === 0 ? (
           <EmptyLibrary />
         ) : query.trim() && filtered.length === 0 && (visibleDuringSearch?.size ?? 0) === 0 ? (
@@ -542,7 +544,24 @@ export function Library({
             </DragOverlay>
           </DndContext>
         )}
-      </div>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-52">
+          <ContextMenuItem onSelect={() => openNewProject(null)}>
+            <FolderPlus className="h-3.5 w-3.5" /> New folder
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => fileInputRef.current?.click()}>
+            <Upload className="h-3.5 w-3.5" /> Import files…
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => folderInputRef.current?.click()}>
+            <FolderUp className="h-3.5 w-3.5" /> Import a folder…
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem disabled={entries.length === 0} onSelect={() => openExport()}>
+            <Archive className="h-3.5 w-3.5" /> Export data…
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
 
       <Modal
         open={newProjectOpen}
@@ -864,6 +883,10 @@ function ProjectGroup({
         ref={setHeaderRef}
         {...dragAttributes}
         {...dragListeners}
+        // Real folders own their right-click menu; stop it bubbling to the
+        // library background menu. The root "No folder" header has no menu, so it
+        // falls through to the library menu instead.
+        onContextMenu={project ? (e) => e.stopPropagation() : undefined}
         className={cn(
           "group relative flex items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-secondary/40",
           isOver && "bg-primary/10 ring-2 ring-primary ring-inset",
@@ -1270,6 +1293,9 @@ function EntryRow({
           ref={setNodeRef}
           {...attributes}
           {...listeners}
+          // The entry owns its right-click menu; stop it bubbling to the library
+          // background menu so only the entry menu opens.
+          onContextMenu={(e) => e.stopPropagation()}
           className={cn(
             "group relative flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60",
             isDragging && "opacity-40",
