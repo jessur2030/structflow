@@ -487,12 +487,24 @@ function captureStyleScript() {
   `
 }
 
+// Radix triggers/menu-items open & select on pointer events, not a bare .click().
+// Dispatch a full mouse pointer sequence so dropdown/context triggers actually open.
+const pressHelper = `
+  const __press = (el) => {
+    const o = { bubbles: true, cancelable: true, view: window, button: 0, pointerId: 1, pointerType: "mouse", isPrimary: true };
+    el.dispatchEvent(new PointerEvent("pointerdown", { ...o, buttons: 1 }));
+    el.dispatchEvent(new PointerEvent("pointerup", { ...o, buttons: 0 }));
+    el.click();
+  };
+`
+
 function clickScript(selector) {
   return `
     (() => {
+      ${pressHelper}
       const el = document.querySelector(${JSON.stringify(selector)});
       if (!el) throw new Error("Missing element: " + ${JSON.stringify(selector)});
-      el.click();
+      __press(el);
     })()
   `
 }
@@ -500,11 +512,14 @@ function clickScript(selector) {
 function clickTextScript(text) {
   return `
     (() => {
+      ${pressHelper}
       const target = ${JSON.stringify(text)};
-      const buttons = Array.from(document.querySelectorAll("button"));
-      const el = buttons.find((button) => button.textContent && button.textContent.includes(target));
-      if (!el) throw new Error("Missing button text: " + target);
-      el.click();
+      // Include Radix menu/option roles, not just <button> — shadcn dropdown/context
+      // menu items render as <div role="menuitem">.
+      const nodes = Array.from(document.querySelectorAll('button, [role="menuitem"], [role="option"]'));
+      const el = nodes.find((node) => node.textContent && node.textContent.includes(target));
+      if (!el) throw new Error("Missing clickable text: " + target);
+      __press(el);
     })()
   `
 }
