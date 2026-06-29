@@ -78,23 +78,10 @@ export function TagsInput({ value, onChange, suggestions = [], placeholder = "Ad
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command>
-          <CommandInput
-            placeholder="Search or create a tag…"
-            value={query}
-            onValueChange={setQuery}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && clean(query)) {
-                e.preventDefault()
-                add(query)
-              }
-            }}
-          />
+          <CommandInput placeholder="Search or create a tag…" value={query} onValueChange={setQuery} />
           <CommandList>
-            {canCreate && (
-              <CommandItem value={`__create__${q}`} onSelect={() => add(query)}>
-                Create “{clean(query)}”
-              </CommandItem>
-            )}
+            {/* Suggestions first so Enter selects the highlighted existing tag; cmdk
+                handles Enter/click selection (CommandItem onSelect adds the tag). */}
             {available.length > 0 && (
               <CommandGroup heading="Reuse a tag">
                 {available.map((s) => (
@@ -103,6 +90,11 @@ export function TagsInput({ value, onChange, suggestions = [], placeholder = "Ad
                   </CommandItem>
                 ))}
               </CommandGroup>
+            )}
+            {canCreate && (
+              <CommandItem value={`__create__${q}`} onSelect={() => add(query)}>
+                Create “{clean(query)}”
+              </CommandItem>
             )}
             {!canCreate && available.length === 0 && (
               <p className="px-3 py-4 text-center text-compact text-muted-foreground">

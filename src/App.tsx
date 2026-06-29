@@ -185,7 +185,19 @@ export default function App() {
     setPendingProjectId(null)
   }
 
+  // Persist any sub-debounce edits to the currently-linked entry before we
+  // navigate away (open another entry, detach), so the last <500ms of keystrokes
+  // are never dropped by the debounced write-through being cleared.
+  const flushCurrentEntry = () => {
+    if (!currentEntryId) return
+    const entry = entries.find((e) => e.id === currentEntryId)
+    if (entry && (entry.rawInput !== input || entry.language !== language)) {
+      void handleUpdateEntry(currentEntryId, { rawInput: input, formattedOutput: input, language })
+    }
+  }
+
   const openEntry = async (entry: Entry) => {
+    flushCurrentEntry()
     setLanguage(entry.language)
     setInput(entry.rawInput)
     setInputSource("library")
@@ -392,7 +404,10 @@ export default function App() {
             onUpdateCurrent={updateCurrentEntry}
             onDuplicateCurrent={duplicateCurrentEntry}
             onDeleteCurrent={deleteCurrentEntry}
-            onDetachCurrent={() => setCurrentEntryId(null)}
+            onDetachCurrent={() => {
+              flushCurrentEntry()
+              setCurrentEntryId(null)
+            }}
           />
         ) : (
           <Library
