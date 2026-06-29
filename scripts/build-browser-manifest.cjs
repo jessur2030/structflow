@@ -8,7 +8,7 @@ const distManifest = join(root, "dist/manifest.json")
 const manifest = JSON.parse(readFileSync(distManifest, "utf8"))
 
 const commonDescription =
-  "JSON viewer & code formatter in your browser side panel. Format, beautify, and save JSON, JS, TS, HTML, CSS, Markdown, and SQL."
+  "A side-panel workspace for code & notes. Edit with live highlighting, auto-detect & beautify JSON/JS/TS/SQL/YAML/Markdown, then save, tag, and reuse in folders."
 
 if (target === "chrome") {
   manifest.description = commonDescription
@@ -18,7 +18,7 @@ if (target === "chrome") {
   manifest.action.default_title = "Open StructFlow"
 } else if (target === "firefox") {
   manifest.description =
-    "JSON viewer & code formatter in your Firefox sidebar. Format, beautify, and save JSON, JS, TS, HTML, CSS, Markdown, and SQL."
+    "A sidebar workspace for code & notes. Edit with live highlighting, auto-detect & beautify JSON/JS/TS/SQL/YAML/Markdown, then save, tag, and reuse in folders."
   manifest.permissions = manifest.permissions.filter((permission) => permission !== "sidePanel")
   if (manifest.background?.service_worker) {
     manifest.background.scripts = [manifest.background.service_worker]
