@@ -9,6 +9,20 @@
   --font-sans: 'Geist Variable', sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Monaco, monospace;
 
+  /* App type scale — a compact ladder for the side-panel chrome. Semantic names
+     (not xs/sm/base) so shadcn primitives keep their own Tailwind sizing. Use
+     these instead of arbitrary text-[Npx] so type stays on a system.
+       micro   tiny meta, count chips, badges
+       label   uppercase form labels, captions
+       compact dense secondary text, helper copy
+       body    default UI / body text
+       title   header + section titles */
+  --text-micro: 0.625rem;   /* 10px */
+  --text-label: 0.6875rem;  /* 11px */
+  --text-compact: 0.75rem;  /* 12px */
+  --text-body: 0.8125rem;   /* 13px */
+  --text-title: 0.9375rem;  /* 15px */
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -57,14 +71,15 @@
   color-scheme: light;
   --radius: 0.625rem;
 
-  /* Light: clean near-white surfaces, near-black ink, blue brand accent */
+  /* Light: neutral (true-gray) surfaces + ink, blue-600 brand accent only.
+     Base color = shadcn "neutral", accent = shadcn "blue". */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.546 0.245 262.881);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -77,11 +92,11 @@
   --success: oklch(0.62 0.15 150);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.546 0.245 262.881);
 
   /* Checkerboard used to indicate transparency in the snapshot preview */
   --snap-checker:
-    repeating-conic-gradient(oklch(0.9 0.004 260) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+    repeating-conic-gradient(oklch(0.9 0 0) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -89,26 +104,28 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.546 0.245 262.881);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.546 0.245 262.881);
 }
 
 .dark {
   color-scheme: dark;
 
-  /* Dark: VS Code-like deep slate, soft off-white ink, blue accent */
-  --background: oklch(0.145 0 0);
+  /* Dark: neutral (true-gray) surfaces, soft off-white ink, blue-500 accent only.
+     Base color = shadcn "neutral", accent = shadcn "blue". Background lifted off
+     pure-crushed black (0.179) with cards a clear step above (0.235) for elevation. */
+  --background: oklch(0.179 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.235 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.235 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.623 0.214 259.815);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -120,20 +137,20 @@
   --success: oklch(0.68 0.15 150);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.623 0.214 259.815);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: oklch(0.235 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: oklch(0.623 0.214 259.815);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.623 0.214 259.815);
 }
 
 @layer base {
