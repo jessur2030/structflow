@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react"
 import { Heart, Coffee, Star, ExternalLink } from "lucide-react"
 import { SUPPORT_LINKS, type SupportLink } from "@/lib/support-links"
-import { cn } from "@/lib/utils"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -19,59 +18,36 @@ const ICONS = {
 } as const
 
 export function SupportButton() {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
   const links = SUPPORT_LINKS.filter((l) => l.url.trim().length > 0)
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false)
-    }
-    document.addEventListener("mousedown", onClick)
-    document.addEventListener("keydown", onKey)
-    return () => {
-      document.removeEventListener("mousedown", onClick)
-      document.removeEventListener("keydown", onKey)
-    }
-  }, [])
-
   if (links.length === 0) return null
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        aria-label="Support StructFlow"
-        title="Support StructFlow"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          "flex h-7 items-center gap-1 rounded-md border border-border px-2 text-[12px] font-medium transition-colors",
-          open ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-        )}
-      >
-        <Heart className="h-3.5 w-3.5 text-[var(--accent-heart,#e0245e)]" />
-        Support
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-full z-40 mt-1 w-64 overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-xl">
-          <div className="px-3 py-2">
-            <p className="text-[12px] font-semibold">Enjoying StructFlow?</p>
-            <p className="text-[11px] leading-snug text-muted-foreground">
-              It&apos;s free and open source. Your support keeps it growing.
-            </p>
-          </div>
-          <div className="my-1 h-px bg-border" />
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Support StructFlow"
+          className="flex h-7 cursor-pointer items-center gap-1 rounded-md border border-border px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground data-[state=open]:bg-secondary data-[state=open]:text-foreground"
+        >
+          <Heart className="h-3.5 w-3.5 text-(--accent-heart,#e0245e)" />
+          Support
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-0">
+        <div className="px-3 py-2">
+          <p className="text-[12px] font-semibold">Enjoying StructFlow?</p>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            It&apos;s free and open source. Your support keeps it growing.
+          </p>
+        </div>
+        <div className="h-px bg-border" />
+        <div className="py-1">
           {links.map((link) => (
             <SupportRow key={link.id} link={link} />
           ))}
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 

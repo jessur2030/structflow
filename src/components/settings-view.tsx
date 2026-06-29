@@ -11,6 +11,7 @@ import {
   ExternalLink,
 } from "lucide-react"
 import { SyntaxThemeSelect } from "./syntax-theme-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Modal } from "./modal"
 import { ModalButton } from "./library"
 import { exportEntriesAsZip, importFiles } from "@/lib/io"
@@ -138,17 +139,18 @@ export function SettingsView({
             <SyntaxThemeSelect value={syntaxThemeId} onChange={onChangeSyntaxTheme} />
           </Row>
           <Row label="Default language" desc="What a new, empty editor opens in.">
-            <select
-              value={defaultLanguage}
-              onChange={(e) => onChangeDefaultLanguage(e.target.value as Language)}
-              className="rounded-md border border-border bg-background px-2 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
+            <Select value={defaultLanguage} onValueChange={(v) => onChangeDefaultLanguage(v as Language)}>
+              <SelectTrigger size="sm" className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>
+                    {l.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Row>
         </Section>
 

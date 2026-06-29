@@ -7,6 +7,8 @@ import { Modal } from "./components/modal"
 import { SupportButton } from "./components/support-button"
 import { SettingsButton } from "./components/settings-button"
 import { SettingsView } from "./components/settings-view"
+import { Input } from "./components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
 import { useTheme } from "./lib/use-theme"
 import { useSyntaxTheme } from "./lib/use-syntax-theme"
 import {
@@ -367,30 +369,33 @@ export default function App() {
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Title</label>
-            <input
+            <Input
               autoFocus
               value={saveTitle}
               onChange={(e) => setSaveTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && confirmSave()}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               <FolderInput className="h-3 w-3" /> Folder
             </label>
-            <select
-              value={saveProjectId ?? ""}
-              onChange={(e) => setSaveProjectId(e.target.value || null)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+            <Select
+              value={saveProjectId ?? "__none__"}
+              onValueChange={(v) => setSaveProjectId(v === "__none__" ? null : v)}
             >
-              <option value="">No folder</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {projectPath(p.id, projects).join(" / ")}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No folder</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {projectPath(p.id, projects).join(" / ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </Modal>

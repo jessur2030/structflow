@@ -54,6 +54,9 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
 import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Textarea } from "./ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import {
   DndContext,
   DragOverlay,
@@ -950,11 +953,7 @@ function EntryEditorModal({
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <label className="space-y-1.5">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Title</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </label>
           <label className="space-y-1.5">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pin</span>
@@ -975,32 +974,37 @@ function EntryEditorModal({
         <div className="grid grid-cols-2 gap-2">
           <label className="space-y-1.5">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Language</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as Language)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {LANGUAGES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
           <label className="space-y-1.5">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Folder</span>
-            <select
-              value={projectId ?? ""}
-              onChange={(e) => setProjectId(e.target.value || null)}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+            <Select
+              value={projectId ?? "__none__"}
+              onValueChange={(v) => setProjectId(v === "__none__" ? null : v)}
             >
-              <option value="">No folder</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {projectPath(project.id, projects).join(" / ")}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No folder</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {projectPath(project.id, projects).join(" / ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
         </div>
 
@@ -1008,22 +1012,16 @@ function EntryEditorModal({
           <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             <Tags className="h-3 w-3" /> Tags
           </span>
-          <input
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
-            placeholder="api, auth, notes"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+          <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="api, auth, notes" />
         </label>
 
         <label className="space-y-1.5">
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Raw input</span>
-          <textarea
+          <Textarea
             value={rawInput}
             onChange={(e) => setRawInput(e.target.value)}
-            rows={6}
             spellCheck={false}
-            className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 font-mono text-[12px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
+            className="min-h-35 resize-y font-mono text-[12px] leading-relaxed"
           />
         </label>
 
@@ -1039,12 +1037,11 @@ function EntryEditorModal({
               <RefreshCw className={cn("h-3.5 w-3.5", formatting && "animate-spin")} /> Reformat
             </button>
           </div>
-          <textarea
+          <Textarea
             value={formattedOutput}
             onChange={(e) => setFormattedOutput(e.target.value)}
-            rows={6}
             spellCheck={false}
-            className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 font-mono text-[12px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
+            className="min-h-35 resize-y font-mono text-[12px] leading-relaxed"
           />
         </div>
       </div>

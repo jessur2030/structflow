@@ -20,6 +20,14 @@ import { SnapshotModal } from "./snapshot-modal"
 import { FocusView } from "./focus-view"
 import { EditorSurface, type Mode } from "./editor-surface"
 import { IconButton } from "./icon-button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { formatCode, validate } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, mimeFor, slugify } from "@/lib/io"
 import { DEFAULT_OPTIONS, getLanguage, type FormatOptions, type Language } from "@/lib/types"
@@ -67,8 +75,6 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
   const [showSnapshot, setShowSnapshot] = useState(false)
   const [snapshotCode, setSnapshotCode] = useState("")
   const [showFocus, setShowFocus] = useState(false)
-  const [showActions, setShowActions] = useState(false)
-  const actionsRef = useRef<HTMLDivElement | null>(null)
 
   const meta = getLanguage(language)
   const liveStatus = useMemo(() => validate(language, input), [language, input])
@@ -203,22 +209,6 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [canPreview, handleClear, handleCopy, handleFormatNow, handleSave, input])
 
-  useEffect(() => {
-    if (!showActions) return
-    const onPointer = (e: PointerEvent) => {
-      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) setShowActions(false)
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowActions(false)
-    }
-    document.addEventListener("pointerdown", onPointer)
-    document.addEventListener("keydown", onKey)
-    return () => {
-      document.removeEventListener("pointerdown", onPointer)
-      document.removeEventListener("keydown", onKey)
-    }
-  }, [showActions])
-
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
@@ -251,57 +241,35 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
           <IconButton label="Save to library" onClick={() => void handleSave()} disabled={!input}>
             <Save className="h-4 w-4" />
           </IconButton>
-          <div className="relative" ref={actionsRef}>
-            <IconButton
-              label="More actions"
-              active={showActions}
-              onClick={() => setShowActions((s) => !s)}
-              disabled={!input}
-            >
-              <MoreVertical className="h-4 w-4" />
-            </IconButton>
-            {showActions && (
-              <div
-                role="menu"
-                className="absolute right-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-lg border border-border bg-popover py-1 text-[13px] shadow-xl"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    handleExport()
-                    setShowActions(false)
-                  }}
-                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left hover:bg-secondary"
-                >
-                  <Download className="h-3.5 w-3.5" /> Export to file
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    void openSnapshot()
-                    setShowActions(false)
-                  }}
-                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left hover:bg-secondary"
-                >
-                  <Camera className="h-3.5 w-3.5" /> Code snapshot
-                </button>
-                <div className="my-1 border-t border-border" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    handleClear()
-                    setShowActions(false)
-                  }}
-                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-destructive hover:bg-secondary"
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Clear
-                </button>
-              </div>
-            )}
-          </div>
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="More actions"
+                    disabled={!input}
+                    className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-secondary data-[state=open]:text-foreground"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>More actions</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onSelect={() => handleExport()}>
+                <Download className="h-3.5 w-3.5" /> Export to file
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void openSnapshot()}>
+                <Camera className="h-3.5 w-3.5" /> Code snapshot
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={() => handleClear()}>
+                <Trash2 className="h-3.5 w-3.5" /> Clear
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
