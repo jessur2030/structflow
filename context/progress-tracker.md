@@ -2,6 +2,23 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 18 — shadcn/Radix UI migration + header cleanup (post-1.4.1)
+- [x] `shadcn init` (new-york; oklch token theme in `index.css`). Primitives in
+  `src/components/ui/`: button, dialog, dropdown-menu, popover, tooltip, command (cmdk),
+  input, textarea, select, label, badge.
+- [x] **Tooltips:** all `FloatingTooltip` usages (icon-button, editor-surface, json-tree,
+  library ×5) → shadcn `Tooltip`; custom `tooltip.tsx` deleted.
+- [x] **Menus/popovers:** Modal→Dialog + library menus→DropdownMenu (earlier); this pass:
+  support-button → Popover, syntax-theme-select + formatter "More actions" → DropdownMenu.
+- [x] **Language picker → cmdk Combobox** (Popover + Command): search, Recent, icons, "formats" badge.
+- [x] **Forms standardized** on `Input`/`Textarea`/`Select` (library Entry dialog, App Save
+  dialog, settings) — fixes inconsistent input spacing. Radix Select uses `"__none__"` sentinel
+  for "No folder" (no empty-string values).
+- [x] **Removed the app light/dark toggle from the header** (deleted `theme-mode-toggle.tsx`);
+  appearance lives only in Settings.
+- [x] tsc + build clean; ~69 tests pass; verified in real Chrome (combobox, menus, popover,
+  save-dialog form), no console errors. NOTE: not yet reflected in CHANGELOG/version bump.
+
 ## Phase 17 — detect scope + markdown preview fixes (v1.4.1)
 - [x] Scoped auto-detect to JSON + Markdown only (`detect.ts`). Removed the fuzzy
   code heuristics (HTML/CSS/SQL/TS/JS/Python/Shell) that mis-detected prose as

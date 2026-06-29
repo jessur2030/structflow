@@ -67,12 +67,15 @@ src/
     focus-view.tsx              # Fullscreen "Full view": renders the same EditorSurface, larger/centered
     support-button.tsx          # Header support popover (links from support-links.ts; inline GitHub SVG)
     settings-button.tsx         # Header gear; opens the in-panel Settings view
-    settings-view.tsx           # Full-panel Settings: appearance, syntax theme, default language, in-page toggle, data (export/import/clear), about
-    theme-mode-toggle.tsx       # Dark/light toggle
+    settings-view.tsx           # Full-panel Settings: appearance (light/dark lives here now), syntax theme, default language, in-page toggle, data (export/import/clear), about
     library.tsx                 # Saved entries grouped by folder + search + folder ⋯ menu (rename/add/recolor/delete) + bulk export modal
-    modal.tsx                   # Reusable modal (save dialog, confirms)
-    icon-button.tsx             # Small icon button primitive
+    modal.tsx                   # Reusable modal wrapper over ui/dialog (save dialog, confirms)
+    icon-button.tsx             # Small icon button primitive (shadcn Tooltip)
+    ui/                         # shadcn/Radix primitives (new-york): button, dialog, dropdown-menu, popover, tooltip, command(cmdk), input, textarea, select, label, badge
 ```
+> **UI = shadcn/Radix.** `shadcn init` was run (components.json, oklch token theme in
+> `index.css`). Tooltips/menus/popovers/forms use `src/components/ui/*`; the custom
+> `FloatingTooltip` and `theme-mode-toggle` were deleted. Prefer these primitives for new UI.
 
 ## Data flow
 
