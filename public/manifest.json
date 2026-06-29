@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "StructFlow",
-  "version": "1.4.1",
-  "description": "JSON viewer & code editor in your side panel. Edit with live highlighting, auto-detect on paste, beautify JSON/JS/TS/HTML/CSS/SQL/YAML/Markdown, and keep notes.",
+  "version": "1.5.0",
+  "description": "A side-panel workspace for code & notes. Edit with live highlighting, auto-detect & beautify JSON/JS/TS/SQL/YAML/Markdown, then save, tag, and reuse in folders.",
   "permissions": ["sidePanel", "storage", "contextMenus"],
   "background": {
     "service_worker": "background.js",

@@ -1,15 +1,17 @@
 # StructFlow
 
-> A developer's side-panel for JSON and code - format, explore, snapshot, and keep notes, all offline in your browser.
+> Your code & notes workspace in the browser side panel - edit, format, organize, and reuse, all offline.
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/gnjabohddgleaghkhglofkepfmadclmj?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/structflow/gnjabohddgleaghkhglofkepfmadclmj)
 [![Firefox Add-ons](https://img.shields.io/amo/v/structflow?label=Firefox%20Add-ons&logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-US/firefox/addon/structflow/)
 
-StructFlow is a browser (Manifest V3) **side-panel/sidebar extension** that combines a
-multi-language code formatter, an interactive JSON viewer (in the panel **and**
-on raw JSON pages), a CodeSnap-style PNG exporter, and a searchable local library
-of saved snippets. Because Markdown and Plain Text are first-class, it also works
-as a lightweight in-browser **note-taker**.
+StructFlow is a browser (Manifest V3) **side-panel/sidebar extension** that turns the
+browser sidebar into a workspace for your code and notes. Edit on a single
+syntax-highlighted surface, auto-detect and beautify JSON/JS/TS/SQL/YAML/Markdown, then
+save what you write into a searchable, foldered library you can tag and reuse. It also
+includes an interactive JSON viewer (in the panel **and** on raw JSON pages) and a
+CodeSnap-style PNG exporter. Markdown and Plain Text are first-class, so it doubles as a
+lightweight in-browser **note-taker**.
 
 Everything runs locally. No accounts, no servers, no network calls - all data is
 stored in your browser via IndexedDB.
@@ -31,6 +33,10 @@ stored in your browser via IndexedDB.
   and the same surface toggles between **Edit**, **Preview** (Markdown), **Tree**
   (JSON), and **Diff** (exactly what formatting would change) - no separate
   input/output panels.
+- **First-class documents** - open a saved entry and an identity bar appears above
+  the editor with its title, pin, folder, and tags, all editable inline. Edits save
+  back to that entry automatically (no duplicate on save). A fresh paste stays a
+  zero-friction scratch buffer until you choose to save it.
 - **20+ languages** - beautify (format) for Markdown, JSON, JavaScript,
   TypeScript, HTML, CSS, SQL, and YAML; highlight-and-keep for Python, Go, Rust,
   Java, C/C++, C#, PHP, Ruby, Shell, TOML, Dockerfile, Kotlin, and Swift. VS
@@ -55,16 +61,19 @@ stored in your browser via IndexedDB.
 - **Code snapshot** - export the formatted output as a polished PNG: windowed card
   with traffic lights and filename, backdrop choices, padding, line numbers, and
   Copy PNG / Download PNG.
-- **Library** - save output to IndexedDB and organize it into nested folders.
-  Each folder has an options menu to rename, add a new item, create a nested
-  folder, recolor (swatch
-  palette), or delete, plus full-text search and re-open / copy / export / delete
-  per entry. "Add new item" opens the editor pre-targeted to that folder.
+- **Library** - save your work to IndexedDB and organize it into nested folders.
+  **Right-click** any entry, folder, or the empty Library area for its actions
+  (the background menu has New folder, Import, and Export), and **drag folders**
+  to nest or un-nest them just like entries. Each folder also has an options menu
+  to rename, add a new item, create a nested folder, recolor, or delete, plus
+  full-text search and re-open / copy / export / delete per entry.
 - **Bulk export** - export all or selected folders as a single `.zip`: entries are
   written as real files organized into folders, alongside a `manifest.json` that
   captures the full structured data for backup/restore.
-- **Pinned, tagged, and recent entries** - star important snippets, tag saved
-  items, filter recent opens, duplicate entries, and edit saved entry details.
+- **Pinned, tagged, and recent entries** - star important snippets, filter recent
+  opens, duplicate entries, and edit saved entry details. **Tags** are a
+  multi-select with chips and autocomplete that suggests tags you have already used,
+  so reuse stays consistent.
 - **Side-panel shortcut** - open StructFlow with `Alt+Shift+S`, or
   `Command+Shift+S` on macOS by default.
 - **Light & dark themes** - persisted and applied across the panel and viewers.

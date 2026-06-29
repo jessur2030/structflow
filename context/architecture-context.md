@@ -53,9 +53,10 @@ src/
     io.ts                       # Clipboard copy + file download + slugify + exportEntriesAsZip (fflate) + mimeFor (from meta)
     utils.ts                    # cn() class merge + misc helpers
   components/
-    formatter.tsx               # Main panel: toolbar, language picker, format-in-place, detect chip, snapshot/save; hosts EditorSurface
+    editor.tsx                  # The "Editor" tab (renamed from formatter.tsx): toolbar, language picker, format-in-place, detect chip, snapshot/save; identity bar for a linked entry (title/pin/folder/tags + write-through); hosts EditorSurface
     code-editor.tsx             # CodeMirror 6 in-place editor (controlled; highlight + line numbers; paste auto-detect)
-    editor-surface.tsx          # Shared mode switcher + dispatch (Edit/Preview/Tree/Diff); used by formatter + focus-view
+    editor-surface.tsx          # Shared mode switcher + dispatch (Edit/Preview/Tree/Diff); used by editor + focus-view
+    tags-input.tsx              # Tag multi-select: Badge chips + cmdk combobox autocompleting from existing tags (used by editor identity bar + library Details)
     diff-view.tsx               # Diff mode: current buffer vs formatCode(buffer), computed on demand
     highlighted-code.tsx        # lowlight hast -> React spans (read-only highlighting; no innerHTML)
     markdown-preview.tsx        # Rendered Markdown preview (toggles vs source)

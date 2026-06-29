@@ -2,6 +2,29 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 19 — first-class document, Editor rename, tags multi-select, context menus (v1.5.0)
+- [x] **First-class document**: the "Formatter" tab is now **Editor** (`formatter.tsx`→`editor.tsx`;
+  component/props/tab-union renamed; format-feature names + persisted keys kept). App tracks
+  `currentEntryId`; opening an entry links it; a debounced **write-through** (`App.tsx`) saves edits
+  back instead of creating a duplicate. Editor **identity bar**: inline title, pin, folder move-to, tags.
+- [x] **Tags multi-select** (`tags-input.tsx`): Badge chips + cmdk combobox autocompleting from the
+  union of all tags (`allTags` in App + Library); replaces the comma field in the identity bar and the
+  Details modal; old `parseTags` removed.
+- [x] **Context menus everywhere** (shadcn `context-menu`): entry, folder, and the Library background
+  (New folder / Import / Export). `onContextMenu` stopPropagation isolates the nested menus; the folder
+  color-swatch uses a controlled menu.
+- [x] **Folder drag-and-drop** (`library.tsx`): folder headers draggable (namespaced `entry:`/`folder:`
+  ids); reparent on drop with a cycle guard via `projectDescendantIds`; new `onMoveProject` handler.
+- [x] **Theme + type scale** (`index.css`): dark mode reworked to a true-neutral base + blue accent
+  (dropped the slate cast; lifted bg to 0.179 with a card elevation step); ~93 arbitrary `text-[Npx]`
+  collapsed into a semantic `--text-*` scale (micro/label/compact/body/title).
+- [x] **Rebrand (reposition, name kept)**: repositioned as a "code & notes workspace" across the manifest
+  description, README, STORE_LISTING, and the Pages site. Version bumped to **1.5.0** (3 spots).
+- [x] **Code review** (high-effort, 3 finder angles): fixed the tags-Enter selection bug + a
+  lost-edits-on-navigate flush; documented write-through tradeoffs (formattedOutput overwrite, no
+  save-as-new). tsc + build clean; 69 tests pass; verified in real Chrome (light + dark).
+- [ ] Store assets need regenerating (`pnpm assets:store` / `:annotated`) for the new UI.
+
 ## Phase 18 — shadcn/Radix UI migration + header cleanup (post-1.4.1)
 - [x] `shadcn init` (new-york; oklch token theme in `index.css`). Primitives in
   `src/components/ui/`: button, dialog, dropdown-menu, popover, tooltip, command (cmdk),

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+- The **Editor** (formerly the "Formatter" tab) now treats the document you are working on as a first-class entry. Open a saved entry and an identity bar appears right above the editor: rename it, pin it, move it to a folder, and add tags inline. Your edits save back to that entry automatically, so opening something, tweaking it, and moving on no longer leaves a duplicate behind.
+- **Tags are now a proper multi-select** with chips and autocomplete. Tags you have already used on other entries are suggested as you type, so it is easy to reuse `api` or `auth` instead of retyping them. The old comma-separated field is gone.
+- **Right-click menus everywhere.** Entries, folders, and the empty Library area all have context menus now. Right-click the Library background for New folder, Import, and Export; right-click any folder or entry for its actions.
+- **Drag-and-drop for folders.** Folders can be dragged to nest them inside another folder or back out to the top level, in addition to dragging entries, with a guard so a folder can never be dropped inside itself.
+- **A cleaner look.** The dark theme is now a true neutral (the previous blue cast is gone), surfaces sit on a deliberate light/dark elevation scale, and all text follows one consistent type scale.
+
 ## 1.4.1
 
 - Auto-detect on paste now focuses on the two formats it can recognize with high confidence: **JSON** and **Markdown**. A pasted note reliably opens its rendered preview, and pasted JSON opens its tree. Other content (code, HTML, CSS, SQL, and so on) keeps your current language; pick it from the language menu in one click. This removes the occasional wrong guess, such as prose being treated as TypeScript.
