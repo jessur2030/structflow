@@ -26,7 +26,7 @@ import {
 } from "lucide-react"
 import { Modal } from "./modal"
 import { IconButton } from "./icon-button"
-import { FloatingTooltip } from "./tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { formatCode } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, exportEntriesAsZip, importFiles, mimeFor, slugify } from "@/lib/io"
 import {
@@ -713,10 +713,6 @@ function ProjectGroup({
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(project?.name ?? "")
   const [menuOpen, setMenuOpen] = useState(false)
-  const [addTooltipOpen, setAddTooltipOpen] = useState(false)
-  const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
-  const menuBtnRef = useRef<HTMLButtonElement | null>(null)
-  const addBtnRef = useRef<HTMLButtonElement | null>(null)
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: project ? project.id : "__root__" })
 
   if (project === null && count === 0) return null
@@ -770,39 +766,36 @@ function ProjectGroup({
 
         <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
           {onAddItem && (
-            <button
-              ref={addBtnRef}
-              type="button"
-              onClick={onAddItem}
-              aria-label="Add new item"
-              onPointerEnter={() => setAddTooltipOpen(true)}
-              onPointerLeave={() => setAddTooltipOpen(false)}
-              onFocus={() => setAddTooltipOpen(true)}
-              onBlur={() => setAddTooltipOpen(false)}
-              className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {onAddItem && (
-            <FloatingTooltip anchorRef={addBtnRef} label="Add new item" open={addTooltipOpen} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={onAddItem}
+                  aria-label="Add new item"
+                  className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Add new item</TooltipContent>
+            </Tooltip>
           )}
           {project && (onRename || onRecolor || onDelete) && (
             <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  ref={menuBtnRef}
-                  type="button"
-                  aria-label="Folder options"
-                  onPointerEnter={() => setMenuTooltipOpen(true)}
-                  onPointerLeave={() => setMenuTooltipOpen(false)}
-                  onFocus={() => setMenuTooltipOpen(true)}
-                  onBlur={() => setMenuTooltipOpen(false)}
-                  className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                >
-                  <MoreVertical className="h-3.5 w-3.5" />
-                </button>
-              </DropdownMenuTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Folder options"
+                      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Folder options</TooltipContent>
+              </Tooltip>
               <DropdownMenuContent align="end" className="w-48">
                 {onRename && (
                   <DropdownMenuItem
@@ -865,9 +858,6 @@ function ProjectGroup({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
-          {project && (onRename || onRecolor || onDelete) && (
-            <FloatingTooltip anchorRef={menuBtnRef} label="Folder options" open={menuTooltipOpen && !menuOpen} />
           )}
         </div>
       </div>
@@ -1129,8 +1119,6 @@ function EntryRow({
   const [copied, setCopied] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [title, setTitle] = useState(entry.title)
-  const [menuTooltipOpen, setMenuTooltipOpen] = useState(false)
-  const menuBtnRef = useRef<HTMLButtonElement | null>(null)
   const meta = getLanguage(entry.language)
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: entry.id })
 
@@ -1215,21 +1203,21 @@ function EntryRow({
           <Download className="h-3.5 w-3.5" />
         </RowAction>
         <DropdownMenu open={menuOpen} onOpenChange={(o) => o !== menuOpen && onMenuToggle()}>
-          <DropdownMenuTrigger asChild>
-            <button
-              ref={menuBtnRef}
-              type="button"
-              aria-label="More"
-              onPointerEnter={() => setMenuTooltipOpen(true)}
-              onPointerLeave={() => setMenuTooltipOpen(false)}
-              onFocus={() => setMenuTooltipOpen(true)}
-              onBlur={() => setMenuTooltipOpen(false)}
-              onClick={(e) => e.stopPropagation()}
-              className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <MoreVertical className="h-3.5 w-3.5" />
-            </button>
-          </DropdownMenuTrigger>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="More actions"
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>More actions</TooltipContent>
+          </Tooltip>
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuItem onSelect={() => onEdit()}>
               <Info className="h-3.5 w-3.5" /> Details
@@ -1264,7 +1252,6 @@ function EntryRow({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <FloatingTooltip anchorRef={menuBtnRef} label="More actions" open={menuTooltipOpen && !menuOpen} />
     </div>
   )
 }
@@ -1278,26 +1265,20 @@ function RowAction({
   onClick: (e: React.MouseEvent) => void
   children: React.ReactNode
 }) {
-  const ref = useRef<HTMLButtonElement>(null)
-  const [showTooltip, setShowTooltip] = useState(false)
-
   return (
-    <>
-      <button
-        ref={ref}
-        type="button"
-        aria-label={label}
-        onClick={onClick}
-        onPointerEnter={() => setShowTooltip(true)}
-        onPointerLeave={() => setShowTooltip(false)}
-        onFocus={() => setShowTooltip(true)}
-        onBlur={() => setShowTooltip(false)}
-        className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-      >
-        {children}
-      </button>
-      <FloatingTooltip anchorRef={ref} label={label} open={showTooltip} />
-    </>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 

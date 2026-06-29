@@ -3,7 +3,7 @@ import { ChevronRight, Copy, Check, Hash } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { copyToClipboard } from "@/lib/io"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
-import { FloatingTooltip } from "./tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 interface JsonTreeProps {
   data: unknown
@@ -214,32 +214,26 @@ function CopyAction({
   onClick: (e: React.MouseEvent) => void
   icon?: "value" | "path"
 }) {
-  const ref = useRef<HTMLButtonElement>(null)
-  const [showTooltip, setShowTooltip] = useState(false)
-
   return (
-    <>
-      <button
-        ref={ref}
-        type="button"
-        onClick={onClick}
-        aria-label={label}
-        onPointerEnter={() => setShowTooltip(true)}
-        onPointerLeave={() => setShowTooltip(false)}
-        onFocus={() => setShowTooltip(true)}
-        onBlur={() => setShowTooltip(false)}
-        className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-[color-mix(in_srgb,var(--syn-fg)_12%,transparent)] group-hover:opacity-100 syn-punctuation"
-      >
-        {copied ? (
-          <Check className="h-3 w-3 text-success" />
-        ) : icon === "path" ? (
-          <Hash className="h-3 w-3" />
-        ) : (
-          <Copy className="h-3 w-3" />
-        )}
-      </button>
-      <FloatingTooltip anchorRef={ref} label={label} open={showTooltip} />
-    </>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={label}
+          className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-[color-mix(in_srgb,var(--syn-fg)_12%,transparent)] group-hover:opacity-100 syn-punctuation"
+        >
+          {copied ? (
+            <Check className="h-3 w-3 text-success" />
+          ) : icon === "path" ? (
+            <Hash className="h-3 w-3" />
+          ) : (
+            <Copy className="h-3 w-3" />
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 

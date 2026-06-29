@@ -4,7 +4,6 @@ import logo from "./assets/logo.png"
 import { Formatter, type SaveEntryPayload } from "./components/formatter"
 import { Library, ModalButton } from "./components/library"
 import { Modal } from "./components/modal"
-import { ThemeModeToggle } from "./components/theme-mode-toggle"
 import { SupportButton } from "./components/support-button"
 import { SettingsButton } from "./components/settings-button"
 import { SettingsView } from "./components/settings-view"
@@ -76,7 +75,7 @@ function isLanguage(value: unknown): value is Language {
 }
 
 export default function App() {
-  const { mode, resolved, setMode } = useTheme()
+  const { mode, setMode } = useTheme()
   const { syntaxThemeId, setSyntaxTheme } = useSyntaxTheme()
   const [initialDraft] = useState(loadDraft)
   const [tab, setTab] = useState<Tab>("format")
@@ -273,7 +272,6 @@ export default function App() {
         <div className="ml-auto flex items-center gap-1">
           <SupportButton />
           <SettingsButton onOpen={() => setSettingsOpen(true)} />
-          <ThemeModeToggle mode={mode} resolved={resolved} onChange={setMode} />
         </div>
       </header>
 

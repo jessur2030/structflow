@@ -5,7 +5,7 @@ import { MarkdownPreview } from "./markdown-preview"
 import { JsonTree } from "./json-tree"
 import { DiffView } from "./diff-view"
 import { IconButton } from "./icon-button"
-import { FloatingTooltip } from "./tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { validate } from "@/lib/formatter"
 import type { FormatOptions, Language } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -204,28 +204,23 @@ function ModeToggle({
   label: string
   children: React.ReactNode
 }) {
-  const ref = useRef<HTMLButtonElement>(null)
-  const [showTooltip, setShowTooltip] = useState(false)
   return (
-    <>
-      <button
-        ref={ref}
-        type="button"
-        aria-label={label}
-        onClick={onClick}
-        onPointerEnter={() => setShowTooltip(true)}
-        onPointerLeave={() => setShowTooltip(false)}
-        onFocus={() => setShowTooltip(true)}
-        onBlur={() => setShowTooltip(false)}
-        className={cn(
-          "flex h-6 w-7 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors",
-          active && "bg-secondary text-foreground",
-        )}
-      >
-        {children}
-      </button>
-      <FloatingTooltip anchorRef={ref} label={label} open={showTooltip} />
-    </>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          className={cn(
+            "flex h-6 w-7 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors",
+            active && "bg-secondary text-foreground",
+          )}
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
