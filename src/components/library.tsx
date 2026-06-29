@@ -29,7 +29,15 @@ import { IconButton } from "./icon-button"
 import { TagsInput } from "./tags-input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { formatCode } from "@/lib/formatter"
-import { copyToClipboard, downloadFile, exportEntriesAsZip, importFiles, mimeFor, slugify } from "@/lib/io"
+import {
+  copyToClipboard,
+  downloadFile,
+  exportEntriesAsZip,
+  importDirectoryHandle,
+  importFiles,
+  mimeFor,
+  slugify,
+} from "@/lib/io"
 import {
   DEFAULT_OPTIONS,
   LANGUAGES,
@@ -299,32 +307,63 @@ export function Library({
     setExportOpen(false)
   }
 
+  const presentImport = (
+    imported: { entries: Entry[]; projects: Project[]; skipped: number },
+    fileName: string,
+  ) => {
+    if (imported.entries.length === 0) {
+      setImportError("No importable files were found.")
+      return
+    }
+    setImportTarget(null)
+    setPendingImport({
+      fileName,
+      entries: imported.entries,
+      projects: imported.projects,
+      skipped: imported.skipped,
+    })
+  }
+
   const runImport = async (fileList: FileList | null) => {
     const files = fileList ? Array.from(fileList) : []
     if (files.length === 0) return
     setImportError(null)
     try {
       const imported = await importFiles(files)
-      if (imported.entries.length === 0) {
-        setImportError("No importable files were found.")
-        return
-      }
       const label =
         files.length === 1
           ? files[0].name
           : `${imported.entries.length} files${imported.projects.length ? ` · ${imported.projects.length} folder(s)` : ""}`
-      setImportTarget(null)
-      setPendingImport({
-        fileName: label,
-        entries: imported.entries,
-        projects: imported.projects,
-        skipped: imported.skipped,
-      })
+      presentImport(imported, label)
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Could not import these files.")
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = ""
       if (folderInputRef.current) folderInputRef.current.value = ""
+    }
+  }
+
+  // Prefer the File System Access API for folders: it walks lazily and skips
+  // ignored dirs before descending, avoiding the webkitdirectory <input> crash on
+  // large/real-world folders. Falls back to the hidden <input> where unsupported.
+  const handleImportFolder = async () => {
+    const picker = (window as Window & { showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle> })
+      .showDirectoryPicker
+    if (!picker) {
+      folderInputRef.current?.click()
+      return
+    }
+    let dir: FileSystemDirectoryHandle
+    try {
+      dir = await picker()
+    } catch {
+      return // user dismissed the picker
+    }
+    setImportError(null)
+    try {
+      presentImport(await importDirectoryHandle(dir), dir.name)
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Could not import that folder.")
     }
   }
 
@@ -471,7 +510,7 @@ export function Library({
         </IconButton>
         <IconButton
           label="Import a folder"
-          onClick={() => folderInputRef.current?.click()}
+          onClick={() => void handleImportFolder()}
           className="border border-border bg-background"
         >
           <FolderUp className="h-4 w-4" />

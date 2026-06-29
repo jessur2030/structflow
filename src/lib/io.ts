@@ -274,6 +274,54 @@ export async function importFiles(
   return { ...buildLibraryFromFiles(imported), skipped }
 }
 
+/**
+ * Import a directory chosen via the File System Access API (`showDirectoryPicker`).
+ * Walks lazily and skips ignored directories (node_modules, .git, …) *before*
+ * descending, so a huge folder never balloons into one giant FileList the way the
+ * `webkitdirectory` <input> does. Same filters/limits as `importFiles`.
+ */
+export async function importDirectoryHandle(
+  dir: FileSystemDirectoryHandle,
+): Promise<{ entries: Entry[]; projects: Project[]; skipped: number }> {
+  const imported: ImportedFile[] = []
+  let skipped = 0
+  let totalBytes = 0
+
+  // `entries()` (async iterator) isn't in this TS lib's DOM types yet; type it locally.
+  type DirEntries = {
+    entries(): AsyncIterableIterator<[string, FileSystemFileHandle | FileSystemDirectoryHandle]>
+  }
+
+  const walk = async (handle: FileSystemDirectoryHandle, prefix: string): Promise<void> => {
+    for await (const [name, child] of (handle as unknown as DirEntries).entries()) {
+      if (imported.length >= MAX_IMPORT_FILES || totalBytes >= MAX_TOTAL_BYTES) break
+      const path = prefix ? `${prefix}/${name}` : name
+      if (child.kind === "directory") {
+        if (!IGNORED_DIR_SEGMENTS.has(name)) await walk(child, path)
+        continue
+      }
+      const file = await child.getFile()
+      if (!isImportableCandidate(path, name, file.size)) {
+        skipped++
+        continue
+      }
+      const text = await readFileText(file)
+      if (looksBinary(text)) {
+        skipped++
+        continue
+      }
+      imported.push({ path, text })
+      totalBytes += file.size
+    }
+  }
+
+  // Prefix with the picked folder's name so it becomes the root project, matching
+  // the webkitdirectory path shape (e.g. "migration-jlarc/01_compliance.sql").
+  await walk(dir, dir.name)
+  if (imported.length === 0) throw new Error("No importable text files were found.")
+  return { ...buildLibraryFromFiles(imported), skipped }
+}
+
 /** Parse a file as a StructFlow backup, or return null if it isn't one. */
 async function tryReadBackup(file: File): Promise<StructFlowExportManifest | null> {
   const lower = file.name.toLowerCase()

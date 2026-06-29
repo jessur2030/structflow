@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { zipSync, strToU8 } from "fflate"
-import { importEntriesFromFile, importFiles, languageFromFilename } from "@/lib/io"
+import { importDirectoryHandle, importEntriesFromFile, importFiles, languageFromFilename } from "@/lib/io"
 import { DEFAULT_OPTIONS, STRUCTFLOW_SCHEMA_VERSION } from "@/lib/types"
 
 /** Build a File whose webkitRelativePath is set (as the folder picker provides). */
@@ -244,5 +244,67 @@ describe("importFiles - nested backup restore", () => {
     const sql = projects.find((p) => p.name === "SQL")!
     expect(work.id).not.toBe("work") // re-ided on import
     expect(sql.parentId).toBe(work.id) // child re-pointed to the new parent id
+  })
+})
+
+// Minimal mocks of the File System Access API handles used by the folder import.
+type MockTree = { [name: string]: string | MockTree }
+function mockFile(name: string, content: string) {
+  const bytes = strToU8(content)
+  return {
+    kind: "file" as const,
+    name,
+    async getFile() {
+      return { name, size: bytes.length, async arrayBuffer() { return bytes.buffer } }
+    },
+  }
+}
+function mockDir(name: string, tree: MockTree) {
+  return {
+    kind: "directory" as const,
+    name,
+    async *entries() {
+      for (const [childName, val] of Object.entries(tree)) {
+        yield [childName, typeof val === "string" ? mockFile(childName, val) : mockDir(childName, val)] as [
+          string,
+          unknown,
+        ]
+      }
+    },
+  }
+}
+
+describe("importDirectoryHandle (File System Access API folder import)", () => {
+  it("walks the tree, skips ignored dirs, and nests everything under the picked folder", async () => {
+    const dir = mockDir("migration-jlarc", {
+      "01_a.sql": "SELECT 1;",
+      "README.md": "# notes",
+      ".git": { config: "[core]", HEAD: "ref: refs/heads/x" }, // ignored, never descended
+      node_modules: { "lib.js": "module.exports = {}" }, // ignored
+      sub: { "02_b.sql": "SELECT 2;" }, // nested folder
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { entries, projects } = await importDirectoryHandle(dir as any)
+
+    // 3 importable files; .git + node_modules are skipped before descending.
+    expect(entries).toHaveLength(3)
+    expect(projects.find((p) => p.name === ".git")).toBeUndefined()
+    expect(projects.find((p) => p.name === "node_modules")).toBeUndefined()
+
+    const root = projects.find((p) => p.name === "migration-jlarc")!
+    expect(root.parentId).toBeNull()
+    const sub = projects.find((p) => p.name === "sub")!
+    expect(sub.parentId).toBe(root.id) // nested under the picked folder
+
+    // Every imported entry is parented somewhere under the root (no orphans).
+    const projectIds = new Set(projects.map((p) => p.id))
+    for (const e of entries) expect(e.projectId && projectIds.has(e.projectId)).toBe(true)
+  })
+
+  it("throws when the folder has no importable text files", async () => {
+    const dir = mockDir("empty", { ".git": { HEAD: "ref: x" } })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await expect(importDirectoryHandle(dir as any)).rejects.toThrow(/no importable/i)
   })
 })
