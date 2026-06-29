@@ -108,7 +108,7 @@ export function SettingsView({
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <span className="text-[15px] font-semibold">Settings</span>
+        <span className="text-title font-semibold">Settings</span>
       </div>
 
       <div className="min-h-0 flex-1 space-y-6 overflow-auto px-4 py-4">
@@ -166,7 +166,7 @@ export function SettingsView({
               type="button"
               onClick={() => exportEntriesAsZip(entries, projects)}
               disabled={entries.length === 0}
-              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[12.5px] font-medium hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-compact font-medium hover:bg-secondary disabled:pointer-events-none disabled:opacity-40"
             >
               <Download className="h-3.5 w-3.5" /> Export
             </button>
@@ -175,7 +175,7 @@ export function SettingsView({
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[12.5px] font-medium hover:bg-secondary"
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-compact font-medium hover:bg-secondary"
             >
               <Upload className="h-3.5 w-3.5" /> Import
             </button>
@@ -187,13 +187,13 @@ export function SettingsView({
               onChange={(e) => void runImport(e.target.files)}
             />
           </Row>
-          {importMsg && <p className="px-1 text-[11px] text-muted-foreground">{importMsg}</p>}
+          {importMsg && <p className="px-1 text-label text-muted-foreground">{importMsg}</p>}
           <Row label="Clear all data" desc="Permanently delete every saved entry and folder." danger>
             <button
               type="button"
               onClick={() => setConfirmClear(true)}
               disabled={entries.length === 0 && projects.length === 0}
-              className="flex items-center gap-1.5 rounded-md border border-destructive/40 px-2.5 py-1.5 text-[12.5px] font-medium text-destructive hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-md border border-destructive/40 px-2.5 py-1.5 text-compact font-medium text-destructive hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-40"
             >
               <Trash2 className="h-3.5 w-3.5" /> Clear all
             </button>
@@ -202,7 +202,7 @@ export function SettingsView({
 
         <Section title="About">
           <Row label="Version" desc="StructFlow">
-            <span className="text-[12.5px] tabular-nums text-muted-foreground">v{STRUCTFLOW_APP_VERSION}</span>
+            <span className="text-compact tabular-nums text-muted-foreground">v{STRUCTFLOW_APP_VERSION}</span>
           </Row>
           <Row label="Keyboard shortcut" desc="Open the side panel. Change it in your browser's extension shortcuts.">
             <button
@@ -210,7 +210,7 @@ export function SettingsView({
               onClick={() => {
                 if (typeof chrome !== "undefined" && chrome.tabs?.create) chrome.tabs.create({ url: SHORTCUTS_URL })
               }}
-              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[12.5px] font-medium hover:bg-secondary"
+              className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-compact font-medium hover:bg-secondary"
             >
               <Keyboard className="h-3.5 w-3.5" /> Configure
             </button>
@@ -222,7 +222,7 @@ export function SettingsView({
                 href={l.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-1 py-1 text-[12.5px] text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-1.5 px-1 py-1 text-compact text-muted-foreground hover:text-foreground"
               >
                 <ExternalLink className="h-3.5 w-3.5" /> {l.label}
               </a>
@@ -252,7 +252,7 @@ export function SettingsView({
           </>
         }
       >
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-body text-muted-foreground">
           This permanently deletes all {entries.length} saved entr{entries.length === 1 ? "y" : "ies"} and{" "}
           {projects.length} folder(s). This cannot be undone.
         </p>
@@ -264,7 +264,7 @@ export function SettingsView({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+      <h3 className="text-label font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
       <div className="space-y-3 rounded-lg border border-border p-3">{children}</div>
     </section>
   )
@@ -284,8 +284,8 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className={cn("text-[13px] font-medium", danger && "text-destructive")}>{label}</p>
-        {desc && <p className="text-[11px] leading-tight text-muted-foreground">{desc}</p>}
+        <p className={cn("text-body font-medium", danger && "text-destructive")}>{label}</p>
+        {desc && <p className="text-label leading-tight text-muted-foreground">{desc}</p>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>

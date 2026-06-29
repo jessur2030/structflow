@@ -111,7 +111,7 @@ export function EditorSurface({
         <div className="ml-auto flex items-center gap-1">
           {mode === "edit" && (
             <IconButton label={wrap ? "Disable wrap" : "Enable wrap"} active={wrap} onClick={() => setWrap((w) => !w)}>
-              <span className="text-[10px] font-bold">↵</span>
+              <span className="text-micro font-bold">↵</span>
             </IconButton>
           )}
         </div>
@@ -125,10 +125,10 @@ export function EditorSurface({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search keys and values…"
-              className="w-full bg-transparent text-[12.5px] focus:outline-none"
+              className="w-full bg-transparent text-compact focus:outline-none"
             />
             {search.trim() && (
-              <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{jsonMatchCount}</span>
+              <span className="shrink-0 text-label tabular-nums text-muted-foreground">{jsonMatchCount}</span>
             )}
             <IconButton label="Expand all" onClick={() => setTreeOpenState(true)} className="h-6 w-6">
               <Maximize2 className="h-3.5 w-3.5" />
@@ -141,7 +141,7 @@ export function EditorSurface({
       )}
 
       {mode === "edit" && liveError && (
-        <div className="flex items-start gap-2 border-b border-border bg-destructive/5 px-3 py-2 text-[12px] text-destructive">
+        <div className="flex items-start gap-2 border-b border-border bg-destructive/5 px-3 py-2 text-compact text-destructive">
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span className="font-mono">{liveError}</span>
         </div>
@@ -225,7 +225,7 @@ function ModeToggle({
 }
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
-  return <p className="px-6 py-10 text-center text-[13px] text-muted-foreground">{children}</p>
+  return <p className="px-6 py-10 text-center text-body text-muted-foreground">{children}</p>
 }
 
 export function countJsonMatches(value: unknown, search: string, path = "$", keyName: string | null = null): number {

@@ -27,7 +27,7 @@ export function SupportButton() {
         <button
           type="button"
           aria-label="Support StructFlow"
-          className="flex h-7 cursor-pointer items-center gap-1 rounded-md border border-border px-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground data-[state=open]:bg-secondary data-[state=open]:text-foreground"
+          className="flex h-7 cursor-pointer items-center gap-1 rounded-md border border-border px-2 text-compact font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground data-[state=open]:bg-secondary data-[state=open]:text-foreground"
         >
           <Heart className="h-3.5 w-3.5 text-(--accent-heart,#e0245e)" />
           Support
@@ -35,8 +35,8 @@ export function SupportButton() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-64 p-0">
         <div className="px-3 py-2">
-          <p className="text-[12px] font-semibold">Enjoying StructFlow?</p>
-          <p className="text-[11px] leading-snug text-muted-foreground">
+          <p className="text-compact font-semibold">Enjoying StructFlow?</p>
+          <p className="text-label leading-snug text-muted-foreground">
             It&apos;s free and open source. Your support keeps it growing.
           </p>
         </div>
@@ -64,8 +64,8 @@ function SupportRow({ link }: { link: SupportLink }) {
         <Icon className="h-3.5 w-3.5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[12.5px] font-medium">{link.label}</span>
-        <span className="block truncate text-[11px] leading-tight text-muted-foreground">{link.description}</span>
+        <span className="block text-compact font-medium">{link.label}</span>
+        <span className="block truncate text-label leading-tight text-muted-foreground">{link.description}</span>
       </span>
       <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
     </a>

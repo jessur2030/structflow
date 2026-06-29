@@ -98,7 +98,7 @@ export function LanguageSelect({ value, onChange }: LanguageSelectProps) {
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 truncate">{lang.label}</span>
         {lang.formattable && (
-          <Badge variant="secondary" className="px-1.5 py-0 text-[9px] font-medium uppercase tracking-wide">
+          <Badge variant="secondary" className="px-1.5 py-0 text-micro font-medium uppercase tracking-wide">
             formats
           </Badge>
         )}
@@ -113,7 +113,7 @@ export function LanguageSelect({ value, onChange }: LanguageSelectProps) {
         <button
           type="button"
           aria-label="Language"
-          className="flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[13px] font-medium hover:bg-secondary"
+          className="flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-body font-medium hover:bg-secondary"
         >
           <CurrentIcon className="h-3.5 w-3.5 text-muted-foreground" />
           {current.label}

@@ -53,8 +53,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "./ui/context-menu"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
+import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import {
@@ -392,7 +401,7 @@ export function Library({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search saved entries…"
-            className="w-full bg-transparent text-[13px] focus:outline-none"
+            className="w-full bg-transparent text-body focus:outline-none"
           />
         </div>
         <IconButton
@@ -444,7 +453,7 @@ export function Library({
         </IconButton>
       </div>
       {importError && (
-        <div className="border-b border-border px-3 py-2 text-[12.5px] text-destructive">
+        <div className="border-b border-border px-3 py-2 text-compact text-destructive">
           {importError}
         </div>
       )}
@@ -464,7 +473,7 @@ export function Library({
         {entries.length === 0 && projects.length === 0 ? (
           <EmptyLibrary />
         ) : query.trim() && filtered.length === 0 && (visibleDuringSearch?.size ?? 0) === 0 ? (
-          <div className="px-4 py-10 text-center text-[13px] text-muted-foreground">
+          <div className="px-4 py-10 text-center text-body text-muted-foreground">
             Nothing matches “{query}”.
           </div>
         ) : (
@@ -486,7 +495,7 @@ export function Library({
             </div>
             <DragOverlay dropAnimation={null}>
               {draggingEntry ? (
-                <div className="pointer-events-none flex items-center gap-1.5 rounded-md border border-border bg-popover px-2 py-1 text-[13px] font-medium shadow-lg">
+                <div className="pointer-events-none flex items-center gap-1.5 rounded-md border border-border bg-popover px-2 py-1 text-body font-medium shadow-lg">
                   <FileCode2 className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="max-w-50 truncate">{draggingEntry.title}</span>
                 </div>
@@ -511,7 +520,7 @@ export function Library({
       >
         <div className="space-y-2">
           {newProjectParent && (
-            <p className="text-[12px] text-muted-foreground">
+            <p className="text-compact text-muted-foreground">
               Inside <span className="font-medium text-foreground">{projectLabel(newProjectParent)}</span>
             </p>
           )}
@@ -521,7 +530,7 @@ export function Library({
             onChange={(e) => setProjectName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submitProject()}
             placeholder="Folder name"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </Modal>
@@ -552,7 +561,7 @@ export function Library({
           const idSet = new Set([deleteTarget.id, ...subIds])
           const entryCount = entries.filter((e) => e.projectId && idSet.has(e.projectId)).length
           return (
-            <p className="text-[13px] text-muted-foreground">
+            <p className="text-body text-muted-foreground">
               Delete <span className="font-medium text-foreground">{projectLabel(deleteTarget.id)}</span>?
               {(subIds.length > 0 || entryCount > 0) && (
                 <>
@@ -591,11 +600,11 @@ export function Library({
           </>
         }
       >
-        <p className="mb-3 text-[12.5px] text-muted-foreground">
+        <p className="mb-3 text-compact text-muted-foreground">
           Choose which folders to include. Entries are exported as files, organized into
           folders, inside a single .zip (with a <span className="font-mono">manifest.json</span>).
         </p>
-        <label className="flex cursor-pointer items-center gap-2 border-b border-border pb-2 text-[13px] font-medium">
+        <label className="flex cursor-pointer items-center gap-2 border-b border-border pb-2 text-body font-medium">
           <input
             type="checkbox"
             checked={allSelected}
@@ -612,7 +621,7 @@ export function Library({
           {exportableGroups.map((g) => (
             <label
               key={g.key}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 text-[13px] hover:bg-secondary/60"
+              className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 text-body hover:bg-secondary/60"
             >
               <input
                 type="checkbox"
@@ -626,7 +635,7 @@ export function Library({
                 <Inbox className="h-4 w-4 shrink-0 text-muted-foreground" />
               )}
               <span className="min-w-0 flex-1 truncate">{g.name}</span>
-              <span className="shrink-0 text-[11px] text-muted-foreground">
+              <span className="shrink-0 text-label text-muted-foreground">
                 {g.count} {g.count === 1 ? "entry" : "entries"}
               </span>
             </label>
@@ -651,7 +660,7 @@ export function Library({
         }
       >
         {pendingImport && (
-          <div className="space-y-2 text-[13px]">
+          <div className="space-y-2 text-body">
             <p className="text-muted-foreground">
               Ready to import <span className="font-medium text-foreground">{pendingImport.fileName}</span>.
               Imported IDs will be regenerated so existing library items are not overwritten.
@@ -667,7 +676,7 @@ export function Library({
               </div>
             </div>
             {pendingImport.skipped > 0 && (
-              <p className="text-[12px] text-muted-foreground">
+              <p className="text-compact text-muted-foreground">
                 {pendingImport.skipped} file{pendingImport.skipped === 1 ? "" : "s"} skipped -
                 binary, larger than 512&nbsp;KB, or inside ignored folders (e.g. node_modules,
                 .git, dist).
@@ -758,12 +767,12 @@ function ProjectGroup({
               if (e.key === "Enter") submitRename()
               if (e.key === "Escape") setRenaming(false)
             }}
-            className="min-w-0 flex-1 rounded border border-border bg-background px-1 py-0.5 text-[13px] focus:outline-none"
+            className="min-w-0 flex-1 rounded border border-border bg-background px-1 py-0.5 text-body focus:outline-none"
           />
         ) : (
           <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-            <span className="truncate text-[13px] font-medium">{project ? project.name : "No folder"}</span>
-            <span className="text-[11px] text-muted-foreground">{count}</span>
+            <span className="truncate text-body font-medium">{project ? project.name : "No folder"}</span>
+            <span className="text-label text-muted-foreground">{count}</span>
           </button>
         )}
 
@@ -799,7 +808,13 @@ function ProjectGroup({
                 </TooltipTrigger>
                 <TooltipContent>Folder options</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent
+                align="end"
+                className="w-48"
+                // A selected item may open a dialog (delete confirm); don't refocus
+                // the trigger on close or its Tooltip re-fires over that dialog.
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
                 {onRename && (
                   <DropdownMenuItem
                     onSelect={() => {
@@ -823,7 +838,7 @@ function ProjectGroup({
                 {onRecolor && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <DropdownMenuLabel className="text-label uppercase tracking-wide text-muted-foreground">
                       Color
                     </DropdownMenuLabel>
                     <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
@@ -948,16 +963,17 @@ function EntryEditorModal({
       }
     >
       <div className="max-h-[70vh] space-y-3 overflow-auto pr-1">
-        {error && <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12.5px] text-destructive">{error}</div>}
+        {error && <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-compact text-destructive">{error}</div>}
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
-          <label className="space-y-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Title</span>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </label>
-          <label className="space-y-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pin</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-title" className="text-label uppercase tracking-wide text-muted-foreground">Title</Label>
+            <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-pin" className="text-label uppercase tracking-wide text-muted-foreground">Pin</Label>
             <button
+              id="edit-pin"
               type="button"
               onClick={() => setPinned((value) => !value)}
               aria-label={pinned ? "Unpin entry" : "Pin entry"}
@@ -968,14 +984,14 @@ function EntryEditorModal({
             >
               <Star className={cn("h-4 w-4", pinned && "fill-current")} />
             </button>
-          </label>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <label className="space-y-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Language</span>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-language" className="text-label uppercase tracking-wide text-muted-foreground">Language</Label>
             <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="edit-language" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -986,14 +1002,14 @@ function EntryEditorModal({
                 ))}
               </SelectContent>
             </Select>
-          </label>
-          <label className="space-y-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Folder</span>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-folder" className="text-label uppercase tracking-wide text-muted-foreground">Folder</Label>
             <Select
               value={projectId ?? "__none__"}
               onValueChange={(v) => setProjectId(v === "__none__" ? null : v)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="edit-folder" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1005,34 +1021,35 @@ function EntryEditorModal({
                 ))}
               </SelectContent>
             </Select>
-          </label>
+          </div>
         </div>
 
-        <label className="space-y-1.5">
-          <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-1.5">
+          <Label htmlFor="edit-tags" className="gap-1.5 text-label uppercase tracking-wide text-muted-foreground">
             <Tags className="h-3 w-3" /> Tags
-          </span>
-          <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="api, auth, notes" />
-        </label>
+          </Label>
+          <Input id="edit-tags" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="api, auth, notes" />
+        </div>
 
-        <label className="space-y-1.5">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Raw input</span>
+        <div className="space-y-1.5">
+          <Label htmlFor="edit-raw" className="text-label uppercase tracking-wide text-muted-foreground">Raw input</Label>
           <Textarea
+            id="edit-raw"
             value={rawInput}
             onChange={(e) => setRawInput(e.target.value)}
             spellCheck={false}
-            className="min-h-35 resize-y font-mono text-[12px] leading-relaxed"
+            className="min-h-35 resize-y font-mono text-compact leading-relaxed"
           />
-        </label>
+        </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Formatted output</span>
+            <span className="text-label font-medium uppercase tracking-wide text-muted-foreground">Formatted output</span>
             <button
               type="button"
               onClick={() => void reformat()}
               disabled={formatting}
-              className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] font-medium hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
+              className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-compact font-medium hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", formatting && "animate-spin")} /> Reformat
             </button>
@@ -1041,7 +1058,7 @@ function EntryEditorModal({
             value={formattedOutput}
             onChange={(e) => setFormattedOutput(e.target.value)}
             spellCheck={false}
-            className="min-h-35 resize-y font-mono text-[12px] leading-relaxed"
+            className="min-h-35 resize-y font-mono text-compact leading-relaxed"
           />
         </div>
       </div>
@@ -1077,7 +1094,7 @@ function ModeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1 rounded-md px-2 py-1 text-[12.5px] font-medium transition-colors",
+        "flex items-center gap-1 rounded-md px-2 py-1 text-compact font-medium transition-colors",
         active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
       )}
     >
@@ -1139,16 +1156,54 @@ function EntryRow({
     setRenaming(false)
   }
 
+  // Shared between the row's "⋮" dropdown and its right-click context menu so the
+  // two can never drift. Item/Separator/Label are passed in as the matching
+  // primitives (DropdownMenu* or ContextMenu*); both share the same item API.
+  const menuItems = (Item: React.ElementType, Separator: React.ElementType, MenuLabel: React.ElementType) => (
+    <>
+      <Item onSelect={() => onEdit()}>
+        <Info className="h-3.5 w-3.5" /> Details
+      </Item>
+      <Item onSelect={() => setRenaming(true)}>
+        <Pencil className="h-3.5 w-3.5" /> Rename
+      </Item>
+      <Item onSelect={() => onTogglePinned()}>
+        <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-primary")} />
+        {entry.pinned ? "Unpin" : "Pin"}
+      </Item>
+      <Item onSelect={() => onDuplicate()}>
+        <CopyPlus className="h-3.5 w-3.5" /> Duplicate
+      </Item>
+      <Separator />
+      <MenuLabel className="text-label uppercase tracking-wide text-muted-foreground">Move to</MenuLabel>
+      <Item onSelect={() => onMove(null)}>
+        <Inbox className="h-3.5 w-3.5" /> No folder
+      </Item>
+      {projects.map((p) => (
+        <Item key={p.id} onSelect={() => onMove(p.id)}>
+          <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
+          <span className="min-w-0 truncate">{projectLabel(p.id)}</span>
+        </Item>
+      ))}
+      <Separator />
+      <Item variant="destructive" onSelect={() => onDelete()}>
+        <Trash2 className="h-3.5 w-3.5" /> Delete
+      </Item>
+    </>
+  )
+
   return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className={cn(
-        "group relative flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60",
-        isDragging && "opacity-40",
-      )}
-    >
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          className={cn(
+            "group relative flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60",
+            isDragging && "opacity-40",
+          )}
+        >
       {entry.pinned ? (
         <Star className="h-4 w-4 shrink-0 fill-primary text-primary" />
       ) : (
@@ -1166,19 +1221,19 @@ function EntryRow({
               if (e.key === "Enter") submitRename()
               if (e.key === "Escape") setRenaming(false)
             }}
-            className="w-full rounded border border-border bg-background px-1 py-0.5 text-[13px] focus:outline-none"
+            className="w-full rounded border border-border bg-background px-1 py-0.5 text-body focus:outline-none"
           />
         ) : (
-          <span className="w-full truncate text-[13px] font-medium">{entry.title}</span>
+          <span className="w-full truncate text-body font-medium">{entry.title}</span>
         )}
-        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-label text-muted-foreground">
           <span className="rounded bg-secondary px-1 py-px font-mono uppercase">{meta.label}</span>
           {new Date(entry.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
         </span>
         {entry.tags.length > 0 && (
           <span className="mt-1 flex max-w-full gap-1 overflow-hidden">
             {entry.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="max-w-[92px] truncate rounded bg-secondary px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+              <span key={tag} className="max-w-[92px] truncate rounded bg-secondary px-1.5 py-0.5 text-micro text-muted-foreground">
                 #{tag}
               </span>
             ))}
@@ -1215,41 +1270,23 @@ function EntryRow({
             </TooltipTrigger>
             <TooltipContent>More actions</TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onSelect={() => onEdit()}>
-              <Info className="h-3.5 w-3.5" /> Details
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setRenaming(true)}>
-              <Pencil className="h-3.5 w-3.5" /> Rename
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onTogglePinned()}>
-              <Star className={cn("h-3.5 w-3.5", entry.pinned && "fill-current text-primary")} />
-              {entry.pinned ? "Unpin" : "Pin"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onDuplicate()}>
-              <CopyPlus className="h-3.5 w-3.5" /> Duplicate
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Move to
-            </DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => onMove(null)}>
-              <Inbox className="h-3.5 w-3.5" /> No folder
-            </DropdownMenuItem>
-            {projects.map((p) => (
-              <DropdownMenuItem key={p.id} onSelect={() => onMove(p.id)}>
-                <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
-                <span className="min-w-0 truncate">{projectLabel(p.id)}</span>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={() => onDelete()}>
-              <Trash2 className="h-3.5 w-3.5" /> Delete
-            </DropdownMenuItem>
+          <DropdownMenuContent
+            align="end"
+            className="w-44"
+            // A selected item opens a dialog (Edit entry); don't refocus the
+            // trigger on close or its Tooltip re-fires over that dialog.
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
+            {menuItems(DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel)}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </div>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-44">
+        {menuItems(ContextMenuItem, ContextMenuSeparator, ContextMenuLabel)}
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
@@ -1303,8 +1340,8 @@ function EmptyLibrary() {
         <Inbox className="h-6 w-6 text-muted-foreground" />
       </div>
       <div>
-        <p className="text-[14px] font-medium">No saved entries yet</p>
-        <p className="mt-1 text-[12.5px] text-muted-foreground">
+        <p className="text-body font-medium">No saved entries yet</p>
+        <p className="mt-1 text-compact text-muted-foreground">
           Format something in the Formatter tab, then hit Save to keep it here. Organize entries into folders.
         </p>
       </div>

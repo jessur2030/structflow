@@ -17,7 +17,7 @@ export function JsonTree({ data, search, syntaxThemeId, expandAll, expandVersion
   const theme = getSyntaxTheme(syntaxThemeId)
   return (
     <div
-      className="syntax-surface min-h-full px-2 py-2 font-mono text-[12.5px] leading-[1.7]"
+      className="syntax-surface min-h-full px-2 py-2 font-mono text-compact leading-[1.7]"
       style={syntaxThemeVars(theme) as React.CSSProperties}
     >
       <TreeNode

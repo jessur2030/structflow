@@ -8,6 +8,7 @@ import { SupportButton } from "./components/support-button"
 import { SettingsButton } from "./components/settings-button"
 import { SettingsView } from "./components/settings-view"
 import { Input } from "./components/ui/input"
+import { Label } from "./components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
 import { useTheme } from "./lib/use-theme"
 import { useSyntaxTheme } from "./lib/use-syntax-theme"
@@ -269,7 +270,7 @@ export default function App() {
       <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         <div className="flex items-center gap-1.5">
           <img src={logo || "/placeholder.svg"} alt="StructFlow logo" className="h-6 w-6" />
-          <span className="text-[15px] font-semibold tracking-tight">StructFlow</span>
+          <span className="text-title font-semibold tracking-tight">StructFlow</span>
         </div>
         <div className="ml-auto flex items-center gap-1">
           <SupportButton />
@@ -302,7 +303,7 @@ export default function App() {
         <TabButton active={tab === "library"} onClick={() => setTab("library")}>
           <LibraryIcon className="h-3.5 w-3.5" /> Library
           {entries.length > 0 && (
-            <span className="rounded-full bg-secondary px-1.5 text-[10px] font-medium text-muted-foreground">
+            <span className="rounded-full bg-secondary px-1.5 text-micro font-medium text-muted-foreground">
               {entries.length}
             </span>
           )}
@@ -368,8 +369,9 @@ export default function App() {
       >
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Title</label>
+            <Label htmlFor="save-title" className="text-label uppercase tracking-wide text-muted-foreground">Title</Label>
             <Input
+              id="save-title"
               autoFocus
               value={saveTitle}
               onChange={(e) => setSaveTitle(e.target.value)}
@@ -377,14 +379,14 @@ export default function App() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Label htmlFor="save-folder" className="gap-1.5 text-label uppercase tracking-wide text-muted-foreground">
               <FolderInput className="h-3 w-3" /> Folder
-            </label>
+            </Label>
             <Select
               value={saveProjectId ?? "__none__"}
               onValueChange={(v) => setSaveProjectId(v === "__none__" ? null : v)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="save-folder" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -417,7 +419,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-medium transition-colors",
+        "flex items-center gap-1.5 border-b-2 px-3 py-2 text-body font-medium transition-colors",
         active
           ? "border-primary text-foreground"
           : "border-transparent text-muted-foreground hover:text-foreground",

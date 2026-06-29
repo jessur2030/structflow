@@ -32,7 +32,7 @@ export function FocusView({ input, onChangeInput, language, options, syntaxTheme
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background" role="dialog" aria-modal="true" aria-label="Full view">
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <div className="flex items-center gap-2 text-[13px]">
+        <div className="flex items-center gap-2 text-body">
           <span className="font-semibold">Full view</span>
           <span className="text-muted-foreground">{meta.label}</span>
         </div>

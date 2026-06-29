@@ -111,7 +111,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-          <h2 className="text-[13px] font-semibold">Code snapshot</h2>
+          <h2 className="text-body font-semibold">Code snapshot</h2>
           <button
             type="button"
             aria-label="Close"
@@ -125,7 +125,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
         <div className="relative flex-1 overflow-auto bg-(--snap-checker) p-4">
           {busy && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
-              <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-[13px] font-medium shadow-md">
+              <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-body font-medium shadow-md">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {busy === "copy" ? "Copying image…" : "Generating image…"}
               </div>
@@ -138,7 +138,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
               className="inline-block rounded-xl"
             >
               <div
-                className="syntax-surface overflow-hidden rounded-lg text-left font-mono text-[12.5px] leading-[1.6] shadow-xl"
+                className="syntax-surface overflow-hidden rounded-lg text-left font-mono text-compact leading-[1.6] shadow-xl"
                 style={syntaxThemeVars(theme) as React.CSSProperties}
               >
                 <div
@@ -151,7 +151,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
                     <span className="h-3 w-3 rounded-full" style={{ background: "#27c93f" }} />
                   </span>
                   {showTitle && (
-                    <span className="ml-2 truncate text-[12px] opacity-80">{title}</span>
+                    <span className="ml-2 truncate text-compact opacity-80">{title}</span>
                   )}
                 </div>
                 <div className="flex" style={{ background: "var(--syn-bg)" }}>
@@ -178,7 +178,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
           <div className="grid gap-3">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Backdrop</span>
+              <span className="text-label font-medium uppercase tracking-wide text-muted-foreground">Backdrop</span>
               <div className="flex gap-1.5">
                 {BACKDROPS.map((b) => (
                   <button
@@ -202,7 +202,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
             </div>
 
             <label className="flex items-center gap-2">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Padding</span>
+              <span className="text-label font-medium uppercase tracking-wide text-muted-foreground">Padding</span>
               <input
                 type="range"
                 min={0}
@@ -225,25 +225,25 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
 
             {showTitle && (
               <label className="grid gap-1.5">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Filename</span>
+                <span className="text-label font-medium uppercase tracking-wide text-muted-foreground">Filename</span>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="filename"
-                  className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-compact focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </label>
             )}
           </div>
 
           <div className="mt-3 flex items-center justify-end gap-2">
-            {error && <span className="mr-auto text-[12px] text-red-500">{error}</span>}
-            {!error && info && <span className="mr-auto text-[12px] text-muted-foreground">{info}</span>}
+            {error && <span className="mr-auto text-compact text-destructive">{error}</span>}
+            {!error && info && <span className="mr-auto text-compact text-muted-foreground">{info}</span>}
             <button
               type="button"
               onClick={() => render("copy")}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium hover:bg-secondary disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-body font-medium hover:bg-secondary disabled:opacity-50 cursor-pointer"
             >
             
               {busy === "copy" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
@@ -253,7 +253,7 @@ export function SnapshotModal({ code, language, syntaxThemeId, defaultTitle, onC
               type="button"
               onClick={() => render("download")}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-body font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
               {busy === "download" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               Download PNG
@@ -273,7 +273,7 @@ function ChipToggle({ active, onClick, children }: { active: boolean; onClick: (
       aria-checked={active}
       onClick={onClick}
       className={cn(
-        "rounded-full border px-2.5 py-1 text-[12px] transition-colors",
+        "rounded-full border px-2.5 py-1 text-compact transition-colors",
         active ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground",
       )}
     >

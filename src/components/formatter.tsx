@@ -214,7 +214,7 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <LanguageSelect value={language} onChange={setLanguage} />
         {detectChip ? (
-          <span className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-label text-muted-foreground">
             <Sparkles className="h-3 w-3 text-primary" />
             Detected {getLanguage(detectChip.to).label}
             <button
@@ -257,7 +257,14 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
               </TooltipTrigger>
               <TooltipContent>More actions</TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent
+              align="end"
+              className="w-44"
+              // Don't restore focus to the trigger on close: a selected item may
+              // open a dialog (Code snapshot), and refocusing the trigger re-fires
+              // its hover/focus Tooltip on top of that dialog.
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
               <DropdownMenuItem onSelect={() => handleExport()}>
                 <Download className="h-3.5 w-3.5" /> Export to file
               </DropdownMenuItem>
@@ -295,7 +302,7 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
           onClick={() => void handleFormatNow()}
           disabled={!input.trim()}
           className={cn(
-            "mx-3 mb-2 mt-1.5 flex items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-[13px] font-medium text-primary-foreground transition-opacity",
+            "mx-3 mb-2 mt-1.5 flex items-center justify-center gap-1.5 rounded-md bg-primary py-2 text-body font-medium text-primary-foreground transition-opacity",
             "hover:opacity-90 disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -332,13 +339,13 @@ function StatusPill({ status, empty }: { status: { ok: boolean; error?: string }
   if (empty) return null
   if (status.ok) {
     return (
-      <span className="flex items-center gap-1 text-[11px] text-success">
+      <span className="flex items-center gap-1 text-label text-success">
         <CheckCircle2 className="h-3.5 w-3.5" /> Valid
       </span>
     )
   }
   return (
-    <span className="flex items-center gap-1 text-[11px] text-destructive">
+    <span className="flex items-center gap-1 text-label text-destructive">
       <AlertCircle className="h-3.5 w-3.5" /> Invalid
     </span>
   )

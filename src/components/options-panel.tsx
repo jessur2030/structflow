@@ -22,7 +22,7 @@ export function OptionsPanel({ language, options, onChange }: OptionsPanelProps)
   const isPrettier = isJsLike || language === "html" || language === "css" || language === "markdown"
 
   return (
-    <div className="space-y-4 border-b border-border bg-card/50 px-4 py-3.5 text-[13px]">
+    <div className="space-y-4 border-b border-border bg-card/50 px-4 py-3.5 text-body">
       <Field label="Indentation">
         <div className="flex flex-wrap gap-1">
           {INDENTS.map((opt) => (
@@ -89,7 +89,7 @@ export function OptionsPanel({ language, options, onChange }: OptionsPanelProps)
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <span className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="block text-label font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
       {children}
     </div>
   )

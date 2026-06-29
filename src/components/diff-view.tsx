@@ -45,15 +45,15 @@ export function DiffView({ input, language, options, syntaxThemeId }: DiffViewPr
 
   return (
     <div
-      className="syntax-surface flex min-h-full flex-col font-mono text-[12.5px] leading-[1.6]"
+      className="syntax-surface flex min-h-full flex-col font-mono text-compact leading-[1.6]"
       style={syntaxThemeVars(theme) as CSSProperties}
     >
       {error ? (
-        <p className="px-3 py-2 font-sans text-[12px] text-destructive">
+        <p className="px-3 py-2 font-sans text-compact text-destructive">
           Cannot format ({error}); showing the buffer unchanged.
         </p>
       ) : changedCount === 0 ? (
-        <p className="px-3 py-2 font-sans text-[12px] text-(--syn-gutter)">
+        <p className="px-3 py-2 font-sans text-compact text-(--syn-gutter)">
           No changes — formatting this {language} would leave it as is.
         </p>
       ) : null}
@@ -74,7 +74,7 @@ interface Row {
 function ComparePane({ title, rows, border }: { title: string; rows: Row[]; border?: boolean }) {
   return (
     <div className={border ? "border-t border-[color-mix(in_srgb,var(--syn-gutter)_30%,transparent)] md:border-l md:border-t-0" : ""}>
-      <div className="sticky top-0 border-b border-[color-mix(in_srgb,var(--syn-gutter)_30%,transparent)] bg-(--syn-bg) px-3 py-1.5 font-sans text-[11px] font-medium uppercase tracking-wide text-(--syn-gutter)">
+      <div className="sticky top-0 border-b border-[color-mix(in_srgb,var(--syn-gutter)_30%,transparent)] bg-(--syn-bg) px-3 py-1.5 font-sans text-label font-medium uppercase tracking-wide text-(--syn-gutter)">
         {title}
       </div>
       <pre className="overflow-x-auto py-2">
