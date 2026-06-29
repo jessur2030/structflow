@@ -7,7 +7,7 @@
 
 StructFlow is a browser (Manifest V3) **side-panel/sidebar extension** that turns the
 browser sidebar into a workspace for your code and notes. Edit on a single
-syntax-highlighted surface, auto-detect and beautify JSON/JS/TS/SQL/YAML/Markdown, then
+syntax-highlighted surface, beautify JSON/JS/TS/SQL/YAML/Markdown, then
 save what you write into a searchable, foldered library you can tag and reuse. It also
 includes an interactive JSON viewer (in the panel **and** on raw JSON pages) and a
 CodeSnap-style PNG exporter. Markdown and Plain Text are first-class, so it doubles as a
