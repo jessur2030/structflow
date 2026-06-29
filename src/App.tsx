@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { SquarePen, Library as LibraryIcon, FolderInput } from "lucide-react"
 import logo from "./assets/logo.png"
 import { Editor, type SaveEntryPayload } from "./components/editor"
@@ -103,6 +103,20 @@ export default function App() {
   // a new duplicate.
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
   const currentEntry = currentEntryId ? entries.find((e) => e.id === currentEntryId) ?? null : null
+  // Union of every tag used across the library, for tag autocomplete (case-insensitive dedup).
+  const allTags = useMemo(() => {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const e of entries)
+      for (const t of e.tags) {
+        const key = t.toLowerCase()
+        if (!seen.has(key)) {
+          seen.add(key)
+          out.push(t)
+        }
+      }
+    return out.sort((a, b) => a.localeCompare(b))
+  }, [entries])
 
   const refresh = useCallback(async () => {
     const [e, p] = await Promise.all([getAllEntries(), getAllProjects()])
@@ -374,6 +388,7 @@ export default function App() {
             syntaxThemeId={syntaxThemeId}
             currentEntry={currentEntry}
             projects={projects}
+            tagSuggestions={allTags}
             onUpdateCurrent={updateCurrentEntry}
             onDuplicateCurrent={duplicateCurrentEntry}
             onDeleteCurrent={deleteCurrentEntry}

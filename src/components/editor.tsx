@@ -25,6 +25,7 @@ import { SnapshotModal } from "./snapshot-modal"
 import { FocusView } from "./focus-view"
 import { EditorSurface, type Mode } from "./editor-surface"
 import { IconButton } from "./icon-button"
+import { TagsInput } from "./tags-input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +65,8 @@ interface EditorProps {
   /** The library entry the live doc is linked to, or null for an unsaved buffer. */
   currentEntry: Entry | null
   projects: Project[]
+  /** Tags used across the library, for autocomplete in the identity bar. */
+  tagSuggestions: string[]
   onUpdateCurrent: (patch: Partial<Entry>) => void
   onDuplicateCurrent: () => void
   onDeleteCurrent: () => void
@@ -90,6 +93,7 @@ export function Editor({
   syntaxThemeId,
   currentEntry,
   projects,
+  tagSuggestions,
   onUpdateCurrent,
   onDuplicateCurrent,
   onDeleteCurrent,
@@ -390,19 +394,12 @@ export function Editor({
           </div>
           <div className="flex items-center gap-1.5">
             <TagsIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-            <input
-              key={`${currentEntry.id}:tags`}
-              defaultValue={currentEntry.tags.join(", ")}
-              onBlur={(e) => {
-                const tags = e.target.value
-                  .split(",")
-                  .map((t) => t.trim())
-                  .filter(Boolean)
-                if (tags.join(",") !== currentEntry.tags.join(",")) onUpdateCurrent({ tags })
-              }}
-              placeholder="tags (comma separated)"
-              aria-label="Tags"
-              className="min-w-0 flex-1 bg-transparent text-label text-muted-foreground focus:outline-none"
+            <TagsInput
+              value={currentEntry.tags}
+              onChange={(tags) => onUpdateCurrent({ tags })}
+              suggestions={tagSuggestions}
+              placeholder="Add tags…"
+              className="min-h-7 border-0 px-0 py-0 focus-visible:ring-0"
             />
           </div>
         </div>

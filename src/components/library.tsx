@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { Modal } from "./modal"
 import { IconButton } from "./icon-button"
+import { TagsInput } from "./tags-input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { formatCode } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, exportEntriesAsZip, importFiles, mimeFor, slugify } from "@/lib/io"
@@ -235,6 +236,21 @@ export function Library({
   const projectLabel = (id: string) => projectPath(id, projects).join(" / ")
 
   const ungrouped = groups.get(null) ?? []
+
+  // Union of every tag in the library, for autocomplete in the Details editor.
+  const allTags = useMemo(() => {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const e of entries)
+      for (const t of e.tags) {
+        const key = t.toLowerCase()
+        if (!seen.has(key)) {
+          seen.add(key)
+          out.push(t)
+        }
+      }
+    return out.sort((a, b) => a.localeCompare(b))
+  }, [entries])
 
   const countsByKey = useMemo(() => {
     const counts: Record<string, number> = { __none__: 0 }
@@ -712,6 +728,7 @@ export function Library({
       <EntryEditorModal
         entry={editingEntry}
         projects={projects}
+        tagSuggestions={allTags}
         onClose={() => setEditingEntry(null)}
         onSave={(id, patch) => {
           onUpdateEntry(id, patch)
@@ -952,18 +969,20 @@ function ProjectGroup({
 function EntryEditorModal({
   entry,
   projects,
+  tagSuggestions,
   onClose,
   onSave,
 }: {
   entry: Entry | null
   projects: Project[]
+  tagSuggestions: string[]
   onClose: () => void
   onSave: (id: string, patch: EntryPatch) => void
 }) {
   const [title, setTitle] = useState("")
   const [language, setLanguage] = useState<Language>("markdown")
   const [projectId, setProjectId] = useState<string | null>(null)
-  const [tagsInput, setTagsInput] = useState("")
+  const [tags, setTags] = useState<string[]>([])
   const [rawInput, setRawInput] = useState("")
   const [formattedOutput, setFormattedOutput] = useState("")
   const [formatOptions, setFormatOptions] = useState<FormatOptions>(DEFAULT_OPTIONS)
@@ -976,7 +995,7 @@ function EntryEditorModal({
     setTitle(entry.title)
     setLanguage(entry.language)
     setProjectId(entry.projectId)
-    setTagsInput(entry.tags.join(", "))
+    setTags(entry.tags)
     setRawInput(entry.rawInput)
     setFormattedOutput(entry.formattedOutput)
     setFormatOptions(entry.formatOptions ?? DEFAULT_OPTIONS)
@@ -1009,7 +1028,7 @@ function EntryEditorModal({
       formatOptions,
       projectId,
       pinned,
-      tags: parseTags(tagsInput),
+      tags,
     })
   }
 
@@ -1090,10 +1109,10 @@ function EntryEditorModal({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="edit-tags" className="gap-1.5 text-label uppercase tracking-wide text-muted-foreground">
+          <Label className="gap-1.5 text-label uppercase tracking-wide text-muted-foreground">
             <Tags className="h-3 w-3" /> Tags
           </Label>
-          <Input id="edit-tags" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="api, auth, notes" />
+          <TagsInput value={tags} onChange={setTags} suggestions={tagSuggestions} placeholder="Add tags…" />
         </div>
 
         <div className="space-y-1.5">
@@ -1131,19 +1150,6 @@ function EntryEditorModal({
   )
 }
 
-function parseTags(value: string): string[] {
-  const seen = new Set<string>()
-  const tags: string[] = []
-  for (const part of value.split(/[,\n]/)) {
-    const tag = part.trim().replace(/^#/, "")
-    const key = tag.toLowerCase()
-    if (tag && !seen.has(key)) {
-      seen.add(key)
-      tags.push(tag)
-    }
-  }
-  return tags
-}
 
 function ModeButton({
   active,
