@@ -100,6 +100,7 @@ interface LibraryProps {
   onDeleteEntry: (id: string) => void
   onRenameEntry: (id: string, title: string) => void
   onMoveEntry: (id: string, projectId: string | null) => void
+  onMoveProject: (id: string, parentId: string | null) => void
   onCreateProject: (name: string, parentId?: string | null) => void
   onRenameProject: (id: string, name: string) => void
   onRecolorProject: (id: string, color: string) => void
@@ -117,6 +118,7 @@ export function Library({
   onDeleteEntry,
   onRenameEntry,
   onMoveEntry,
+  onMoveProject,
   onCreateProject,
   onRenameProject,
   onRecolorProject,
@@ -134,6 +136,7 @@ export function Library({
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
   const [draggingEntry, setDraggingEntry] = useState<Entry | null>(null)
+  const [draggingProject, setDraggingProject] = useState<Project | null>(null)
   // Require a small move before a drag starts so row clicks and the action
   // buttons keep working.
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
@@ -340,14 +343,29 @@ export function Library({
   }, [query, projects, groups, nameMatchedFolders])
 
   const onDragStart = (e: DragStartEvent) => {
-    setDraggingEntry(entries.find((x) => x.id === String(e.active.id)) ?? null)
+    const id = String(e.active.id)
+    if (id.startsWith("folder:")) setDraggingProject(projects.find((p) => p.id === id.slice(7)) ?? null)
+    else if (id.startsWith("entry:")) setDraggingEntry(entries.find((x) => x.id === id.slice(6)) ?? null)
   }
   const onDragEnd = (e: DragEndEvent) => {
     setDraggingEntry(null)
+    setDraggingProject(null)
     const overId = e.over?.id
     if (overId == null) return
-    const entryId = String(e.active.id)
+    const activeId = String(e.active.id)
     const target = overId === "__root__" ? null : String(overId)
+
+    if (activeId.startsWith("folder:")) {
+      const projectId = activeId.slice(7)
+      // A folder can't be dropped onto itself or any of its own descendants.
+      if (target === projectId) return
+      if (target && projectDescendantIds(projectId, projects).includes(target)) return
+      const proj = projects.find((p) => p.id === projectId)
+      if (proj && (proj.parentId ?? null) !== target) onMoveProject(projectId, target)
+      return
+    }
+
+    const entryId = activeId.startsWith("entry:") ? activeId.slice(6) : activeId
     const ent = entries.find((x) => x.id === entryId)
     if (ent && ent.projectId !== target) onMoveEntry(entryId, target)
   }
@@ -498,6 +516,11 @@ export function Library({
                 <div className="pointer-events-none flex items-center gap-1.5 rounded-md border border-border bg-popover px-2 py-1 text-body font-medium shadow-lg">
                   <FileCode2 className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="max-w-50 truncate">{draggingEntry.title}</span>
+                </div>
+              ) : draggingProject ? (
+                <div className="pointer-events-none flex items-center gap-1.5 rounded-md border border-border bg-popover px-2 py-1 text-body font-medium shadow-lg">
+                  <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: draggingProject.color }} />
+                  <span className="max-w-50 truncate">{draggingProject.name}</span>
                 </div>
               ) : null}
             </DragOverlay>
@@ -725,7 +748,20 @@ function ProjectGroup({
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(project?.name ?? "")
   const [menuOpen, setMenuOpen] = useState(false)
+  const [ctxOpen, setCtxOpen] = useState(false)
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: project ? project.id : "__root__" })
+  const {
+    setNodeRef: setDragRef,
+    attributes: dragAttributes,
+    listeners: dragListeners,
+    isDragging,
+  } = useDraggable({ id: `folder:${project?.id ?? "root"}`, disabled: !project })
+  // The header is both a drop target (entries/folders dropped into it) and a drag
+  // handle (the folder itself); merge both dnd refs onto the one node.
+  const setHeaderRef = (node: HTMLElement | null) => {
+    setDropRef(node)
+    setDragRef(node)
+  }
 
   if (project === null && count === 0) return null
 
@@ -735,13 +771,86 @@ function ProjectGroup({
     setRenaming(false)
   }
 
-  return (
-    <div className="mb-0.5">
+  // Shared between the folder's "⋮" dropdown and its right-click context menu so
+  // they can't drift. Item/Separator/MenuLabel are the matching primitives;
+  // onClose closes whichever menu the color swatches live in (they're plain
+  // buttons, not menu items, so they don't auto-close).
+  const folderMenuItems = (
+    Item: React.ElementType,
+    Separator: React.ElementType,
+    MenuLabel: React.ElementType,
+    onClose: () => void,
+  ) => (
+    <>
+      {onRename && (
+        <Item
+          onSelect={() => {
+            setName(project!.name)
+            setRenaming(true)
+          }}
+        >
+          <Pencil className="h-3.5 w-3.5" /> Rename
+        </Item>
+      )}
+      {onAddItem && (
+        <Item onSelect={() => onAddItem()}>
+          <Plus className="h-3.5 w-3.5" /> Add new item
+        </Item>
+      )}
+      {onAddSubfolder && (
+        <Item onSelect={() => onAddSubfolder()}>
+          <FolderPlus className="h-3.5 w-3.5" /> New folder
+        </Item>
+      )}
+      {onRecolor && (
+        <>
+          <Separator />
+          <MenuLabel className="text-label uppercase tracking-wide text-muted-foreground">Color</MenuLabel>
+          <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
+            {PROJECT_COLORS.map((c) => {
+              const active = c === project!.color
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-label={`Set color ${c}`}
+                  onClick={() => {
+                    onRecolor(c)
+                    onClose()
+                  }}
+                  className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded-full ring-offset-1 ring-offset-popover transition-transform hover:scale-110",
+                    active && "ring-2 ring-ring",
+                  )}
+                  style={{ backgroundColor: c }}
+                >
+                  {active && <Check className="h-3 w-3 text-background" />}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+      {onDelete && (
+        <>
+          <Separator />
+          <Item variant="destructive" onSelect={() => onDelete()}>
+            <Trash2 className="h-3.5 w-3.5" /> Delete folder
+          </Item>
+        </>
+      )}
+    </>
+  )
+
+  const header = (
       <div
-        ref={setDropRef}
+        ref={setHeaderRef}
+        {...dragAttributes}
+        {...dragListeners}
         className={cn(
           "group relative flex items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-secondary/40",
           isOver && "bg-primary/10 ring-2 ring-primary ring-inset",
+          isDragging && "opacity-40",
         )}
       >
         <button type="button" onClick={onToggle} className="flex shrink-0 items-center" aria-label={collapsed ? "Expand" : "Collapse"}>
@@ -815,70 +924,26 @@ function ProjectGroup({
                 // the trigger on close or its Tooltip re-fires over that dialog.
                 onCloseAutoFocus={(e) => e.preventDefault()}
               >
-                {onRename && (
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      setName(project.name)
-                      setRenaming(true)
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> Rename
-                  </DropdownMenuItem>
-                )}
-                {onAddItem && (
-                  <DropdownMenuItem onSelect={() => onAddItem()}>
-                    <Plus className="h-3.5 w-3.5" /> Add new item
-                  </DropdownMenuItem>
-                )}
-                {onAddSubfolder && (
-                  <DropdownMenuItem onSelect={() => onAddSubfolder()}>
-                    <FolderPlus className="h-3.5 w-3.5" /> New folder
-                  </DropdownMenuItem>
-                )}
-                {onRecolor && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-label uppercase tracking-wide text-muted-foreground">
-                      Color
-                    </DropdownMenuLabel>
-                    <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
-                      {PROJECT_COLORS.map((c) => {
-                        const active = c === project.color
-                        return (
-                          <button
-                            key={c}
-                            type="button"
-                            aria-label={`Set color ${c}`}
-                            onClick={() => {
-                              onRecolor(c)
-                              setMenuOpen(false)
-                            }}
-                            className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded-full ring-offset-1 ring-offset-popover transition-transform hover:scale-110",
-                              active && "ring-2 ring-ring",
-                            )}
-                            style={{ backgroundColor: c }}
-                          >
-                            {active && <Check className="h-3 w-3 text-background" />}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </>
-                )}
-                {onDelete && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={() => onDelete()}>
-                      <Trash2 className="h-3.5 w-3.5" /> Delete folder
-                    </DropdownMenuItem>
-                  </>
-                )}
+                {folderMenuItems(DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, () => setMenuOpen(false))}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
       </div>
+  )
+
+  return (
+    <div className="mb-0.5">
+      {project ? (
+        <ContextMenu open={ctxOpen} onOpenChange={setCtxOpen}>
+          <ContextMenuTrigger asChild>{header}</ContextMenuTrigger>
+          <ContextMenuContent className="w-48">
+            {folderMenuItems(ContextMenuItem, ContextMenuSeparator, ContextMenuLabel, () => setCtxOpen(false))}
+          </ContextMenuContent>
+        </ContextMenu>
+      ) : (
+        header
+      )}
       {!collapsed && <div className="pl-3">{children}</div>}
     </div>
   )
@@ -1134,7 +1199,7 @@ function EntryRow({
   const [renaming, setRenaming] = useState(false)
   const [title, setTitle] = useState(entry.title)
   const meta = getLanguage(entry.language)
-  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: entry.id })
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: `entry:${entry.id}` })
 
   const copy = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1342,7 +1407,7 @@ function EmptyLibrary() {
       <div>
         <p className="text-body font-medium">No saved entries yet</p>
         <p className="mt-1 text-compact text-muted-foreground">
-          Format something in the Formatter tab, then hit Save to keep it here. Organize entries into folders.
+          Edit or paste something in the Editor tab, then hit Save to keep it here. Organize entries into folders.
         </p>
       </div>
     </div>

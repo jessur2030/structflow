@@ -13,6 +13,11 @@ import {
   Maximize2,
   MoreVertical,
   Sparkles,
+  Star,
+  Folder,
+  Inbox,
+  CopyPlus,
+  Tags as TagsIcon,
 } from "lucide-react"
 import { LanguageSelect } from "./language-select"
 import { OptionsPanel } from "./options-panel"
@@ -24,13 +29,22 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { formatCode, validate } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, mimeFor, slugify } from "@/lib/io"
-import { DEFAULT_OPTIONS, getLanguage, type FormatOptions, type Language } from "@/lib/types"
+import {
+  DEFAULT_OPTIONS,
+  getLanguage,
+  projectPath,
+  type Entry,
+  type FormatOptions,
+  type Language,
+  type Project,
+} from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 export interface SaveEntryPayload {
@@ -40,13 +54,20 @@ export interface SaveEntryPayload {
   formatOptions: FormatOptions
 }
 
-interface FormatterProps {
+interface EditorProps {
   language: Language
   setLanguage: (l: Language) => void
   input: string
   setInput: (v: string) => void
   onRequestSave: (payload: SaveEntryPayload) => void
   syntaxThemeId: string
+  /** The library entry the live doc is linked to, or null for an unsaved buffer. */
+  currentEntry: Entry | null
+  projects: Project[]
+  onUpdateCurrent: (patch: Partial<Entry>) => void
+  onDuplicateCurrent: () => void
+  onDeleteCurrent: () => void
+  onDetachCurrent: () => void
 }
 
 const OPTS_KEY = "structflow_options"
@@ -60,7 +81,20 @@ function loadOptions(): FormatOptions {
   return DEFAULT_OPTIONS
 }
 
-export function Formatter({ language, setLanguage, input, setInput, onRequestSave, syntaxThemeId }: FormatterProps) {
+export function Editor({
+  language,
+  setLanguage,
+  input,
+  setInput,
+  onRequestSave,
+  syntaxThemeId,
+  currentEntry,
+  projects,
+  onUpdateCurrent,
+  onDuplicateCurrent,
+  onDeleteCurrent,
+  onDetachCurrent,
+}: EditorProps) {
   const [options, setOptions] = useState<FormatOptions>(loadOptions)
   const [showOptions, setShowOptions] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -79,6 +113,8 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
   const meta = getLanguage(language)
   const liveStatus = useMemo(() => validate(language, input), [language, input])
   const canPreview = language === "markdown"
+  const currentFolder =
+    currentEntry && currentEntry.projectId ? projects.find((p) => p.id === currentEntry.projectId) ?? null : null
 
   useEffect(() => {
     try {
@@ -143,6 +179,8 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
 
   const handleSave = useCallback(async () => {
     if (!input.trim()) return
+    // A linked doc already auto-syncs; saving again would just duplicate it.
+    if (currentEntry) return
     const res = await formatCode(language, input, options)
     onRequestSave({
       rawInput: input,
@@ -150,7 +188,7 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
       language,
       formatOptions: options,
     })
-  }, [input, language, onRequestSave, options])
+  }, [input, language, onRequestSave, options, currentEntry])
 
   const openSnapshot = useCallback(async () => {
     const res = await formatCode(language, input, options)
@@ -162,7 +200,10 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
     setInput("")
     setError(null)
     setMode((m) => (m === "tree" || m === "diff" ? "edit" : m))
-  }, [setInput])
+    // Clearing the buffer detaches it from any linked entry (the entry stays in
+    // the library); the buffer becomes a fresh unsaved scratch.
+    onDetachCurrent()
+  }, [setInput, onDetachCurrent])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -238,9 +279,11 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
           <IconButton label="Full view" onClick={() => setShowFocus(true)} disabled={!input}>
             <Maximize2 className="h-4 w-4" />
           </IconButton>
-          <IconButton label="Save to library" onClick={() => void handleSave()} disabled={!input}>
-            <Save className="h-4 w-4" />
-          </IconButton>
+          {!currentEntry && (
+            <IconButton label="Save to library" onClick={() => void handleSave()} disabled={!input}>
+              <Save className="h-4 w-4" />
+            </IconButton>
+          )}
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -271,14 +314,99 @@ export function Formatter({ language, setLanguage, input, setInput, onRequestSav
               <DropdownMenuItem onSelect={() => void openSnapshot()}>
                 <Camera className="h-3.5 w-3.5" /> Code snapshot
               </DropdownMenuItem>
+              {currentEntry && (
+                <DropdownMenuItem onSelect={() => onDuplicateCurrent()}>
+                  <CopyPlus className="h-3.5 w-3.5" /> Duplicate
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => handleClear()}>
-                <Trash2 className="h-3.5 w-3.5" /> Clear
+                <Trash2 className="h-3.5 w-3.5" /> {currentEntry ? "Close (keep in library)" : "Clear"}
               </DropdownMenuItem>
+              {currentEntry && (
+                <DropdownMenuItem variant="destructive" onSelect={() => void onDeleteCurrent()}>
+                  <Trash2 className="h-3.5 w-3.5" /> Delete entry
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+
+      {currentEntry && (
+        <div className="space-y-1.5 border-b border-border px-3 py-1.5">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onUpdateCurrent({ pinned: !currentEntry.pinned })}
+              aria-label={currentEntry.pinned ? "Unpin" : "Pin"}
+              className="shrink-0 rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <Star className={cn("h-3.5 w-3.5", currentEntry.pinned && "fill-primary text-primary")} />
+            </button>
+            <input
+              key={currentEntry.id}
+              defaultValue={currentEntry.title}
+              onBlur={(e) => {
+                const v = e.target.value.trim()
+                if (v && v !== currentEntry.title) onUpdateCurrent({ title: v })
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur()
+              }}
+              aria-label="Entry title"
+              className="min-w-0 flex-1 rounded bg-transparent px-1 py-0.5 text-body font-medium focus:bg-secondary focus:outline-none"
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Move to folder"
+                  className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-label text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  {currentFolder ? (
+                    <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: currentFolder.color }} />
+                  ) : (
+                    <Inbox className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  <span className="max-w-24 truncate">{currentFolder ? currentFolder.name : "No folder"}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-label uppercase tracking-wide text-muted-foreground">
+                  Move to
+                </DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => onUpdateCurrent({ projectId: null })}>
+                  <Inbox className="h-3.5 w-3.5" /> No folder
+                </DropdownMenuItem>
+                {projects.map((p) => (
+                  <DropdownMenuItem key={p.id} onSelect={() => onUpdateCurrent({ projectId: p.id })}>
+                    <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
+                    <span className="min-w-0 truncate">{projectPath(p.id, projects).join(" / ")}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <TagsIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+            <input
+              key={`${currentEntry.id}:tags`}
+              defaultValue={currentEntry.tags.join(", ")}
+              onBlur={(e) => {
+                const tags = e.target.value
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+                if (tags.join(",") !== currentEntry.tags.join(",")) onUpdateCurrent({ tags })
+              }}
+              placeholder="tags (comma separated)"
+              aria-label="Tags"
+              className="min-w-0 flex-1 bg-transparent text-label text-muted-foreground focus:outline-none"
+            />
+          </div>
+        </div>
+      )}
 
       {showOptions && <OptionsPanel language={language} options={options} onChange={setOptions} />}
 

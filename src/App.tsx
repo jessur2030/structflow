@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
-import { Wand2, Library as LibraryIcon, FolderInput } from "lucide-react"
+import { SquarePen, Library as LibraryIcon, FolderInput } from "lucide-react"
 import logo from "./assets/logo.png"
-import { Formatter, type SaveEntryPayload } from "./components/formatter"
+import { Editor, type SaveEntryPayload } from "./components/editor"
 import { Library, ModalButton } from "./components/library"
 import { Modal } from "./components/modal"
 import { SupportButton } from "./components/support-button"
@@ -30,6 +30,7 @@ import {
   LANGUAGES,
   PROJECT_COLORS,
   STRUCTFLOW_FORMATTER_VERSION,
+  projectDescendantIds,
   projectPath,
   type Entry,
   type EntrySource,
@@ -38,11 +39,11 @@ import {
 } from "./lib/types"
 import { cn } from "./lib/utils"
 
-type Tab = "format" | "library"
+type Tab = "editor" | "library"
 const DRAFT_KEY = "structflow_formatter_draft"
 const DEFAULT_LANG_KEY = "structflow_default_language"
 
-interface FormatterDraft {
+interface EditorDraft {
   language: Language
   input: string
 }
@@ -56,7 +57,7 @@ function loadDefaultLanguage(): Language {
   return "markdown"
 }
 
-function loadDraft(): FormatterDraft {
+function loadDraft(): EditorDraft {
   try {
     const raw = localStorage.getItem(DRAFT_KEY)
     const parsed = raw ? JSON.parse(raw) : null
@@ -81,7 +82,7 @@ export default function App() {
   const { mode, setMode } = useTheme()
   const { syntaxThemeId, setSyntaxTheme } = useSyntaxTheme()
   const [initialDraft] = useState(loadDraft)
-  const [tab, setTab] = useState<Tab>("format")
+  const [tab, setTab] = useState<Tab>("editor")
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [defaultLanguage, setDefaultLanguage] = useState<Language>(loadDefaultLanguage)
 
@@ -97,6 +98,11 @@ export default function App() {
   const [savePayload, setSavePayload] = useState<SaveEntryPayload | null>(null)
   const [saveProjectId, setSaveProjectId] = useState<string | null>(null)
   const [pendingProjectId, setPendingProjectId] = useState<string | null>(null)
+  // The library entry the live document is currently linked to (null = unsaved
+  // scratch buffer). When set, edits write back to this entry instead of saving
+  // a new duplicate.
+  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
+  const currentEntry = currentEntryId ? entries.find((e) => e.id === currentEntryId) ?? null : null
 
   const refresh = useCallback(async () => {
     const [e, p] = await Promise.all([getAllEntries(), getAllProjects()])
@@ -122,7 +128,7 @@ export default function App() {
       if (typeof incoming === "string" && incoming) {
         setInput(incoming)
         setInputSource("context-menu")
-        setTab("format")
+        setTab("editor")
         chrome.storage.local.remove("structflow_incoming")
       }
     })
@@ -157,6 +163,9 @@ export default function App() {
     entry.title = makeUniqueTitle(entry.title, saveProjectId, entries)
     await saveEntry(entry)
     await refresh()
+    // Link the live document to the entry it just became, so further edits update
+    // it in place rather than creating another duplicate.
+    setCurrentEntryId(entry.id)
     setSaveOpen(false)
     setSavePayload(null)
     setPendingProjectId(null)
@@ -166,8 +175,9 @@ export default function App() {
     setLanguage(entry.language)
     setInput(entry.rawInput)
     setInputSource("library")
+    setCurrentEntryId(entry.id)
     setPendingProjectId(null)
-    setTab("format")
+    setTab("editor")
     await saveEntry({ ...entry, lastOpenedAt: Date.now() })
     await refresh()
   }
@@ -175,8 +185,39 @@ export default function App() {
   const handleAddToProject = (projectId: string | null) => {
     setInput("")
     setInputSource("manual")
+    setCurrentEntryId(null)
     setPendingProjectId(projectId)
-    setTab("format")
+    setTab("editor")
+  }
+
+  // Live edits to a linked entry write back (debounced) so the Editor and
+  // Library stay in sync without a manual re-save. Skips when nothing changed
+  // (e.g. right after opening the entry) to avoid a redundant write loop.
+  useEffect(() => {
+    if (!currentEntryId) return
+    const entry = entries.find((e) => e.id === currentEntryId)
+    if (!entry) return
+    if (entry.rawInput === input && entry.language === language) return
+    const t = setTimeout(() => {
+      void handleUpdateEntry(currentEntryId, { rawInput: input, formattedOutput: input, language })
+    }, 500)
+    return () => clearTimeout(t)
+  }, [currentEntryId, input, language, entries])
+
+  const updateCurrentEntry = (patch: Partial<Entry>) => {
+    if (currentEntryId) void handleUpdateEntry(currentEntryId, patch)
+  }
+
+  const duplicateCurrentEntry = () => {
+    if (currentEntryId) void handleDuplicateEntry(currentEntryId)
+  }
+
+  const deleteCurrentEntry = async () => {
+    if (!currentEntryId) return
+    await deleteEntry(currentEntryId)
+    setCurrentEntryId(null)
+    setInput("")
+    await refresh()
   }
 
   const handleCreateProject = async (name: string, parentId: string | null = null) => {
@@ -205,6 +246,15 @@ export default function App() {
       await saveProject({ ...project, name })
       await refresh()
     }
+  }
+
+  const handleMoveProject = async (id: string, parentId: string | null) => {
+    const project = projects.find((p) => p.id === id)
+    // Guard against cycles: never reparent a folder under itself or a descendant.
+    if (!project || id === parentId) return
+    if (parentId && projectDescendantIds(id, projects).includes(parentId)) return
+    await saveProject({ ...project, parentId })
+    await refresh()
   }
 
   const handleRenameEntry = async (id: string, title: string) => {
@@ -297,8 +347,8 @@ export default function App() {
       ) : (
         <>
       <div className="flex border-b border-border px-2">
-        <TabButton active={tab === "format"} onClick={() => setTab("format")}>
-          <Wand2 className="h-3.5 w-3.5" /> Formatter
+        <TabButton active={tab === "editor"} onClick={() => setTab("editor")}>
+          <SquarePen className="h-3.5 w-3.5" /> Editor
         </TabButton>
         <TabButton active={tab === "library"} onClick={() => setTab("library")}>
           <LibraryIcon className="h-3.5 w-3.5" /> Library
@@ -311,8 +361,8 @@ export default function App() {
       </div>
 
       <main className="min-h-0 flex-1">
-        {tab === "format" ? (
-          <Formatter
+        {tab === "editor" ? (
+          <Editor
             language={language}
             setLanguage={setLanguage}
             input={input}
@@ -322,6 +372,12 @@ export default function App() {
             }}
             onRequestSave={requestSave}
             syntaxThemeId={syntaxThemeId}
+            currentEntry={currentEntry}
+            projects={projects}
+            onUpdateCurrent={updateCurrentEntry}
+            onDuplicateCurrent={duplicateCurrentEntry}
+            onDeleteCurrent={deleteCurrentEntry}
+            onDetachCurrent={() => setCurrentEntryId(null)}
           />
         ) : (
           <Library
@@ -340,6 +396,7 @@ export default function App() {
             onCreateProject={handleCreateProject}
             onRenameProject={handleRenameProject}
             onRecolorProject={handleRecolorProject}
+            onMoveProject={handleMoveProject}
             onAddToProject={handleAddToProject}
             onImportData={handleImportData}
             onUpdateEntry={handleUpdateEntry}
