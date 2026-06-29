@@ -198,6 +198,7 @@ async function writeSmallPromo() {
   })
     .composite([{ input: Buffer.from(svg) }])
     .flatten({ background: "#0b1020" })
+    .removeAlpha()
     .png()
     .toFile(join(outDir, "promo-small-440x280.png"))
 }
@@ -232,6 +233,7 @@ async function writeMarqueePromo(sourcePath) {
       { input: Buffer.from(marqueePanelFrameSvg()) },
     ])
     .flatten({ background: "#0b1020" })
+    .removeAlpha()
     .png()
     .toFile(join(outDir, "promo-marquee-1400x560.png"))
 }

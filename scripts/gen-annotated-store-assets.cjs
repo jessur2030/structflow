@@ -81,6 +81,8 @@ async function writeAnnotated(item, sourcePath) {
   const svg = annotatedSvg(item)
   await sharp(Buffer.from(svg))
     .composite([{ input: panel, left: 684, top: 0 }])
+    .flatten({ background: "#0b1020" })
+    .removeAlpha()
     .png()
     .toFile(join(annotatedDir, item.source.replace(".png", "-annotated.png")))
 }
