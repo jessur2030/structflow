@@ -41,8 +41,8 @@ const items = [
   {
     source: "screenshot-05-editor.png",
     title: "A real code editor",
-    body: "Edit in place with live syntax highlighting and line numbers across 20+ languages, with auto-detect on paste.",
-    pills: ["20+ languages", "Auto-detect", "Aura themes"],
+    body: "Edit in place with live syntax highlighting and line numbers across 20+ languages, then save, tag, and reuse.",
+    pills: ["20+ languages", "Save & reuse", "Aura themes"],
     accent: "#8b5cf6",
   },
 ]
@@ -109,7 +109,7 @@ function annotatedSvg({ title, body, pills, accent }) {
       <g transform="translate(72 74)">
         ${brandMark(0, 0, 54)}
         <text x="74" y="23" fill="#f8fafc" font-size="30" font-weight="780">StructFlow</text>
-        <text x="74" y="53" fill="#a7b1c2" font-size="18">Local-first formatter, JSON viewer, and snippet library</text>
+        <text x="74" y="53" fill="#a7b1c2" font-size="18">Local-first code &amp; notes workspace with a built-in JSON viewer</text>
       </g>
 
       <g transform="translate(72 214)">

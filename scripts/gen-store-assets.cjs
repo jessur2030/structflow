@@ -38,7 +38,7 @@ console.log(formatted.output);
 
 | Area | Status |
 | --- | --- |
-| Formatter | Ready |
+| Editor | Ready |
 | Library | Ready |
 | Store assets | In review |
 `
@@ -238,10 +238,10 @@ async function writeMarqueePromo(sourcePath) {
 
 function marqueePromoSvg() {
   const description = wrap(
-    "An in-place code editor, JSON viewer, code snapshots, and a local snippet library, all in your browser side panel.",
+    "A code & notes workspace with a built-in JSON viewer, code snapshots, and a local foldered library, in your browser side panel.",
     54,
   )
-  const pills = ["20+ languages", "Auto-detect", "JSON tree", "Local-first"]
+  const pills = ["20+ languages", "JSON viewer", "Tag & reuse", "Local-first"]
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560">
