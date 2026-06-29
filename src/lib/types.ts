@@ -312,9 +312,12 @@ export function projectChildren(parentId: string | null, projects: Project[]): P
 /** All descendant folder ids of `id` (children, grandchildren, …), excluding `id` itself. */
 export function projectDescendantIds(id: string, projects: Project[]): string[] {
   const out: string[] = []
+  // `seen` guards against a corrupt parentId cycle causing infinite recursion.
+  const seen = new Set<string>([id])
   const walk = (parent: string) => {
     for (const p of projects) {
-      if ((p.parentId ?? null) === parent) {
+      if ((p.parentId ?? null) === parent && !seen.has(p.id)) {
+        seen.add(p.id)
         out.push(p.id)
         walk(p.id)
       }

@@ -150,6 +150,8 @@ export function Library({
     projects: Project[]
     skipped: number
   } | null>(null)
+  // Destination folder for an import (null = top level / No folder).
+  const [importTarget, setImportTarget] = useState<string | null>(null)
   const [newProjectParent, setNewProjectParent] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -311,6 +313,7 @@ export function Library({
         files.length === 1
           ? files[0].name
           : `${imported.entries.length} files${imported.projects.length ? ` · ${imported.projects.length} folder(s)` : ""}`
+      setImportTarget(null)
       setPendingImport({
         fileName: label,
         entries: imported.entries,
@@ -327,8 +330,18 @@ export function Library({
 
   const confirmImport = async () => {
     if (!pendingImport) return
-    await onImportData(pendingImport.entries, pendingImport.projects)
+    // Nest the import under the chosen destination folder: its root folders and any
+    // loose (folderless) entries get re-parented to importTarget.
+    const target = importTarget
+    const entries = target
+      ? pendingImport.entries.map((e) => (e.projectId == null ? { ...e, projectId: target } : e))
+      : pendingImport.entries
+    const projects = target
+      ? pendingImport.projects.map((p) => (p.parentId == null ? { ...p, parentId: target } : p))
+      : pendingImport.projects
+    await onImportData(entries, projects)
     setPendingImport(null)
+    setImportTarget(null)
   }
 
   // While searching, a folder is shown if it (or any descendant) has a matching
@@ -404,8 +417,11 @@ export function Library({
     />
   )
 
-  const renderFolder = (project: Project): React.ReactNode => {
+  const renderFolder = (project: Project, ancestors: Set<string> = new Set()): React.ReactNode => {
     if (visibleDuringSearch && !visibleDuringSearch.has(project.id)) return null
+    // Guard against a corrupt parentId cycle infinitely recursing the render.
+    if (ancestors.has(project.id)) return null
+    const nextAncestors = new Set(ancestors).add(project.id)
     const items = groups.get(project.id) ?? []
     return (
       <ProjectGroup
@@ -420,7 +436,7 @@ export function Library({
         onAddSubfolder={() => openNewProject(project.id)}
         onDelete={() => setDeleteTarget(project)}
       >
-        {projectChildren(project.id, projects).map(renderFolder)}
+        {projectChildren(project.id, projects).map((child) => renderFolder(child, nextAncestors))}
         {items.map(renderEntryRow)}
       </ProjectGroup>
     )
@@ -515,7 +531,7 @@ export function Library({
         ) : (
           <DndContext sensors={dndSensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
             <div className="py-1">
-              {projectChildren(null, projects).map(renderFolder)}
+              {projectChildren(null, projects).map((p) => renderFolder(p))}
 
               {ungrouped.length > 0 && (
                 <ProjectGroup
@@ -723,6 +739,25 @@ export function Library({
               Ready to import <span className="font-medium text-foreground">{pendingImport.fileName}</span>.
               Imported IDs will be regenerated so existing library items are not overwritten.
             </p>
+            <div className="space-y-1.5">
+              <Label className="text-label uppercase tracking-wide text-muted-foreground">Import into</Label>
+              <Select
+                value={importTarget ?? "__none__"}
+                onValueChange={(v) => setImportTarget(v === "__none__" ? null : v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No folder (top level)</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {projectPath(p.id, projects).join(" / ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="rounded-md border border-border bg-background px-3 py-2">
               <div className="flex items-center justify-between">
                 <span>Folders</span>
@@ -1273,12 +1308,23 @@ function EntryRow({
       <Item onSelect={() => onMove(null)}>
         <Inbox className="h-3.5 w-3.5" /> No folder
       </Item>
-      {projects.map((p) => (
-        <Item key={p.id} onSelect={() => onMove(p.id)}>
-          <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
-          <span className="min-w-0 truncate">{projectLabel(p.id)}</span>
-        </Item>
-      ))}
+      {projects.map((p) => {
+        // Show the leaf folder name in full and truncate the ancestor prefix, so
+        // deeply nested folders stay distinguishable (e.g. ".../app ideas" vs
+        // ".../app projects") instead of all collapsing to "development / …".
+        const path = projectPath(p.id, projects)
+        const leaf = path[path.length - 1] ?? p.name
+        const parent = path.slice(0, -1).join(" / ")
+        return (
+          <Item key={p.id} onSelect={() => onMove(p.id)}>
+            <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
+            <span className="flex min-w-0 items-baseline gap-1">
+              {parent && <span className="min-w-0 shrink truncate text-muted-foreground">{parent} /</span>}
+              <span className="shrink-0">{leaf}</span>
+            </span>
+          </Item>
+        )
+      })}
       <Separator />
       <Item variant="destructive" onSelect={() => onDelete()}>
         <Trash2 className="h-3.5 w-3.5" /> Delete
