@@ -54,6 +54,13 @@ Group ordering is rough priority within each section, not a roadmap.
 - [ ] Copy a shareable link/embed (would require hosting — see Monetization).
 
 ## Library / organization
+- [ ] **[BUG] Folder import crashes the Chrome side panel.** Opening the native directory picker
+  (`webkitdirectory` <input> or `showDirectoryPicker`) crashes the side-panel renderer right after the
+  picker, before the import dialog — content-independent (repro'd with 2 tiny files and an 8-file
+  folder). "Import files" (multi-select) works. Likely a Chrome side-panel + directory-picker
+  limitation, so the FSA swap may not fix it. Fix options: spawn a normal tab/window for the folder
+  pick and hand data back to the panel, or drop folder import in favor of robust multi-file import.
+  Workaround for users: "Import files" + multi-select + the new "Import into" picker.
 - [x] Bulk export of the library as a .zip (foldered by project + manifest.json).
 - [ ] Re-import from an exported .zip / manifest.json (round-trip restore).
 - [ ] Drag to reorder / move entries between folders; nested folder UI.

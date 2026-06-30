@@ -2,6 +2,26 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 20 — library import/move fixes + folder-import crash (v1.5.0, post-review)
+- [x] **Import destination picker**: the import-confirm dialog has an "Import into" select; root
+  folders + loose entries re-parent under the chosen folder (`library.tsx` `confirmImport`).
+- [x] **Move-to path**: nested-folder move items show the leaf name in full with the ancestor prefix
+  truncating (was collapsing deep paths to "development / …"). Verified in Chrome.
+- [x] **Cycle-safety**: `projectDescendantIds` (`types.ts`) and the recursive `renderFolder`
+  (`library.tsx`) gained visited-set guards so a corrupt `parentId` loop can't infinite-recurse and
+  crash the renderer.
+- [x] **Folder import → File System Access API**: "Import a folder" now uses `showDirectoryPicker()` +
+  a lazy walk that skips ignored dirs *before* descending (`importDirectoryHandle` in `io.ts`),
+  replacing the `webkitdirectory` <input> (kept as fallback). 2 new unit tests (`test/lib/io.test.ts`).
+- [ ] **OPEN BUG — folder import crashes the Chrome side panel.** Importing *any* folder (8 files, or
+  2 tiny files) crashes Chrome right after the native directory picker, *before* the import dialog —
+  content-independent. "Import files" (multi-select) works fine. Strong suspicion: the native directory
+  picker crashes the extension side-panel renderer, affecting BOTH `webkitdirectory` and
+  `showDirectoryPicker` (both open a native chooser), so the API swap alone may not fix it. NOT yet
+  confirmed the FSA build was rebuilt+reloaded when retested. Workaround: "Import files" + multi-select.
+  Next: confirm FSA-build behavior, capture the crash-report signature, then likely move the folder
+  pick out of the side panel (spawn a tab/window) or drop folder import in favor of multi-file import.
+
 ## Phase 19 — first-class document, Editor rename, tags multi-select, context menus (v1.5.0)
 - [x] **First-class document**: the "Formatter" tab is now **Editor** (`formatter.tsx`→`editor.tsx`;
   component/props/tab-union renamed; format-feature names + persisted keys kept). App tracks

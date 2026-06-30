@@ -6,6 +6,7 @@
 - **Tags are now a proper multi-select** with chips and autocomplete. Tags you have already used on other entries are suggested as you type, so it is easy to reuse `api` or `auth` instead of retyping them. The old comma-separated field is gone.
 - **Right-click menus everywhere.** Entries, folders, and the empty Library area all have context menus now. Right-click the Library background for New folder, Import, and Export; right-click any folder or entry for its actions.
 - **Drag-and-drop for folders.** Folders can be dragged to nest them inside another folder or back out to the top level, in addition to dragging entries, with a guard so a folder can never be dropped inside itself.
+- **Import improvements.** When you import, a new "Import into" picker lets you choose a destination folder, and folder import now uses the File System Access API (a lazy walk that skips `node_modules`/`.git` and oversized files). Move-to menus also show the full nested folder name instead of truncating it.
 - **A cleaner look.** The dark theme is now a true neutral (the previous blue cast is gone), surfaces sit on a deliberate light/dark elevation scale, and all text follows one consistent type scale.
 
 ## 1.4.1
