@@ -45,6 +45,13 @@ const items = [
     pills: ["20+ languages", "Save & reuse", "Aura themes"],
     accent: "#8b5cf6",
   },
+  {
+    source: "screenshot-06-inpage-json.png",
+    title: "Read JSON on any page",
+    body: "Open a raw JSON page or API response and StructFlow renders it in a clean, themeable viewer right on the page.",
+    pills: ["Formatted / Tree / Raw", "Search & copy", "Any JSON page"],
+    accent: "#22c55e",
+  },
 ]
 
 main().catch((err) => {

@@ -136,7 +136,11 @@ main().catch((err) => {
 async function main() {
   mkdirSync(outDir, { recursive: true })
   for (const file of readdirSync(outDir)) {
-    if (file.endsWith(".png")) unlinkSync(join(outDir, file))
+    // screenshot-06 (the in-page JSON viewer) is captured separately — it needs the
+    // content script running on a real JSON page, which this app-only harness can't do.
+    // Preserve it here so a regen of the panel screenshots doesn't wipe it. To refresh
+    // it, re-run the playwright capture that injects dist/content.js onto a JSON <pre>.
+    if (file.endsWith(".png") && !file.startsWith("screenshot-06")) unlinkSync(join(outDir, file))
   }
 
   const chromePath = chromePaths.find(existsSync)
