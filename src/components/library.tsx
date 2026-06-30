@@ -87,6 +87,30 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core"
 type LibraryMode = "all" | "pinned" | "recent"
+
+// Folder collapse state is persisted (like a file explorer) so it survives the
+// Library unmounting on every tab switch, plus full reloads. Stored as the list of
+// collapsed folder ids ("__none__" = the No-folder group); everything else is open.
+const COLLAPSED_KEY = "structflow_library_collapsed"
+
+function loadCollapsed(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY)
+    const ids = raw ? JSON.parse(raw) : null
+    if (Array.isArray(ids)) return Object.fromEntries(ids.map((id: string) => [id, true]))
+  } catch {
+    // ignore malformed/unavailable storage; fall back to all-expanded
+  }
+  return {}
+}
+
+function saveCollapsed(state: Record<string, boolean>) {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify(Object.keys(state).filter((k) => state[k])))
+  } catch {
+    // best-effort; collapse just won't persist if storage is full/blocked
+  }
+}
 type EntryPatch = Partial<
   Pick<
     Entry,
@@ -139,7 +163,7 @@ export function Library({
 }: LibraryProps) {
   const [query, setQuery] = useState("")
   const [mode, setMode] = useState<LibraryMode>("all")
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(loadCollapsed)
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [projectName, setProjectName] = useState("")
   const [menuFor, setMenuFor] = useState<string | null>(null)
@@ -226,7 +250,12 @@ export function Library({
     return map
   }, [filtered, projects])
 
-  const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }))
+  const toggle = (id: string) =>
+    setCollapsed((c) => {
+      const next = { ...c, [id]: !c[id] }
+      saveCollapsed(next)
+      return next
+    })
 
   const submitProject = () => {
     const name = projectName.trim()

@@ -31,6 +31,15 @@ Legend: [x] done · [~] partial · [ ] not started
   (synthetic drops carry no real `FileSystemHandle`), so the directory-walk branch needs one manual
   drag-a-folder pass; the file-drop path and walk logic are covered automatically + by unit tests.
 
+## Phase 22 — Library folder collapse persistence (v1.5.0, post-review)
+- [x] **Folder collapse state persists** (file-explorer behavior). It was local `useState` in
+  `library.tsx`, but App renders Editor *or* Library, so the Library unmounted on every tab switch and
+  came back all-expanded. Now persisted to `localStorage` (`structflow_library_collapsed`, the list of
+  collapsed folder ids incl. `"__none__"`) via `loadCollapsed`/`saveCollapsed`, read in the `collapsed`
+  state initializer and written in `toggle`. Survives tab switches *and* full reloads; new/untouched
+  folders still default to expanded. Verified in real Chrome (collapse → tab round-trip → reload, stays
+  collapsed; no console errors).
+
 ## Phase 21 — Editor "New entry" affordance (v1.5.0, post-review)
 - [x] **First-class "New entry" button in the Editor toolbar** (`FilePlus`, leftmost primary action) —
   creating a fresh entry no longer requires a Library round-trip. `handleNewEntry`/`startNewEntry` in
