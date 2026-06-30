@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { zipSync, strToU8 } from "fflate"
-import { importDirectoryHandle, importEntriesFromFile, importFiles, languageFromFilename } from "@/lib/io"
+import { importDataTransfer, importDirectoryHandle, importEntriesFromFile, importFiles, languageFromFilename } from "@/lib/io"
 import { DEFAULT_OPTIONS, STRUCTFLOW_SCHEMA_VERSION } from "@/lib/types"
 
 /** Build a File whose webkitRelativePath is set (as the folder picker provides). */
@@ -306,5 +306,62 @@ describe("importDirectoryHandle (File System Access API folder import)", () => {
     const dir = mockDir("empty", { ".git": { HEAD: "ref: x" } })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(importDirectoryHandle(dir as any)).rejects.toThrow(/no importable/i)
+  })
+})
+
+describe("importDataTransfer (drag-and-drop import, no native picker)", () => {
+  // A dropped directory: getAsFileSystemHandle resolves to the dir handle; getAsFile
+  // is null (directories aren't files), matching real DataTransferItem behavior.
+  const dirItem = (handle: unknown) => ({
+    kind: "file" as const,
+    getAsFileSystemHandle: async () => handle,
+    getAsFile: () => null,
+  })
+  // A dropped file: getAsFile returns the File. getAsFileSystemHandle is irrelevant for
+  // files (we always read the File), so emulate the resilient case where it resolves null.
+  const fileItem = (name: string, content: string) => {
+    const bytes = strToU8(content)
+    return {
+      kind: "file" as const,
+      getAsFileSystemHandle: async () => null,
+      getAsFile: () => ({ name, size: bytes.length, async arrayBuffer() { return bytes.buffer } }),
+    }
+  }
+
+  it("imports a dropped folder, preserving the nested tree", async () => {
+    const dir = mockDir("project", { "a.md": "# a", sub: { "b.sql": "SELECT 1;" } })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { entries, projects, skipped } = await importDataTransfer([dirItem(dir)] as any)
+    expect(entries).toHaveLength(2)
+    const root = projects.find((p) => p.name === "project")!
+    expect(root.parentId).toBeNull()
+    expect(projects.find((p) => p.name === "sub")!.parentId).toBe(root.id)
+    expect(skipped).toBe(0)
+  })
+
+  it("merges a dropped folder and a dropped loose file", async () => {
+    const dir = mockDir("project", { "a.md": "# a" })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { entries, projects } = await importDataTransfer([dirItem(dir), fileItem("loose.txt", "hello")] as any)
+    expect(entries).toHaveLength(2)
+    expect(entries.some((e) => e.title === "loose")).toBe(true)
+    expect(projects.find((p) => p.name === "project")).toBeDefined()
+  })
+
+  it("counts an empty/all-skipped dropped folder as skipped without aborting the drop", async () => {
+    const empty = mockDir("empty", { ".git": { HEAD: "ref: x" } })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { entries, skipped } = await importDataTransfer([dirItem(empty), fileItem("keep.md", "# keep")] as any)
+    expect(entries).toHaveLength(1) // the loose file still imports
+    expect(skipped).toBeGreaterThanOrEqual(1) // the empty folder is counted, not thrown
+  })
+
+  it("falls back to getAsFile when an item's handle resolves to null (resilient path)", async () => {
+    // Emulates a non-filesystem drag: getAsFileSystemHandle exists but returns null.
+    // The File from getAsFile must still be imported, not silently dropped.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { entries } = await importDataTransfer([fileItem("note.md", "# hi")] as any)
+    expect(entries).toHaveLength(1)
+    expect(entries[0].title).toBe("note")
   })
 })

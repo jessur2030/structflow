@@ -33,7 +33,7 @@ import {
   copyToClipboard,
   downloadFile,
   exportEntriesAsZip,
-  importDirectoryHandle,
+  importDataTransfer,
   importFiles,
   mimeFor,
   slugify,
@@ -163,7 +163,9 @@ export function Library({
   const [newProjectParent, setNewProjectParent] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const folderInputRef = useRef<HTMLInputElement | null>(null)
+  // Tracks whether an OS file/folder drag is hovering the panel (a counter, so
+  // child-element dragenter/dragleave events don't make the overlay flicker).
+  const [fileDragDepth, setFileDragDepth] = useState(0)
 
   // Folders whose name matches the query — searching a folder name should surface
   // the folder and everything inside it.
@@ -339,32 +341,48 @@ export function Library({
       setImportError(err instanceof Error ? err.message : "Could not import these files.")
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = ""
-      if (folderInputRef.current) folderInputRef.current.value = ""
     }
   }
 
-  // Prefer the File System Access API for folders: it walks lazily and skips
-  // ignored dirs before descending, avoiding the webkitdirectory <input> crash on
-  // large/real-world folders. Falls back to the hidden <input> where unsupported.
-  const handleImportFolder = async () => {
-    const picker = (window as Window & { showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle> })
-      .showDirectoryPicker
-    if (!picker) {
-      folderInputRef.current?.click()
-      return
-    }
-    let dir: FileSystemDirectoryHandle
-    try {
-      dir = await picker()
-    } catch {
-      return // user dismissed the picker
-    }
+  // Folder import is drag-and-drop only: the native directory picker (both
+  // webkitdirectory and showDirectoryPicker) crashes the side-panel renderer, but a
+  // drop carries the folder in without any native chooser. Dropped directory handles
+  // reuse the lazy walk; dropped files route through the same importFiles path.
+  const isFileDrag = (dt: DataTransfer | null) =>
+    !!dt && Array.from(dt.types).includes("Files")
+
+  const onPanelDragEnter = (e: React.DragEvent) => {
+    if (!isFileDrag(e.dataTransfer)) return
+    e.preventDefault()
+    setFileDragDepth((d) => d + 1)
+  }
+  const onPanelDragOver = (e: React.DragEvent) => {
+    if (!isFileDrag(e.dataTransfer)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "copy"
+  }
+  const onPanelDragLeave = (e: React.DragEvent) => {
+    if (!isFileDrag(e.dataTransfer)) return
+    setFileDragDepth((d) => Math.max(0, d - 1))
+  }
+  const onPanelDrop = (e: React.DragEvent) => {
+    if (!isFileDrag(e.dataTransfer)) return
+    e.preventDefault()
+    setFileDragDepth(0)
+    // Grab the items synchronously; importDataTransfer reads their handles before the
+    // first await so the DataTransferItems aren't neutered out from under us.
+    const items = Array.from(e.dataTransfer.items)
     setImportError(null)
-    try {
-      presentImport(await importDirectoryHandle(dir), dir.name)
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Could not import that folder.")
-    }
+    importDataTransfer(items)
+      .then((imported) => {
+        const label = imported.projects.length
+          ? `${imported.entries.length} file${imported.entries.length === 1 ? "" : "s"} · ${imported.projects.length} folder(s)`
+          : `${imported.entries.length} file${imported.entries.length === 1 ? "" : "s"}`
+        presentImport(imported, label)
+      })
+      .catch((err) => {
+        setImportError(err instanceof Error ? err.message : "Could not import what was dropped.")
+      })
   }
 
   const confirmImport = async () => {
@@ -482,7 +500,22 @@ export function Library({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      onDragEnter={onPanelDragEnter}
+      onDragOver={onPanelDragOver}
+      onDragLeave={onPanelDragLeave}
+      onDrop={onPanelDrop}
+    >
+      {fileDragDepth > 0 && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/85 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-primary/60 px-6 py-5 text-center">
+            <FolderUp className="h-6 w-6 text-primary" />
+            <p className="text-body font-medium text-foreground">Drop to import</p>
+            <p className="text-compact text-muted-foreground">A folder (with its structure) or files</p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <div className="flex flex-1 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5">
           <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -502,34 +535,17 @@ export function Library({
           <Archive className="h-4 w-4" />
         </IconButton>
         <IconButton
-          label="Import files (or a StructFlow backup)"
+          label="Import files or drag a folder onto the panel"
           onClick={() => fileInputRef.current?.click()}
           className="border border-border bg-background"
         >
           <Upload className="h-4 w-4" />
-        </IconButton>
-        <IconButton
-          label="Import a folder"
-          onClick={() => void handleImportFolder()}
-          className="border border-border bg-background"
-        >
-          <FolderUp className="h-4 w-4" />
         </IconButton>
         <input
           ref={fileInputRef}
           type="file"
           multiple
           accept=".zip,.json,.md,.markdown,.txt,.log,.ts,.tsx,.mts,.cts,.js,.jsx,.mjs,.cjs,.json5,.jsonc,.html,.htm,.xml,.svg,.vue,.css,.scss,.sass,.less,.sql"
-          className="hidden"
-          onChange={(e) => void runImport(e.target.files)}
-        />
-        <input
-          ref={folderInputRef}
-          type="file"
-          // @ts-expect-error non-standard but widely supported directory picker
-          webkitdirectory=""
-          directory=""
-          multiple
           className="hidden"
           onChange={(e) => void runImport(e.target.files)}
         />
@@ -607,9 +623,6 @@ export function Library({
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => fileInputRef.current?.click()}>
             <Upload className="h-3.5 w-3.5" /> Import files…
-          </ContextMenuItem>
-          <ContextMenuItem onSelect={() => folderInputRef.current?.click()}>
-            <FolderUp className="h-3.5 w-3.5" /> Import a folder…
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem disabled={entries.length === 0} onSelect={() => openExport()}>
@@ -1525,6 +1538,9 @@ function EmptyLibrary() {
         <p className="text-body font-medium">No saved entries yet</p>
         <p className="mt-1 text-compact text-muted-foreground">
           Edit or paste something in the Editor tab, then hit Save to keep it here. Organize entries into folders.
+        </p>
+        <p className="mt-1 text-compact text-muted-foreground">
+          Or drag a folder onto this panel to import it.
         </p>
       </div>
     </div>

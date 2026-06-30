@@ -13,14 +13,32 @@ Legend: [x] done · [~] partial · [ ] not started
 - [x] **Folder import → File System Access API**: "Import a folder" now uses `showDirectoryPicker()` +
   a lazy walk that skips ignored dirs *before* descending (`importDirectoryHandle` in `io.ts`),
   replacing the `webkitdirectory` <input> (kept as fallback). 2 new unit tests (`test/lib/io.test.ts`).
-- [ ] **OPEN BUG — folder import crashes the Chrome side panel.** Importing *any* folder (8 files, or
-  2 tiny files) crashes Chrome right after the native directory picker, *before* the import dialog —
-  content-independent. "Import files" (multi-select) works fine. Strong suspicion: the native directory
-  picker crashes the extension side-panel renderer, affecting BOTH `webkitdirectory` and
-  `showDirectoryPicker` (both open a native chooser), so the API swap alone may not fix it. NOT yet
-  confirmed the FSA build was rebuilt+reloaded when retested. Workaround: "Import files" + multi-select.
-  Next: confirm FSA-build behavior, capture the crash-report signature, then likely move the folder
-  pick out of the side panel (spawn a tab/window) or drop folder import in favor of multi-file import.
+- [x] **FIXED — folder import crashed the Chrome side panel; replaced the native picker with
+  drag-and-drop.** Confirmed (rebuilt + reloaded) that the FSA `showDirectoryPicker` build *still*
+  crashed, so the **native directory picker itself** destroys the side-panel renderer — both
+  `webkitdirectory` and `showDirectoryPicker` open a native chooser, and a renderer/browser-process
+  crash can't be try/caught from JS. Fix: **never open a native directory picker.** Removed
+  `handleImportFolder`/`showDirectoryPicker`, the hidden `webkitdirectory <input>`, and the folder
+  toolbar/context-menu buttons. Folders now enter by being **dragged onto the panel**: a drop overlay
+  + `onDrop` in `library.tsx` → new `importDataTransfer()` in `io.ts`. A dropped *directory* exposes a
+  `FileSystemDirectoryHandle` via `getAsFileSystemHandle()` and reuses the existing lazy
+  `importDirectoryHandle` walk (full nested tree preserved); *files* always go through the
+  always-available `getAsFile()`. Both are captured **synchronously** in the drop handler (items
+  neuter after the event). Resilient fallback: if a handle is missing or resolves to `null` (e.g. a
+  non-filesystem drag), the item still imports via `getAsFile()` instead of being silently dropped.
+  4 new unit tests; verified in real Chrome at ~400px (overlay, drop → confirm → library write, no
+  console errors). NOTE: a real OS folder drag from Finder can't be automated with playwright-core
+  (synthetic drops carry no real `FileSystemHandle`), so the directory-walk branch needs one manual
+  drag-a-folder pass; the file-drop path and walk logic are covered automatically + by unit tests.
+
+## Phase 21 — Editor "New entry" affordance (v1.5.0, post-review)
+- [x] **First-class "New entry" button in the Editor toolbar** (`FilePlus`, leftmost primary action) —
+  creating a fresh entry no longer requires a Library round-trip. `handleNewEntry`/`startNewEntry` in
+  `App.tsx` flush + detach the linked entry (already saved by write-through) and open a clean buffer,
+  staying on the Editor tab. **Scratch guard**: only a non-empty *unsaved* buffer (`!currentEntryId &&
+  input.trim()`) triggers a "Start a new entry?" confirm before discarding; a linked entry or an empty
+  buffer starts new instantly (no nag, no clutter). Verified in real Chrome (confirm on scratch, Cancel
+  preserves text, Discard clears, empty buffer is instant; no console errors).
 
 ## Phase 19 — first-class document, Editor rename, tags multi-select, context menus (v1.5.0)
 - [x] **First-class document**: the "Formatter" tab is now **Editor** (`formatter.tsx`→`editor.tsx`;

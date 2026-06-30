@@ -322,6 +322,86 @@ export async function importDirectoryHandle(
   return { ...buildLibraryFromFiles(imported), skipped }
 }
 
+/**
+ * Import items dropped onto the panel (drag-and-drop) — no native picker involved.
+ * The native directory picker (both `webkitdirectory` and `showDirectoryPicker`)
+ * crashes the extension side-panel renderer, so folders enter the library by being
+ * dragged in instead. A dropped entry exposes a `FileSystemHandle` via
+ * `getAsFileSystemHandle()`: directory handles reuse the lazy `importDirectoryHandle`
+ * walk (preserving the nested folder tree), and file handles are read and routed
+ * through `importFiles` (so a dropped StructFlow backup still restores).
+ *
+ * NOTE: the caller must invoke this synchronously inside the `drop` handler — the
+ * `getAsFileSystemHandle()` calls have to run before the handler yields, because the
+ * DataTransferItem objects are neutered once the drop event completes.
+ */
+export async function importDataTransfer(
+  items: DataTransferItem[],
+): Promise<{ entries: Entry[]; projects: Project[]; skipped: number }> {
+  type WithHandle = DataTransferItem & {
+    getAsFileSystemHandle?: () => Promise<FileSystemHandle | null>
+  }
+
+  // Capture each item synchronously, BEFORE the first await — DataTransferItems are
+  // neutered once the drop handler returns. We grab two things per item:
+  //  - a handle promise (only useful for *directories*; we need it to walk the tree),
+  //  - the File via getAsFile() (always available, even in browsers without the FSA;
+  //    this is the resilient fallback when getAsFileSystemHandle is missing or, as on
+  //    some non-filesystem drags, resolves to null).
+  const captured: Array<{
+    handle: Promise<FileSystemHandle | null> | null
+    file: File | null
+  }> = []
+  for (const item of items) {
+    if (item.kind !== "file") continue // "string" items (text/URLs) aren't files
+    const getHandle = (item as WithHandle).getAsFileSystemHandle
+    captured.push({
+      handle: getHandle ? getHandle.call(item).catch(() => null) : null,
+      file: item.getAsFile(), // null for a directory item; the File for a file item
+    })
+  }
+
+  const dirHandles: FileSystemDirectoryHandle[] = []
+  const looseFiles: File[] = []
+  for (const { handle, file } of captured) {
+    const resolved = handle ? await handle : null
+    if (resolved && resolved.kind === "directory") {
+      dirHandles.push(resolved as FileSystemDirectoryHandle)
+    } else if (file) {
+      // A file item (handle ignored — getAsFile already gave us the File), or any item
+      // whose handle didn't resolve to a directory. Folders have no File, so they only
+      // ever enter via the directory-handle branch above.
+      looseFiles.push(file)
+    }
+  }
+
+  const entries: Entry[] = []
+  const projects: Project[] = []
+  let skipped = 0
+
+  for (const dir of dirHandles) {
+    try {
+      const res = await importDirectoryHandle(dir)
+      entries.push(...res.entries)
+      projects.push(...res.projects)
+      skipped += res.skipped
+    } catch {
+      // An empty / all-skipped folder throws; don't let one folder abort a multi-item
+      // drop. Count it as skipped and keep going.
+      skipped++
+    }
+  }
+
+  if (looseFiles.length > 0) {
+    const res = await importFiles(looseFiles)
+    entries.push(...res.entries)
+    projects.push(...res.projects)
+    skipped += res.skipped
+  }
+
+  return { entries, projects, skipped }
+}
+
 /** Parse a file as a StructFlow backup, or return null if it isn't one. */
 async function tryReadBackup(file: File): Promise<StructFlowExportManifest | null> {
   const lower = file.name.toLowerCase()
