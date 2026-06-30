@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Maximize2,
   MoreVertical,
+  FilePlus,
   Sparkles,
   Star,
   Folder,
@@ -71,6 +72,9 @@ interface EditorProps {
   onDuplicateCurrent: () => void
   onDeleteCurrent: () => void
   onDetachCurrent: () => void
+  /** Start a fresh, empty entry without leaving the Editor (confirms in App if a
+   *  non-empty unsaved scratch would be lost). */
+  onNewEntry: () => void
 }
 
 const OPTS_KEY = "structflow_options"
@@ -98,6 +102,7 @@ export function Editor({
   onDuplicateCurrent,
   onDeleteCurrent,
   onDetachCurrent,
+  onNewEntry,
 }: EditorProps) {
   const [options, setOptions] = useState<FormatOptions>(loadOptions)
   const [showOptions, setShowOptions] = useState(false)
@@ -107,6 +112,13 @@ export function Editor({
   const [mode, setMode] = useState<Mode>(() =>
     language === "markdown" && input.trim() ? "preview" : "edit",
   )
+  // An empty buffer can't be previewed (Preview shows a dead-end placeholder) and
+  // isn't editable in Preview either, so the only way it goes empty here is an
+  // external action — New entry, Clear, or opening an empty doc. Drop to Edit so you
+  // can start writing immediately instead of staring at "Nothing to preview yet".
+  useEffect(() => {
+    if (mode === "preview" && !input.trim()) setMode("edit")
+  }, [mode, input])
   const [copied, setCopied] = useState(false)
   const [detectChip, setDetectChip] = useState<{ from: Language; to: Language } | null>(null)
   const chipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -274,6 +286,9 @@ export function Editor({
           <StatusPill status={liveStatus} empty={!input.trim()} />
         )}
         <div className="ml-auto flex items-center gap-0.5">
+          <IconButton label="New entry" onClick={onNewEntry}>
+            <FilePlus className="h-4 w-4" />
+          </IconButton>
           <IconButton label="Format options" active={showOptions} onClick={() => setShowOptions((s) => !s)}>
             <Settings2 className="h-4 w-4" />
           </IconButton>

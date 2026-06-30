@@ -102,6 +102,8 @@ export default function App() {
   // scratch buffer). When set, edits write back to this entry instead of saving
   // a new duplicate.
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null)
+  // Guards "New entry" when an unsaved, non-empty scratch buffer would be lost.
+  const [newConfirmOpen, setNewConfirmOpen] = useState(false)
   const currentEntry = currentEntryId ? entries.find((e) => e.id === currentEntryId) ?? null : null
   // Union of every tag used across the library, for tag autocomplete (case-insensitive dedup).
   const allTags = useMemo(() => {
@@ -214,6 +216,27 @@ export default function App() {
     setCurrentEntryId(null)
     setPendingProjectId(projectId)
     setTab("editor")
+  }
+
+  // Start a fresh entry from inside the Editor (no Library round-trip). A linked
+  // entry is already saved by the write-through, so we just detach + clear; only a
+  // non-empty *unsaved* scratch can lose work, and that case confirms first.
+  const startNewEntry = () => {
+    flushCurrentEntry()
+    setCurrentEntryId(null)
+    setPendingProjectId(null)
+    setInput("")
+    setInputSource("manual")
+    setNewConfirmOpen(false)
+    setTab("editor")
+  }
+
+  const handleNewEntry = () => {
+    if (!currentEntryId && input.trim()) {
+      setNewConfirmOpen(true)
+      return
+    }
+    startNewEntry()
   }
 
   // Live edits to a linked entry write back (debounced) so the Editor and
@@ -408,6 +431,7 @@ export default function App() {
               flushCurrentEntry()
               setCurrentEntryId(null)
             }}
+            onNewEntry={handleNewEntry}
           />
         ) : (
           <Library
@@ -487,6 +511,26 @@ export default function App() {
             </Select>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={newConfirmOpen}
+        onClose={() => setNewConfirmOpen(false)}
+        title="Start a new entry?"
+        footer={
+          <>
+            <ModalButton variant="ghost" onClick={() => setNewConfirmOpen(false)}>
+              Cancel
+            </ModalButton>
+            <ModalButton variant="danger" onClick={startNewEntry}>
+              Discard &amp; start new
+            </ModalButton>
+          </>
+        }
+      >
+        <p className="text-body text-muted-foreground">
+          Your current draft isn’t saved to the library. Starting a new entry will discard it.
+        </p>
       </Modal>
     </div>
   )
