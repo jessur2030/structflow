@@ -326,14 +326,18 @@ export async function importDirectoryHandle(
  * Import items dropped onto the panel (drag-and-drop) — no native picker involved.
  * The native directory picker (both `webkitdirectory` and `showDirectoryPicker`)
  * crashes the extension side-panel renderer, so folders enter the library by being
- * dragged in instead. A dropped entry exposes a `FileSystemHandle` via
- * `getAsFileSystemHandle()`: directory handles reuse the lazy `importDirectoryHandle`
- * walk (preserving the nested folder tree), and file handles are read and routed
- * through `importFiles` (so a dropped StructFlow backup still restores).
+ * dragged in instead.
  *
- * NOTE: the caller must invoke this synchronously inside the `drop` handler — the
- * `getAsFileSystemHandle()` calls have to run before the handler yields, because the
- * DataTransferItem objects are neutered once the drop event completes.
+ * A dropped *directory* is walked two ways for cross-browser support:
+ *  - Chromium: `getAsFileSystemHandle()` → `FileSystemDirectoryHandle` → `importDirectoryHandle`.
+ *  - Firefox (no FSA): `webkitGetAsEntry()` → `FileSystemDirectoryEntry` → `importDirectoryEntry`.
+ * A dropped *file* always routes through `getAsFile()` → `importFiles` (so a dropped
+ * StructFlow backup still restores), which works everywhere.
+ *
+ * NOTE: the caller must invoke this synchronously inside the `drop` handler — every
+ * `getAsFileSystemHandle()` / `webkitGetAsEntry()` / `getAsFile()` call has to run before
+ * the handler yields, because the DataTransferItem objects are neutered once the drop
+ * event completes.
  */
 export async function importDataTransfer(
   items: DataTransferItem[],
@@ -343,13 +347,13 @@ export async function importDataTransfer(
   }
 
   // Capture each item synchronously, BEFORE the first await — DataTransferItems are
-  // neutered once the drop handler returns. We grab two things per item:
-  //  - a handle promise (only useful for *directories*; we need it to walk the tree),
-  //  - the File via getAsFile() (always available, even in browsers without the FSA;
-  //    this is the resilient fallback when getAsFileSystemHandle is missing or, as on
-  //    some non-filesystem drags, resolves to null).
+  // neutered once the drop handler returns. Per item we grab:
+  //  - an FSA handle promise (Chromium; only used for *directories*, to walk the tree),
+  //  - the Entries-API entry (Firefox's directory fallback; sync, also must be read now),
+  //  - the File via getAsFile() (always available; the resilient fallback for files).
   const captured: Array<{
     handle: Promise<FileSystemHandle | null> | null
+    entry: FileSystemEntry | null
     file: File | null
   }> = []
   for (const item of items) {
@@ -357,21 +361,29 @@ export async function importDataTransfer(
     const getHandle = (item as WithHandle).getAsFileSystemHandle
     captured.push({
       handle: getHandle ? getHandle.call(item).catch(() => null) : null,
+      entry: typeof item.webkitGetAsEntry === "function" ? item.webkitGetAsEntry() : null,
       file: item.getAsFile(), // null for a directory item; the File for a file item
     })
   }
 
   const dirHandles: FileSystemDirectoryHandle[] = []
+  const dirEntries: FileSystemDirectoryEntry[] = []
   const looseFiles: File[] = []
-  for (const { handle, file } of captured) {
+  // A dropped folder a browser can read via neither FSA nor the Entries API leaves no
+  // handle, no directory entry, and no File — flag it so we can show a clear message.
+  let sawUnreadableDirItem = false
+  for (const { handle, entry, file } of captured) {
     const resolved = handle ? await handle : null
     if (resolved && resolved.kind === "directory") {
       dirHandles.push(resolved as FileSystemDirectoryHandle)
+    } else if (entry && entry.isDirectory) {
+      dirEntries.push(entry as FileSystemDirectoryEntry)
     } else if (file) {
-      // A file item (handle ignored — getAsFile already gave us the File), or any item
-      // whose handle didn't resolve to a directory. Folders have no File, so they only
-      // ever enter via the directory-handle branch above.
+      // A file item (handle/entry ignored — getAsFile already gave us the File), or any
+      // item whose handle didn't resolve to a directory.
       looseFiles.push(file)
+    } else {
+      sawUnreadableDirItem = true
     }
   }
 
@@ -379,18 +391,20 @@ export async function importDataTransfer(
   const projects: Project[] = []
   let skipped = 0
 
-  for (const dir of dirHandles) {
+  // One folder throwing (empty / all-skipped) must not abort a multi-item drop; count
+  // it as skipped and keep going. Same for both the FSA and Entries-API walks.
+  const addFolder = async (walk: Promise<{ entries: Entry[]; projects: Project[]; skipped: number }>) => {
     try {
-      const res = await importDirectoryHandle(dir)
+      const res = await walk
       entries.push(...res.entries)
       projects.push(...res.projects)
       skipped += res.skipped
     } catch {
-      // An empty / all-skipped folder throws; don't let one folder abort a multi-item
-      // drop. Count it as skipped and keep going.
       skipped++
     }
   }
+  for (const dir of dirHandles) await addFolder(importDirectoryHandle(dir))
+  for (const dir of dirEntries) await addFolder(importDirectoryEntry(dir))
 
   if (looseFiles.length > 0) {
     const res = await importFiles(looseFiles)
@@ -399,7 +413,69 @@ export async function importDataTransfer(
     skipped += res.skipped
   }
 
+  if (entries.length === 0 && sawUnreadableDirItem) {
+    throw new Error("This browser can't read dropped folders. Use Import files, or drop the files directly.")
+  }
   return { entries, projects, skipped }
+}
+
+/**
+ * Import a directory dropped on a browser without the File System Access API (Firefox),
+ * walked via the older Entries API (`webkitGetAsEntry` → `FileSystemDirectoryEntry`).
+ * Mirrors `importDirectoryHandle`: skips ignored dirs before descending, same
+ * filters/limits, nests everything under the dropped folder's name.
+ */
+async function importDirectoryEntry(
+  root: FileSystemDirectoryEntry,
+): Promise<{ entries: Entry[]; projects: Project[]; skipped: number }> {
+  const imported: ImportedFile[] = []
+  let skipped = 0
+  let totalBytes = 0
+
+  // `readEntries` returns at most ~100 entries per call, so loop until it drains.
+  const readAll = (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> =>
+    new Promise((resolve, reject) => {
+      const all: FileSystemEntry[] = []
+      const next = () =>
+        reader.readEntries((batch) => {
+          if (batch.length === 0) resolve(all)
+          else {
+            all.push(...batch)
+            next()
+          }
+        }, reject)
+      next()
+    })
+
+  const fileOf = (entry: FileSystemFileEntry): Promise<File> =>
+    new Promise((resolve, reject) => entry.file(resolve, reject))
+
+  const walk = async (dir: FileSystemDirectoryEntry, prefix: string): Promise<void> => {
+    for (const child of await readAll(dir.createReader())) {
+      if (imported.length >= MAX_IMPORT_FILES || totalBytes >= MAX_TOTAL_BYTES) break
+      const path = prefix ? `${prefix}/${child.name}` : child.name
+      if (child.isDirectory) {
+        if (!IGNORED_DIR_SEGMENTS.has(child.name)) await walk(child as FileSystemDirectoryEntry, path)
+        continue
+      }
+      const file = await fileOf(child as FileSystemFileEntry)
+      if (!isImportableCandidate(path, child.name, file.size)) {
+        skipped++
+        continue
+      }
+      const text = await readFileText(file)
+      if (looksBinary(text)) {
+        skipped++
+        continue
+      }
+      imported.push({ path, text })
+      totalBytes += file.size
+    }
+  }
+
+  await walk(root, root.name)
+  if (imported.length === 0) throw new Error("No importable text files were found.")
+  return { ...buildLibraryFromFiles(imported), skipped }
 }
 
 /** Parse a file as a StructFlow backup, or return null if it isn't one. */

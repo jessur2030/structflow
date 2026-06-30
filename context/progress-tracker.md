@@ -30,6 +30,15 @@ Legend: [x] done · [~] partial · [ ] not started
   console errors). NOTE: a real OS folder drag from Finder can't be automated with playwright-core
   (synthetic drops carry no real `FileSystemHandle`), so the directory-walk branch needs one manual
   drag-a-folder pass; the file-drop path and walk logic are covered automatically + by unit tests.
+- [x] **Post-review hardening (2 findings).** (1) **Cross-browser folder import**: drag-drop keyed only
+  on `getAsFileSystemHandle` (Chromium), so Firefox dropped folders matched no branch and failed with a
+  misleading message. Added a `webkitGetAsEntry()` Entries-API fallback (`importDirectoryEntry` in
+  `io.ts`, mirrors the FSA walk + reuses all guardrails; loops `readEntries` past its ~100 cap), plus a
+  clear "this browser can't read dropped folders" message for the no-API case. (2) **Stuck overlay**:
+  the `dragenter`/`dragleave` counter could leave the drop overlay visible after Esc-cancel / fast
+  window-exit; replaced with a self-healing `dragover` heartbeat (clears ~120ms after dragover stops).
+  3 new unit tests (Entries-API walk incl. >100-child batching + unsupported-browser message); both
+  verified in real Chrome (overlay self-clears, drop still imports, no console errors).
 
 ## Phase 22 — Library folder collapse persistence (v1.5.0, post-review)
 - [x] **Folder collapse state persists** (file-explorer behavior). It was local `useState` in

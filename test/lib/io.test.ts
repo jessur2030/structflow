@@ -365,3 +365,72 @@ describe("importDataTransfer (drag-and-drop import, no native picker)", () => {
     expect(entries[0].title).toBe("note")
   })
 })
+
+// Firefox lacks the File System Access API but supports the older Entries API
+// (`webkitGetAsEntry`), so a dropped folder still walks. These mocks mirror the
+// Entries-API shape (isDirectory/createReader().readEntries vs file()).
+function mockFileEntry(name: string, content: string) {
+  const bytes = strToU8(content)
+  return {
+    isFile: true,
+    isDirectory: false,
+    name,
+    file(success: (f: unknown) => void) {
+      success({ name, size: bytes.length, async arrayBuffer() { return bytes.buffer } })
+    },
+  }
+}
+function mockDirEntry(name: string, tree: MockTree) {
+  return {
+    isFile: false,
+    isDirectory: true,
+    name,
+    createReader() {
+      // readEntries caps at ~100 per call, so hand back the children in batches of 100
+      // and an empty array once drained — exactly what the real API does.
+      const children = Object.entries(tree).map(([childName, val]) =>
+        typeof val === "string" ? mockFileEntry(childName, val) : mockDirEntry(childName, val),
+      )
+      let i = 0
+      return {
+        readEntries(success: (batch: unknown[]) => void) {
+          const batch = children.slice(i, i + 100)
+          i += batch.length
+          success(batch)
+        },
+      }
+    },
+  }
+}
+// A Firefox-style dropped item: no FSA handle, but webkitGetAsEntry yields the entry.
+function entryItem(entry: unknown) {
+  return { kind: "file" as const, webkitGetAsEntry: () => entry, getAsFile: () => null }
+}
+
+describe("importDataTransfer (Firefox Entries-API folder fallback)", () => {
+  it("walks a dropped folder via webkitGetAsEntry when the FSA is unavailable", async () => {
+    const dir = mockDirEntry("project", { "a.md": "# a", sub: { "b.sql": "SELECT 1;" } })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { entries, projects } = await importDataTransfer([entryItem(dir)] as any)
+    expect(entries).toHaveLength(2)
+    const root = projects.find((p) => p.name === "project")!
+    expect(root.parentId).toBeNull()
+    expect(projects.find((p) => p.name === "sub")!.parentId).toBe(root.id)
+  })
+
+  it("reads all entries when a directory has more than one readEntries batch (>100 children)", async () => {
+    const many: MockTree = {}
+    for (let i = 0; i < 150; i++) many[`f${i}.md`] = `# ${i}`
+    const dir = mockDirEntry("big", many)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { entries } = await importDataTransfer([entryItem(dir)] as any)
+    expect(entries).toHaveLength(150) // not truncated to the first 100-entry batch
+  })
+
+  it("throws a clear message when the browser can't read a dropped folder at all", async () => {
+    // No FSA handle, no Entries API, and a directory has no File → unreadable folder.
+    const unreadableDir = { kind: "file" as const, getAsFile: () => null }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await expect(importDataTransfer([unreadableDir] as any)).rejects.toThrow(/can't read dropped folders/i)
+  })
+})

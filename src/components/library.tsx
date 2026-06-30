@@ -187,9 +187,12 @@ export function Library({
   const [newProjectParent, setNewProjectParent] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  // Tracks whether an OS file/folder drag is hovering the panel (a counter, so
-  // child-element dragenter/dragleave events don't make the overlay flicker).
-  const [fileDragDepth, setFileDragDepth] = useState(0)
+  // Whether an OS file/folder drag is hovering the panel (drives the drop overlay).
+  const [fileDragActive, setFileDragActive] = useState(false)
+  // `dragover` fires continuously while a drag hovers a valid target; we treat it as a
+  // heartbeat and clear the overlay shortly after it stops. This self-heals on drop,
+  // Esc-cancel, or leaving the window — none of which reliably fire a final dragleave.
+  const dragEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Folders whose name matches the query — searching a folder name should surface
   // the folder and everything inside it.
@@ -380,24 +383,25 @@ export function Library({
   const isFileDrag = (dt: DataTransfer | null) =>
     !!dt && Array.from(dt.types).includes("Files")
 
-  const onPanelDragEnter = (e: React.DragEvent) => {
-    if (!isFileDrag(e.dataTransfer)) return
-    e.preventDefault()
-    setFileDragDepth((d) => d + 1)
+  const clearDragEndTimer = () => {
+    if (dragEndTimer.current) clearTimeout(dragEndTimer.current)
+    dragEndTimer.current = null
   }
   const onPanelDragOver = (e: React.DragEvent) => {
     if (!isFileDrag(e.dataTransfer)) return
     e.preventDefault()
     e.dataTransfer.dropEffect = "copy"
-  }
-  const onPanelDragLeave = (e: React.DragEvent) => {
-    if (!isFileDrag(e.dataTransfer)) return
-    setFileDragDepth((d) => Math.max(0, d - 1))
+    setFileDragActive(true)
+    // Re-arm the heartbeat: if dragover stops (drop / Esc / left the panel or window),
+    // the overlay clears itself shortly after instead of sticking around.
+    clearDragEndTimer()
+    dragEndTimer.current = setTimeout(() => setFileDragActive(false), 120)
   }
   const onPanelDrop = (e: React.DragEvent) => {
+    clearDragEndTimer()
+    setFileDragActive(false)
     if (!isFileDrag(e.dataTransfer)) return
     e.preventDefault()
-    setFileDragDepth(0)
     // Grab the items synchronously; importDataTransfer reads their handles before the
     // first await so the DataTransferItems aren't neutered out from under us.
     const items = Array.from(e.dataTransfer.items)
@@ -413,6 +417,9 @@ export function Library({
         setImportError(err instanceof Error ? err.message : "Could not import what was dropped.")
       })
   }
+
+  // Don't leak the heartbeat timeout if the Library unmounts mid-drag.
+  useEffect(() => () => clearDragEndTimer(), [])
 
   const confirmImport = async () => {
     if (!pendingImport) return
@@ -531,12 +538,10 @@ export function Library({
   return (
     <div
       className="relative flex h-full flex-col"
-      onDragEnter={onPanelDragEnter}
       onDragOver={onPanelDragOver}
-      onDragLeave={onPanelDragLeave}
       onDrop={onPanelDrop}
     >
-      {fileDragDepth > 0 && (
+      {fileDragActive && (
         <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/85 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-primary/60 px-6 py-5 text-center">
             <FolderUp className="h-6 w-6 text-primary" />
