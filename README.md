@@ -36,7 +36,8 @@ stored in your browser via IndexedDB.
 - **First-class documents** - open a saved entry and an identity bar appears above
   the editor with its title, pin, folder, and tags, all editable inline. Edits save
   back to that entry automatically (no duplicate on save). A fresh paste stays a
-  zero-friction scratch buffer until you choose to save it.
+  zero-friction scratch buffer until you choose to save it, and the **New entry**
+  button starts a clean document anytime without leaving the Editor.
 - **20+ languages** - beautify (format) for Markdown, JSON, JavaScript,
   TypeScript, HTML, CSS, SQL, and YAML; highlight-and-keep for Python, Go, Rust,
   Java, C/C++, C#, PHP, Ruby, Shell, TOML, Dockerfile, Kotlin, and Swift. VS
@@ -61,12 +62,16 @@ stored in your browser via IndexedDB.
 - **Code snapshot** - export the formatted output as a polished PNG: windowed card
   with traffic lights and filename, backdrop choices, padding, line numbers, and
   Copy PNG / Download PNG.
-- **Library** - save your work to IndexedDB and organize it into nested folders.
-  **Right-click** any entry, folder, or the empty Library area for its actions
-  (the background menu has New folder, Import, and Export), and **drag folders**
-  to nest or un-nest them just like entries. Each folder also has an options menu
-  to rename, add a new item, create a nested folder, recolor, or delete, plus
-  full-text search and re-open / copy / export / delete per entry.
+- **Library** - save your work to IndexedDB and organize it into nested folders
+  that stay collapsed or expanded the way you left them (across tab switches and
+  reloads). **Right-click** any entry, folder, or the empty Library area for its
+  actions (the background menu has New folder, Import, and Export), and **drag
+  folders** to nest or un-nest them just like entries. Each folder also has an
+  options menu to rename, add a new item, create a nested folder, recolor, or
+  delete, plus full-text search and re-open / copy / export / delete per entry.
+- **Import** - bring in loose files, a `.zip`, or a StructFlow backup with the
+  Import button, or **drag a folder onto the panel** to import its whole nested
+  tree (skipping `node_modules`/`.git` and oversized/binary files).
 - **Bulk export** - export all or selected folders as a single `.zip`: entries are
   written as real files organized into folders, alongside a `manifest.json` that
   captures the full structured data for backup/restore.

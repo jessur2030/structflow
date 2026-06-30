@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1
+
+- **Folder import is now drag-and-drop.** Drag a folder from your file manager straight onto the Library panel to bring in its whole nested structure. This replaces the folder-picker button, which could crash the side panel on some systems. Dropping loose files or a StructFlow backup works the same way, and it works in both Chrome and Firefox.
+- **New entry button in the Editor.** Start a fresh note or snippet without switching back to the Library. It opens a clean, writable editor, and asks before discarding an unsaved draft.
+- **Folders remember their collapsed state.** Collapse a folder in the Library and it stays collapsed across tab switches and reloads, the way a file explorer does.
+
 ## 1.5.0
 
 - The **Editor** (formerly the "Formatter" tab) now treats the document you are working on as a first-class entry. Open a saved entry and an identity bar appears right above the editor: rename it, pin it, move it to a folder, and add tags inline. Your edits save back to that entry automatically, so opening something, tweaking it, and moving on no longer leaves a duplicate behind.
