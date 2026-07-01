@@ -51,7 +51,7 @@ export function MoveToDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-90">
+      <DialogContent showCloseButton={false} className="gap-0 overflow-hidden p-0 sm:max-w-90">
         <DialogTitle className="sr-only">Move to folder</DialogTitle>
         <Command>
           <CommandInput placeholder="Move to folder…" />
