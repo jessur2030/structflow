@@ -529,7 +529,9 @@ export function Library({
         onRecolor={(color) => onRecolorProject(project.id, color)}
         onAddItem={() => onAddToProject(project.id)}
         onAddSubfolder={() => openNewProject(project.id)}
+        onMove={(parentId) => onMoveProject(project.id, parentId)}
         onDelete={() => setDeleteTarget(project)}
+        projects={projects}
       >
         {projectChildren(project.id, projects).map((child) => renderFolder(child, nextAncestors))}
         {items.map(renderEntryRow)}
@@ -890,7 +892,9 @@ function ProjectGroup({
   onRecolor,
   onAddItem,
   onAddSubfolder,
+  onMove,
   onDelete,
+  projects = [],
   children,
 }: {
   project: Project | null
@@ -901,13 +905,22 @@ function ProjectGroup({
   onRecolor?: (color: string) => void
   onAddItem?: () => void
   onAddSubfolder?: () => void
+  onMove?: (parentId: string | null) => void
   onDelete?: () => void
+  /** All folders — needed by the "Move to…" picker (defaults to none). */
+  projects?: Project[]
   children: React.ReactNode
 }) {
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(project?.name ?? "")
   const [menuOpen, setMenuOpen] = useState(false)
   const [ctxOpen, setCtxOpen] = useState(false)
+  const [moveOpen, setMoveOpen] = useState(false)
+  // A folder can't be moved into itself or any descendant, so omit that subtree.
+  const moveExclude = useMemo(
+    () => (project ? [project.id, ...projectDescendantIds(project.id, projects)] : []),
+    [project, projects],
+  )
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: project ? project.id : "__root__" })
   const {
     setNodeRef: setDragRef,
@@ -959,6 +972,11 @@ function ProjectGroup({
       {onAddSubfolder && (
         <Item onSelect={() => onAddSubfolder()}>
           <FolderPlus className="h-3.5 w-3.5" /> New folder
+        </Item>
+      )}
+      {onMove && (
+        <Item onSelect={() => setMoveOpen(true)}>
+          <FolderInput className="h-3.5 w-3.5" /> Move to…
         </Item>
       )}
       {onRecolor && (
@@ -1108,6 +1126,16 @@ function ProjectGroup({
         header
       )}
       {!collapsed && <div className="pl-3">{children}</div>}
+      {project && onMove && (
+        <MoveToDialog
+          open={moveOpen}
+          onOpenChange={setMoveOpen}
+          projects={projects}
+          currentProjectId={project.parentId ?? null}
+          excludeIds={moveExclude}
+          onMove={onMove}
+        />
+      )}
     </div>
   )
 }

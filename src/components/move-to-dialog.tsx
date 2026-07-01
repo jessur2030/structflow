@@ -15,6 +15,7 @@ export function MoveToDialog({
   projects,
   currentProjectId,
   onMove,
+  excludeIds,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -22,21 +23,26 @@ export function MoveToDialog({
   /** The entry/item's current folder, marked with a check (null = No folder). */
   currentProjectId: string | null
   onMove: (projectId: string | null) => void
+  /** Folders to omit as targets (e.g. a folder being moved + its descendants, to
+   *  prevent cycles). Their subtrees are skipped entirely. */
+  excludeIds?: string[]
 }) {
   // Pre-order the folder tree so children sit under their parent, each with a depth
   // for indentation. Siblings sorted by name for a stable, scannable order.
   const rows = useMemo(() => {
+    const excluded = new Set(excludeIds)
     const out: { project: Project; depth: number }[] = []
     const walk = (parentId: string | null, depth: number) => {
       const children = [...projectChildren(parentId, projects)].sort((a, b) => a.name.localeCompare(b.name))
       for (const project of children) {
+        if (excluded.has(project.id)) continue // skip the folder and (by not recursing) its subtree
         out.push({ project, depth })
         walk(project.id, depth + 1)
       }
     }
     walk(null, 0)
     return out
-  }, [projects])
+  }, [projects, excludeIds])
 
   const choose = (id: string | null) => {
     onMove(id)
@@ -45,34 +51,35 @@ export function MoveToDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[380px]">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-90">
         <DialogTitle className="sr-only">Move to folder</DialogTitle>
         <Command>
           <CommandInput placeholder="Move to folder…" />
-          <CommandList className="max-h-[320px]">
+          <CommandList className="max-h-80 space-y-0.5 p-2">
             <CommandEmpty>No folders found.</CommandEmpty>
-            <CommandItem value="No folder" onSelect={() => choose(null)}>
+            <CommandItem className="gap-2.5 rounded-md px-2.5 py-2" value="No folder" onSelect={() => choose(null)}>
               <Inbox className="size-4" />
               <span className="flex-1">No folder</span>
-              {currentProjectId == null && <Check className="size-3.5 shrink-0 text-primary" />}
+              {currentProjectId == null && <Check className="size-4 shrink-0 text-primary" />}
             </CommandItem>
             {rows.map(({ project, depth }) => {
               const parent = projectPath(project.id, projects).slice(0, -1).join(" / ")
               return (
                 <CommandItem
                   key={project.id}
+                  className="gap-2.5 rounded-md px-2.5 py-2"
                   // Search matches on the full path, so typing an ancestor or the leaf both work.
                   value={projectPath(project.id, projects).join(" / ")}
                   onSelect={() => choose(project.id)}
                 >
-                  <span className="flex min-w-0 flex-1 items-center gap-2" style={{ paddingLeft: depth * 14 }}>
+                  <span className="flex min-w-0 flex-1 items-center gap-2.5" style={{ paddingLeft: depth * 14 }}>
                     <Folder className="size-4 shrink-0" style={{ color: project.color }} />
                     <span className="truncate">{project.name}</span>
                   </span>
                   {parent && (
                     <span className="max-w-[46%] shrink-0 truncate pl-2 text-micro text-muted-foreground">{parent}</span>
                   )}
-                  {currentProjectId === project.id && <Check className="ml-1 size-3.5 shrink-0 text-primary" />}
+                  {currentProjectId === project.id && <Check className="ml-1 size-4 shrink-0 text-primary" />}
                 </CommandItem>
               )
             })}
