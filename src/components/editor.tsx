@@ -27,11 +27,11 @@ import { FocusView } from "./focus-view"
 import { EditorSurface, type Mode } from "./editor-surface"
 import { IconButton } from "./icon-button"
 import { TagsInput } from "./tags-input"
+import { MoveToDialog } from "./move-to-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
@@ -41,7 +41,6 @@ import { copyToClipboard, downloadFile, mimeFor, slugify } from "@/lib/io"
 import {
   DEFAULT_OPTIONS,
   getLanguage,
-  projectPath,
   type Entry,
   type FormatOptions,
   type Language,
@@ -120,6 +119,7 @@ export function Editor({
     if (mode === "preview" && !input.trim()) setMode("edit")
   }, [mode, input])
   const [copied, setCopied] = useState(false)
+  const [moveOpen, setMoveOpen] = useState(false)
   const [detectChip, setDetectChip] = useState<{ from: Language; to: Language } | null>(null)
   const chipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showSnapshot, setShowSnapshot] = useState(false)
@@ -376,36 +376,26 @@ export function Editor({
               aria-label="Entry title"
               className="min-w-0 flex-1 rounded bg-transparent px-1 py-0.5 text-body font-medium focus:bg-secondary focus:outline-none"
             />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Move to folder"
-                  className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-label text-muted-foreground hover:bg-secondary hover:text-foreground"
-                >
-                  {currentFolder ? (
-                    <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: currentFolder.color }} />
-                  ) : (
-                    <Inbox className="h-3.5 w-3.5 shrink-0" />
-                  )}
-                  <span className="max-w-24 truncate">{currentFolder ? currentFolder.name : "No folder"}</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel className="text-label uppercase tracking-wide text-muted-foreground">
-                  Move to
-                </DropdownMenuLabel>
-                <DropdownMenuItem onSelect={() => onUpdateCurrent({ projectId: null })}>
-                  <Inbox className="h-3.5 w-3.5" /> No folder
-                </DropdownMenuItem>
-                {projects.map((p) => (
-                  <DropdownMenuItem key={p.id} onSelect={() => onUpdateCurrent({ projectId: p.id })}>
-                    <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
-                    <span className="min-w-0 truncate">{projectPath(p.id, projects).join(" / ")}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <button
+              type="button"
+              aria-label="Move to folder"
+              onClick={() => setMoveOpen(true)}
+              className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-label text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              {currentFolder ? (
+                <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: currentFolder.color }} />
+              ) : (
+                <Inbox className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span className="max-w-24 truncate">{currentFolder ? currentFolder.name : "No folder"}</span>
+            </button>
+            <MoveToDialog
+              open={moveOpen}
+              onOpenChange={setMoveOpen}
+              projects={projects}
+              currentProjectId={currentEntry?.projectId ?? null}
+              onMove={(projectId) => onUpdateCurrent({ projectId })}
+            />
           </div>
           <div className="flex items-center gap-1.5">
             <TagsIcon className="h-3 w-3 shrink-0 text-muted-foreground" />

@@ -23,10 +23,12 @@ import {
   CopyPlus,
   Info,
   RefreshCw,
+  FolderInput,
 } from "lucide-react"
 import { Modal } from "./modal"
 import { IconButton } from "./icon-button"
 import { TagsInput } from "./tags-input"
+import { MoveToDialog } from "./move-to-dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { formatCode } from "@/lib/formatter"
 import {
@@ -1347,6 +1349,7 @@ function EntryRow({
 }) {
   const [copied, setCopied] = useState(false)
   const [renaming, setRenaming] = useState(false)
+  const [moveOpen, setMoveOpen] = useState(false)
   const [title, setTitle] = useState(entry.title)
   const meta = getLanguage(entry.language)
   const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: `entry:${entry.id}` })
@@ -1374,7 +1377,7 @@ function EntryRow({
   // Shared between the row's "⋮" dropdown and its right-click context menu so the
   // two can never drift. Item/Separator/Label are passed in as the matching
   // primitives (DropdownMenu* or ContextMenu*); both share the same item API.
-  const menuItems = (Item: React.ElementType, Separator: React.ElementType, MenuLabel: React.ElementType) => (
+  const menuItems = (Item: React.ElementType, Separator: React.ElementType) => (
     <>
       <Item onSelect={() => onEdit()}>
         <Info className="h-3.5 w-3.5" /> Details
@@ -1389,28 +1392,9 @@ function EntryRow({
       <Item onSelect={() => onDuplicate()}>
         <CopyPlus className="h-3.5 w-3.5" /> Duplicate
       </Item>
-      <Separator />
-      <MenuLabel className="text-label uppercase tracking-wide text-muted-foreground">Move to</MenuLabel>
-      <Item onSelect={() => onMove(null)}>
-        <Inbox className="h-3.5 w-3.5" /> No folder
+      <Item onSelect={() => setMoveOpen(true)}>
+        <FolderInput className="h-3.5 w-3.5" /> Move to…
       </Item>
-      {projects.map((p) => {
-        // Show the leaf folder name in full and truncate the ancestor prefix, so
-        // deeply nested folders stay distinguishable (e.g. ".../app ideas" vs
-        // ".../app projects") instead of all collapsing to "development / …".
-        const path = projectPath(p.id, projects)
-        const leaf = path[path.length - 1] ?? p.name
-        const parent = path.slice(0, -1).join(" / ")
-        return (
-          <Item key={p.id} onSelect={() => onMove(p.id)}>
-            <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color }} />
-            <span className="flex min-w-0 items-baseline gap-1">
-              {parent && <span className="min-w-0 shrink truncate text-muted-foreground">{parent} /</span>}
-              <span className="shrink-0">{leaf}</span>
-            </span>
-          </Item>
-        )
-      })}
       <Separator />
       <Item variant="destructive" onSelect={() => onDelete()}>
         <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -1419,6 +1403,7 @@ function EntryRow({
   )
 
   return (
+    <>
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
@@ -1506,16 +1491,24 @@ function EntryRow({
             // trigger on close or its Tooltip re-fires over that dialog.
             onCloseAutoFocus={(e) => e.preventDefault()}
           >
-            {menuItems(DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel)}
+            {menuItems(DropdownMenuItem, DropdownMenuSeparator)}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-44">
-        {menuItems(ContextMenuItem, ContextMenuSeparator, ContextMenuLabel)}
+        {menuItems(ContextMenuItem, ContextMenuSeparator)}
       </ContextMenuContent>
     </ContextMenu>
+    <MoveToDialog
+      open={moveOpen}
+      onOpenChange={setMoveOpen}
+      projects={projects}
+      currentProjectId={entry.projectId ?? null}
+      onMove={onMove}
+    />
+    </>
   )
 }
 
