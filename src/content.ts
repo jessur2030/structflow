@@ -464,12 +464,18 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
   fmtPre.replaceChildren(highlightJson(detected.data))
   rootEl.appendChild(fmtPre)
 
-  // Tree view
+  // Tree view — built lazily on first switch. Eagerly constructing the full tree
+  // DOM for a large JSON (the parse cap is 8MB) would stall the page load, and the
+  // default view is Formatted, so most opens never need the tree at all.
   const body = el("div", "sf-body")
-  const tree = buildNode(null, detected.data, 0, true)
-  body.appendChild(tree)
   body.style.display = "none"
   rootEl.appendChild(body)
+  let treeBuilt = false
+  const ensureTree = () => {
+    if (treeBuilt) return
+    treeBuilt = true
+    body.appendChild(buildNode(null, detected.data, 0, true))
+  }
 
   // Raw view
   const rawPre = el("pre", "sf-raw")
@@ -487,6 +493,7 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
 
   type Mode = "formatted" | "tree" | "raw"
   const setMode = (mode: Mode) => {
+    if (mode === "tree") ensureTree() // build the tree DOM on first view, not on load
     fmtBtn.classList.toggle("active", mode === "formatted")
     treeBtn.classList.toggle("active", mode === "tree")
     rawBtn.classList.toggle("active", mode === "raw")
