@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="StructFlow">
+  <rect x="2" y="2" width="96" height="96" rx="22" fill="#0f172a"/>
+  <path d="M40 24 L29 24 L29 76 L40 76" fill="none" stroke="#f1f5f9" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M60 24 L71 24 L71 76 L60 76" fill="none" stroke="#f1f5f9" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="40.5" y="40.5" width="19" height="19" rx="4.5" fill="#22d3ee"/>
+</svg>
