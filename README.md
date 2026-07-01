@@ -66,9 +66,11 @@ stored in your browser via IndexedDB.
   that stay collapsed or expanded the way you left them (across tab switches and
   reloads). **Right-click** any entry, folder, or the empty Library area for its
   actions (the background menu has New folder, Import, and Export), and **drag
-  folders** to nest or un-nest them just like entries. Each folder also has an
-  options menu to rename, add a new item, create a nested folder, recolor, or
-  delete, plus full-text search and re-open / copy / export / delete per entry.
+  folders** to nest or un-nest them just like entries. Move an entry or folder with a
+  searchable **Move to** picker that shows each destination's full path (or drag it).
+  Each folder also has an options menu to rename, add a new item, create a nested
+  folder, recolor, or delete, plus full-text search and re-open / copy / export /
+  delete per entry.
 - **Import** - bring in loose files, a `.zip`, or a StructFlow backup with the
   Import button, or **drag a folder onto the panel** to import its whole nested
   tree (skipping `node_modules`/`.git` and oversized/binary files).

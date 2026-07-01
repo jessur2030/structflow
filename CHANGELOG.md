@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2
+
+- **Searchable "Move to" folder picker.** Moving an entry (or a whole folder) now opens a searchable picker that shows each destination's full path, instead of a cramped menu that truncated deep folders to "develop…". Type to filter, folders are shown as a tree, and you can't move a folder into itself. Drag-and-drop still works.
+- **Refreshed app icon.** A cleaner, bolder logo that stays legible down to the 16px toolbar size, where the old mark blurred.
+- **Faster in-page JSON viewer on large pages.** The interactive tree is now built only when you open it, so large raw JSON pages show their formatted view without the extra work up front.
+
 ## 1.5.1
 
 - **Folder import is now drag-and-drop.** Drag a folder from your file manager straight onto the Library panel to bring in its whole nested structure. This replaces the folder-picker button, which could crash the side panel on some systems. Dropping loose files or a StructFlow backup works the same way, and it works in both Chrome and Firefox.

@@ -2,6 +2,31 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 23 — Move-to picker, logo refresh, in-page perf (v1.5.2)
+- [x] **Searchable "Move to" folder picker** (`move-to-dialog.tsx`, new): shadcn Dialog + cmdk
+  replacing the truncating inline menu list (paths collapsed to "develop…"). Search box, indented
+  folder **tree**, each row shows its **full ancestor path**, "No folder" at top, current folder
+  checked. `showCloseButton={false}` (dismiss via Esc/outside). Wired into the entry context/⋮ menu
+  (`EntryRow`) and the Editor identity bar (replacing their old lists), and into the **folder** menu
+  (`ProjectGroup`) — folder move takes an `excludeIds` (self + `projectDescendantIds`) so a folder
+  can't move into itself/a descendant. Drag-and-drop still works. Verified in real Chrome (entry +
+  editor + folder move, search, cycle-safety, no stuck pointer-events).
+- [x] **Logo refresh** (`src/assets/logo.svg`, new vector source): the old raster mark was busy and
+  blurred to an unreadable blob at 16px. New clean **dark bracket badge** (white `[ ]` + cyan node).
+  `gen-icons.cjs` rewritten to **rasterize the SVG per size** (crisp at 16/32/48/128) instead of
+  downscaling one big raster; padding reduced; dead `logo-source.png` removed. All icons + header
+  `logo.png` + favicon + in-page bar + store assets regenerated. Verified legible at 16px on light+dark.
+- [x] **In-page viewer perf** (`content.ts`): the interactive **tree** view was built eagerly on load
+  (full DOM for the whole JSON, even hidden), stalling large JSON pages. Now built **lazily** on first
+  switch to Tree (`ensureTree`), so the default Formatted view loads without it. Verified in Chrome
+  (Formatted renders immediately, tree = 0 nodes until opened, then builds + works; no console errors).
+- [x] **Store assets**: regenerated screenshots (new header logo + brand mark); added two manual
+  in-page JSON viewer shots (`inpage-json-02/03.png`, landscape + portrait) composed as browser cards
+  by a new `layout: "card"` path in `gen-annotated-store-assets.cjs`; delete-sweep guard preserves the
+  manual `inpage-json-*` sources. All Chrome-bound PNGs no-alpha / correct sizes.
+- [x] Version bumped to **1.5.2** (3 spots); CHANGELOG + README + STORE_LISTING updated. tsc + 78
+  tests + build clean throughout. Chrome/Firefox 1.5.2 zips rebuilt.
+
 ## Phase 20 — library import/move fixes + folder-import crash (v1.5.0, post-review)
 - [x] **Import destination picker**: the import-confirm dialog has an "Import into" select; root
   folders + loose entries re-parent under the chosen folder (`library.tsx` `confirmImport`).
