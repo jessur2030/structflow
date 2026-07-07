@@ -8,7 +8,7 @@ const distManifest = join(root, "dist/manifest.json")
 const manifest = JSON.parse(readFileSync(distManifest, "utf8"))
 
 const commonDescription =
-  "A side-panel workspace for code & notes: beautify JSON/JS/TS/SQL/YAML/Markdown, save & reuse, and view raw JSON pages."
+  "A side-panel workspace to format code, take notes, and explore JSON. Private and offline."
 
 if (target === "chrome") {
   manifest.description = commonDescription
@@ -18,7 +18,7 @@ if (target === "chrome") {
   manifest.action.default_title = "Open StructFlow"
 } else if (target === "firefox") {
   manifest.description =
-    "A sidebar workspace for code & notes: beautify JSON/JS/TS/SQL/YAML/Markdown, save & reuse, and view raw JSON pages."
+    "A sidebar workspace to format code, take notes, and explore JSON. Private and offline."
   manifest.permissions = manifest.permissions.filter((permission) => permission !== "sidePanel")
   if (manifest.background?.service_worker) {
     manifest.background.scripts = [manifest.background.service_worker]
