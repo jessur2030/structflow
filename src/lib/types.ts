@@ -273,7 +273,7 @@ export const DEFAULT_OPTIONS: FormatOptions = {
 }
 
 export const STRUCTFLOW_SCHEMA_VERSION = 3
-export const STRUCTFLOW_APP_VERSION = "1.5.2"
+export const STRUCTFLOW_APP_VERSION = "1.5.3"
 export const STRUCTFLOW_FORMATTER_VERSION = "2"
 
 export type EntrySource = "manual" | "context-menu" | "library" | "import"

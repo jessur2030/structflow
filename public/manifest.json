@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "StructFlow",
-  "version": "1.5.2",
-  "description": "A side-panel workspace for code & notes: beautify JSON/JS/TS/SQL/YAML/Markdown, save & reuse, and view raw JSON pages.",
+  "version": "1.5.3",
+  "description": "A side-panel workspace to format code, take notes, and explore JSON. Private and offline.",
   "permissions": ["sidePanel", "storage", "contextMenus"],
   "background": {
     "service_worker": "background.js",

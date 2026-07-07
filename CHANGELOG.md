@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.3
+
+- Store listing and manifest description wording only (removed keyword-list phrasing so the Chrome Web Store description/summary read as clear prose). No functional changes.
+
 ## 1.5.2
 
 - **Searchable "Move to" folder picker.** Moving an entry (or a whole folder) now opens a searchable picker that shows each destination's full path, instead of a cramped menu that truncated deep folders to "develop…". Type to filter, folders are shown as a tree, and you can't move a folder into itself. Drag-and-drop still works.
