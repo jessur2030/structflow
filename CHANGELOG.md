@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.4
+
+- **The Markdown outline is now a collapsible "Contents" toggle.** Long notes used to open with a full table of contents pinned above the document. It is now a small "Contents" line you expand only when you want it, so short notes are not pushed down the page.
+
 ## 1.5.3
 
 - Store listing and manifest description wording only (removed keyword-list phrasing so the Chrome Web Store description/summary read as clear prose). No functional changes.
