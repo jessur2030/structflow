@@ -40,8 +40,11 @@ function TableOfContents({ tokens }: { tokens: MarkdownToken[] }) {
   if (headings.length < 3) return null
 
   const counts = new Map<string, number>()
+  // A per-view, collapsed-by-default outline: available when you want it, but it
+  // doesn't dominate the top of every doc. State is local to this preview instance.
   return (
-    <nav className="md-toc">
+    <details className="md-toc">
+      <summary>Contents</summary>
       <ol>
         {headings.map((heading, index) => (
           <li key={index} className={`md-toc-depth-${heading.depth}`}>
@@ -51,7 +54,7 @@ function TableOfContents({ tokens }: { tokens: MarkdownToken[] }) {
           </li>
         ))}
       </ol>
-    </nav>
+    </details>
   )
 }
 

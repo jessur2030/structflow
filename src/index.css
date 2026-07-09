@@ -345,6 +345,32 @@
   border-radius: 6px;
   background-color: var(--card);
 }
+.md-preview .md-toc > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  cursor: pointer;
+  padding: 0.4em 0.75em;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  user-select: none;
+  list-style: none;
+}
+.md-preview .md-toc > summary::-webkit-details-marker {
+  display: none;
+}
+.md-preview .md-toc > summary::before {
+  content: "\25B8"; /* ▸ */
+  font-size: 0.85em;
+  transition: transform 0.15s ease;
+}
+.md-preview .md-toc[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+.md-preview .md-toc[open] > summary::before {
+  transform: rotate(90deg);
+}
 .md-preview .md-toc ol {
   margin: 0;
   padding: 0.5em 0.75em;
