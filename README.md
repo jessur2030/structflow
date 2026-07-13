@@ -51,6 +51,10 @@ stored in your browser via IndexedDB.
   Markdown ships with a rendered preview that toggles against the source.
 - **JSON viewer** - collapsible tree with key/value search, copy-path, copy-value,
   and type color-coding, plus a highlighted text view with line numbers.
+- **Loose-JSON recovery** - paste several JSON objects with no wrapping brackets
+  (NDJSON/log output, or a chunk copied out of an array) and the editor recognizes
+  the shape and offers a one-click **Wrap in [ ]** that wraps and formats them. It
+  never rewrites the buffer on its own, and valid JSON is left alone.
 - **In-page JSON viewer** - a content script takes over raw `.json` pages and JSON
   responses, rendering a Formatted (default) / Tree / Raw view with its own
   Editor & JSON theme picker and search. Turn it off anytime from the panel's

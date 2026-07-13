@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.5
+
+- **One-click fix for loose JSON objects.** Paste several JSON objects without the wrapping brackets (log output, or a chunk copied out of the middle of an array) and StructFlow used to just say "Invalid". It now recognizes the shape and offers to wrap them into an array and format, in one click. It never rewrites your text on its own, and genuinely valid JSON is untouched.
+
 ## 1.5.4
 
 - **The Markdown outline is now a collapsible "Contents" toggle.** Long notes used to open with a full table of contents pinned above the document. It is now a small "Contents" line you expand only when you want it, so short notes are not pushed down the page.

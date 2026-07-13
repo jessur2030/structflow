@@ -2,6 +2,33 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 24 — store-rejection fixes, Contents outline, loose-JSON recovery (v1.5.3 → v1.5.5)
+- [x] **Chrome Web Store rejected v1.5.2 TWICE** for "excessive keywords in the item's description"
+  (Spam and Placement). Flagged strings, in order: (1) the theme brand list `VS Code, GitHub,
+  Monokai, Dracula, Nord, and Solarized`; (2) the language list `JSON, JavaScript, TypeScript,
+  HTML, CSS, SQL, YAML, and Markdown`. **Any comma/slash list of tech terms trips it**, even a
+  legitimate "supported languages" list. Rewrote the description as short plain prose (no lists,
+  no brand names, no em-dashes) and cut it from ~450 to ~110 words. **Do not appeal** these; the
+  policy is applied as written and a rewrite is faster than an appeal.
+- [x] **The store "Summary" is NOT a dashboard field** — it shows as "Summary from package" and comes
+  from the manifest `description`. Worse, `scripts/build-browser-manifest.cjs` **hardcoded** the old
+  keyword-stuffed description and overwrote the manifest at package time, so editing
+  `public/manifest.json` alone never reached the zip. Fixed both (chrome/edge + firefox strings).
+  Changing the summary therefore requires a rebuild AND a version higher than any already uploaded.
+- [x] **Markdown outline is now a collapsible "Contents" toggle** (`markdown-preview.tsx` +
+  `index.css`): the auto table of contents used to be pinned open above every doc with 3+ headings.
+  Now a native `<details>`, collapsed by default, so it is a per-view toggle with no global setting
+  and no prop plumbing. Verified in Chrome (collapsed by default, expands on click).
+- [x] **Loose-JSON recovery** (`tryWrapJsonValues` in `formatter.ts` + a hint bar in `editor.tsx`):
+  JSON *arrays* always worked; what failed was N objects with no wrapping brackets (NDJSON, or a
+  fragment copied out of an array). A depth/string-aware scanner finds top-level JSON values (so
+  multi-line pretty objects work, and braces inside strings don't fool it) and the editor offers a
+  one-click **"Wrap in [ ]"**. It never rewrites the buffer silently; valid JSON shows no hint.
+  6 new tests (84 total). NOTE: full NDJSON support was deliberately skipped — pretty-printing NDJSON
+  breaks it (one object per line), so converting to an array must stay an explicit user choice.
+- [x] Versions: **1.5.3** (metadata only), **1.5.4** (Contents outline), **1.5.5** (loose-JSON fix).
+  CHANGELOG + README + STORE_LISTING updated; zips rebuilt each time.
+
 ## Phase 23 — Move-to picker, logo refresh, in-page perf (v1.5.2)
 - [x] **Searchable "Move to" folder picker** (`move-to-dialog.tsx`, new): shadcn Dialog + cmdk
   replacing the truncating inline menu list (paths collapsed to "develop…"). Search box, indented
