@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { formatCode, validate } from "@/lib/formatter"
+import { formatCode, tryWrapJsonValues, validate } from "@/lib/formatter"
 import { DEFAULT_OPTIONS, type FormatOptions } from "@/lib/types"
 
 const opts = (overrides: Partial<FormatOptions> = {}): FormatOptions => ({
@@ -90,5 +90,42 @@ describe("validate", () => {
 
   it("does not validate non-JSON languages", () => {
     expect(validate("typescript", "const x = (")).toEqual({ ok: true })
+  })
+})
+
+describe("tryWrapJsonValues (recovering loose JSON objects)", () => {
+  it("recovers NDJSON / JSON Lines (one object per line, no commas)", () => {
+    const res = tryWrapJsonValues('{"a":1}\n{"b":2}\n{"c":3}')
+    expect(res?.count).toBe(3)
+    expect(JSON.parse(res!.wrapped)).toEqual([{ a: 1 }, { b: 2 }, { c: 3 }])
+  })
+
+  it("recovers a fragment copied out of an array (commas, no brackets)", () => {
+    const res = tryWrapJsonValues('{"a":1},\n{"b":2}')
+    expect(res?.count).toBe(2)
+    expect(JSON.parse(res!.wrapped)).toEqual([{ a: 1 }, { b: 2 }])
+  })
+
+  it("recovers multi-line pretty-printed objects (the common copy/paste case)", () => {
+    const res = tryWrapJsonValues('{\n  "a": 1\n},\n{\n  "b": 2\n}')
+    expect(res?.count).toBe(2)
+    expect(JSON.parse(res!.wrapped)).toEqual([{ a: 1 }, { b: 2 }])
+  })
+
+  it("is not confused by braces or commas inside strings", () => {
+    const res = tryWrapJsonValues('{"a":"},{"}\n{"b":"x"}')
+    expect(res?.count).toBe(2)
+    expect(JSON.parse(res!.wrapped)).toEqual([{ a: "},{" }, { b: "x" }])
+  })
+
+  it("returns null for already-valid JSON (nothing to fix)", () => {
+    expect(tryWrapJsonValues('[{"a":1},{"b":2}]')).toBeNull() // a single top-level value
+    expect(tryWrapJsonValues('{"a":1}')).toBeNull()
+  })
+
+  it("returns null for input that isn't just loose JSON values", () => {
+    expect(tryWrapJsonValues("not json at all")).toBeNull()
+    expect(tryWrapJsonValues('{"a":1} trailing junk {"b":2}')).toBeNull()
+    expect(tryWrapJsonValues('{"a":1}\n{"b":')).toBeNull() // truncated
   })
 })

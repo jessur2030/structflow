@@ -47,6 +47,76 @@ function formatJson(input: string, opts: FormatOptions): FormatResult {
   }
 }
 
+/**
+ * Split input into top-level JSON values (objects/arrays). Returns null unless the
+ * whole buffer is nothing but such values, separated only by whitespace/commas.
+ * String- and depth-aware, so braces inside strings don't confuse it.
+ */
+function scanTopLevelJsonValues(input: string): string[] | null {
+  const values: string[] = []
+  let depth = 0
+  let start = -1
+  let inStr = false
+  let esc = false
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]
+
+    if (inStr) {
+      if (esc) esc = false
+      else if (ch === "\\") esc = true
+      else if (ch === '"') inStr = false
+      continue
+    }
+
+    if (depth === 0) {
+      // Between values only whitespace and separating commas are allowed. Anything
+      // else (a bare scalar, stray text) means this isn't the shape we can recover.
+      if (ch === "{" || ch === "[") {
+        start = i
+        depth++
+      } else if (ch !== "," && !/\s/.test(ch)) {
+        return null
+      }
+      continue
+    }
+
+    if (ch === '"') inStr = true
+    else if (ch === "{" || ch === "[") depth++
+    else if (ch === "}" || ch === "]") {
+      depth--
+      if (depth === 0 && start >= 0) {
+        values.push(input.slice(start, i + 1))
+        start = -1
+      }
+    }
+  }
+
+  if (depth !== 0 || inStr) return null
+  return values
+}
+
+/**
+ * Recover the two common "almost JSON" shapes: NDJSON / JSON Lines (one object per
+ * line, no commas) and a fragment copied out of the middle of an array (objects
+ * separated by commas, no wrapping brackets). Returns how many values were found
+ * plus the bracket-wrapped text, or null when the input isn't that shape.
+ *
+ * Only used to OFFER a fix; it never rewrites the buffer on its own.
+ */
+export function tryWrapJsonValues(input: string): { count: number; wrapped: string } | null {
+  const values = scanTopLevelJsonValues(input)
+  if (!values || values.length < 2) return null
+
+  const wrapped = `[${values.join(",")}]`
+  try {
+    JSON.parse(wrapped)
+  } catch {
+    return null
+  }
+  return { count: values.length, wrapped }
+}
+
 function sortDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortDeep)
   if (value && typeof value === "object") {

@@ -36,7 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
-import { formatCode, validate } from "@/lib/formatter"
+import { formatCode, tryWrapJsonValues, validate } from "@/lib/formatter"
 import { copyToClipboard, downloadFile, mimeFor, slugify } from "@/lib/io"
 import {
   DEFAULT_OPTIONS,
@@ -128,6 +128,13 @@ export function Editor({
 
   const meta = getLanguage(language)
   const liveStatus = useMemo(() => validate(language, input), [language, input])
+  // Invalid JSON that is really N objects with no wrapping brackets (NDJSON, or a
+  // fragment copied out of an array). We offer a one-click fix rather than silently
+  // rewriting the buffer.
+  const jsonFix = useMemo(
+    () => (language === "json" && input.trim() && !liveStatus.ok ? tryWrapJsonValues(input) : null),
+    [language, input, liveStatus],
+  )
   const canPreview = language === "markdown"
   const currentFolder =
     currentEntry && currentEntry.projectId ? projects.find((p) => p.id === currentEntry.projectId) ?? null : null
@@ -192,6 +199,15 @@ export function Editor({
       setError(res.error ?? "Could not format input.")
     }
   }, [input, language, options, setInput])
+
+  // Wrap the loose JSON values in brackets and format the result, in one step.
+  const applyJsonWrap = useCallback(async () => {
+    if (!jsonFix) return
+    const res = await formatCode("json", jsonFix.wrapped, options)
+    setInput(res.ok ? res.output : jsonFix.wrapped)
+    setError(null)
+    setMode("edit")
+  }, [jsonFix, options, setInput])
 
   const handleSave = useCallback(async () => {
     if (!input.trim()) return
@@ -351,6 +367,22 @@ export function Editor({
           </DropdownMenu>
         </div>
       </div>
+
+      {jsonFix && (
+        <div className="flex items-center gap-2 border-b border-border bg-secondary/50 px-3 py-1.5 text-compact">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+          <span className="min-w-0 flex-1 text-muted-foreground">
+            That looks like {jsonFix.count} JSON objects, not one. They need to sit inside an array.
+          </span>
+          <button
+            type="button"
+            onClick={() => void applyJsonWrap()}
+            className="shrink-0 cursor-pointer font-medium text-primary hover:underline"
+          >
+            Wrap in [ ]
+          </button>
+        </div>
+      )}
 
       {currentEntry && (
         <div className="space-y-1.5 border-b border-border px-3 py-1.5">
