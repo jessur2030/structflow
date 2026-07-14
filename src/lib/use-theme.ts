@@ -56,6 +56,11 @@ export function useTheme() {
       localStorage.setItem(KEY, next)
     } catch {
     }
+    // Mirror into chrome.storage.local for the in-page JSON viewer's first-run
+    // default; the content script cannot read the panel's localStorage.
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      chrome.storage.local.set({ [KEY]: next })
+    }
   }
 
   return { mode, resolved, setMode }

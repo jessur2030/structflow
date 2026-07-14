@@ -509,13 +509,29 @@ function render(detected: { raw: string; data: unknown }, s: Settings) {
   setMode("formatted")
 
   // Live theme switch: update the existing <style> node and re-highlight.
-  themeSelect.addEventListener("change", () => {
-    s.syntaxTheme = getSyntaxTheme(themeSelect.value)
+  const applyTheme = (id: string) => {
+    s.syntaxTheme = getSyntaxTheme(id)
+    themeSelect.value = s.syntaxTheme.id
     const styleNode = document.getElementById("sf-styles")
     if (styleNode) styleNode.textContent = buildCss(s)
     fmtPre.replaceChildren(highlightJson(detected.data))
+  }
+  themeSelect.addEventListener("change", () => {
+    applyTheme(themeSelect.value)
     chrome?.storage?.local?.set?.({ [SYNTAX_KEY]: themeSelect.value })
   })
+
+  // Follow theme changes made elsewhere (side panel picker, other JSON tabs)
+  // without requiring a page refresh.
+  try {
+    chrome?.storage?.onChanged?.addListener?.((changes, area) => {
+      if (area !== "local") return
+      const next = changes[SYNTAX_KEY]?.newValue
+      if (typeof next === "string" && next !== s.syntaxTheme.id) applyTheme(next)
+    })
+  } catch {
+    // Extension context can be invalidated (e.g. extension updated); ignore.
+  }
 
   let allOpen = false
   expandBtn.addEventListener("click", () => {

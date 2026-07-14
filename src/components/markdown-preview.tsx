@@ -1,5 +1,6 @@
 import { useMemo, type CSSProperties, type ElementType, type ReactNode } from "react"
-import { marked, type Tokens } from "marked"
+import { marked } from "marked"
+import { computeHeadingIds, stripMarkup, type MarkdownToken } from "@/lib/markdown-outline"
 import { getSyntaxTheme, syntaxThemeVars } from "@/lib/syntax-themes"
 import { HighlightedCode } from "./highlighted-code"
 
@@ -8,7 +9,7 @@ interface MarkdownPreviewProps {
   syntaxThemeId: string
 }
 
-type MarkdownToken = Tokens.Generic & Record<string, any>
+type HeadingIds = Map<MarkdownToken, string>
 
 export function MarkdownPreview({ source, syntaxThemeId }: MarkdownPreviewProps) {
   const theme = getSyntaxTheme(syntaxThemeId)
@@ -21,25 +22,24 @@ export function MarkdownPreview({ source, syntaxThemeId }: MarkdownPreviewProps)
     }
   }, [source])
 
-  // Fresh map per render pass; headingId() mutates it as headings are rendered
-  // in document order, which is what de-duplicates repeated heading slugs.
-  const headingCounts = useMemo(() => new Map<string, number>(), [tokens])
+  // Ids are precomputed per lex pass (pure), so the Contents links and the
+  // rendered heading ids always agree, no matter how often React re-renders.
+  const headingIds = useMemo(() => computeHeadingIds(tokens), [tokens])
 
   if (!source) return null
 
   return (
     <div className="md-preview px-4 py-3" style={syntaxThemeVars(theme) as CSSProperties}>
-      <TableOfContents tokens={tokens} />
-      {tokens.map((token, index) => renderBlock(token, index, headingCounts))}
+      <TableOfContents tokens={tokens} headingIds={headingIds} />
+      {tokens.map((token, index) => renderBlock(token, index, headingIds))}
     </div>
   )
 }
 
-function TableOfContents({ tokens }: { tokens: MarkdownToken[] }) {
+function TableOfContents({ tokens, headingIds }: { tokens: MarkdownToken[]; headingIds: HeadingIds }) {
   const headings = tokens.filter((token) => token.type === "heading" && token.depth <= 3)
   if (headings.length < 3) return null
 
-  const counts = new Map<string, number>()
   // A per-view, collapsed-by-default outline: available when you want it, but it
   // doesn't dominate the top of every doc. State is local to this preview instance.
   return (
@@ -48,7 +48,7 @@ function TableOfContents({ tokens }: { tokens: MarkdownToken[] }) {
       <ol>
         {headings.map((heading, index) => (
           <li key={index} className={`md-toc-depth-${heading.depth}`}>
-            <a href={`#${headingId(heading.text ?? "", counts)}`}>
+            <a href={`#${headingIds.get(heading) ?? ""}`}>
               {stripMarkup(heading.text ?? "")}
             </a>
           </li>
@@ -58,7 +58,7 @@ function TableOfContents({ tokens }: { tokens: MarkdownToken[] }) {
   )
 }
 
-function renderBlock(token: MarkdownToken, key: number | string, headingCounts: Map<string, number>): ReactNode {
+function renderBlock(token: MarkdownToken, key: number | string, headingIds: HeadingIds): ReactNode {
   switch (token.type) {
     case "space":
       return null
@@ -71,9 +71,8 @@ function renderBlock(token: MarkdownToken, key: number | string, headingCounts: 
       return <hr key={key} />
     case "heading": {
       const Tag = `h${Math.min(Math.max(token.depth ?? 2, 1), 6)}` as ElementType
-      const id = headingId(token.text ?? "", headingCounts)
       return (
-        <Tag key={key} id={id}>
+        <Tag key={key} id={headingIds.get(token)}>
           {renderInline(token.tokens, token.text)}
         </Tag>
       )
@@ -86,7 +85,7 @@ function renderBlock(token: MarkdownToken, key: number | string, headingCounts: 
       return (
         <blockquote key={key}>
           {(token.tokens ?? []).map((child: MarkdownToken, index: number) =>
-            renderBlock(child, index, new Map()),
+            renderBlock(child, index, headingIds),
           )}
         </blockquote>
       )
@@ -114,7 +113,7 @@ function renderBlock(token: MarkdownToken, key: number | string, headingCounts: 
               <li key={index}>
                 {item.tokens?.length
                   ? item.tokens.map((child: MarkdownToken, childIndex: number) =>
-                      renderBlock(child, childIndex, new Map()),
+                      renderBlock(child, childIndex, headingIds),
                     )
                   : renderInline(item.tokens, item.text)}
               </li>
@@ -146,7 +145,7 @@ function renderBlock(token: MarkdownToken, key: number | string, headingCounts: 
       return token.tokens?.length ? (
         <div key={key}>
           {token.tokens.map((child: MarkdownToken, index: number) =>
-            renderBlock(child, index, new Map()),
+            renderBlock(child, index, headingIds),
           )}
         </div>
       ) : token.raw ? (
@@ -203,12 +202,22 @@ function renderInline(tokens?: MarkdownToken[], fallback = ""): ReactNode {
         return <br key={index} />
       case "del":
         return <del key={index}>{renderInline(token.tokens, token.text)}</del>
-      case "link":
+      case "link": {
+        const href = safeHref(token.href)
+        // In-document anchors must navigate in place; a new tab can't scroll
+        // this preview.
+        const external = !href.startsWith("#")
         return (
-          <a key={index} href={safeHref(token.href)} target="_blank" rel="noopener noreferrer">
+          <a
+            key={index}
+            href={href}
+            target={external ? "_blank" : undefined}
+            rel={external ? "noopener noreferrer" : undefined}
+          >
             {renderInline(token.tokens, token.text || token.href)}
           </a>
         )
+      }
       case "image":
         return token.text || token.href
       case "html":
@@ -217,21 +226,6 @@ function renderInline(tokens?: MarkdownToken[], fallback = ""): ReactNode {
         return token.raw || token.text || ""
     }
   })
-}
-
-function headingId(text: string, counts: Map<string, number>): string {
-  const base =
-    stripMarkup(text)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "section"
-  const count = counts.get(base) ?? 0
-  counts.set(base, count + 1)
-  return count === 0 ? base : `${base}-${count + 1}`
-}
-
-function stripMarkup(text: string): string {
-  return text.replace(/<[^>]+>/g, "")
 }
 
 function safeHref(href: string): string {
