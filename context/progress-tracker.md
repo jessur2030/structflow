@@ -2,6 +2,28 @@
 
 Legend: [x] done · [~] partial · [ ] not started
 
+## Phase 25 — live theme sync + stable Markdown anchors (v1.5.6)
+- [x] **Theme never reached open JSON pages (root cause: two storage systems).** The panel hooks
+  (`use-syntax-theme.ts`, `use-theme.ts`) persisted to the panel's `localStorage`, but the in-page
+  viewer (`content.ts`) reads `chrome.storage.local`; a panel pick never reached JSON pages, and a
+  pick made on one page only reached other tabs after refresh. Fix: both hooks mirror writes into
+  `chrome.storage.local`; `content.ts` subscribes to `chrome.storage.onChanged` and re-themes live
+  (new `applyTheme`); the panel hook also follows picks made from the in-page select (two-way sync).
+- [x] **Markdown "Contents" links broke after re-renders.** Heading ids came from a Map memoized on
+  `[tokens]` but *mutated during render*, so any re-render without a re-lex shifted every id
+  (`summary` -> `summary-2` -> `summary-3`) while the outline kept linking `#summary`. Broken
+  instantly in dev (StrictMode double render), intermittently in prod; that was the "sometimes
+  works" feel. Fix: ids precomputed per lex pass in `src/lib/markdown-outline.ts` (pure, keyed by
+  token) and shared by outline + headings. Also: in-body `#hash` links no longer get
+  `target="_blank"` (they scrolled nowhere and opened a blank tab). New test suite
+  `test/lib/markdown-outline.test.ts` (90 tests total).
+- [x] **E2E gotcha:** branded Chrome and Canary 137+ silently ignore `--load-extension`; extension
+  e2e now needs Chrome for Testing (`npx @puppeteer/browsers install chrome@stable` in the session
+  scratchpad) or Playwright's Chromium. Verified: two JSON tabs sync live, a Settings pick in the
+  panel (driven at `chrome-extension://<id>/index.html`) recolors an open JSON page, Contents links
+  scroll at 400px.
+- [x] Version **1.5.6**; CHANGELOG + README + STORE_LISTING updated; zips rebuilt.
+
 ## Phase 24 — store-rejection fixes, Contents outline, loose-JSON recovery (v1.5.3 → v1.5.5)
 - [x] **Chrome Web Store rejected v1.5.2 TWICE** for "excessive keywords in the item's description"
   (Spam and Placement). Flagged strings, in order: (1) the theme brand list `VS Code, GitHub,

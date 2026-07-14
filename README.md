@@ -57,8 +57,9 @@ stored in your browser via IndexedDB.
   never rewrites the buffer on its own, and valid JSON is left alone.
 - **In-page JSON viewer** - a content script takes over raw `.json` pages and JSON
   responses, rendering a Formatted (default) / Tree / Raw view with its own
-  Editor & JSON theme picker and search. Turn it off anytime from the panel's
-  **Settings** (gear) menu.
+  Editor & JSON theme picker and search. The theme stays in sync with the side
+  panel: pick it in either place and open JSON pages update instantly. Turn the
+  viewer off anytime from the panel's **Settings** (gear) menu.
 - **Syntax themes** - the author's **Aura Noir** family (7 dark + 2 light) plus
   VS Code, GitHub, Monokai, Dracula, Nord, and Solarized, applied independently of
   the app's light/dark chrome. A fresh install starts on a light or dark theme that

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.6
+
+- **Theme changes now reach open JSON pages instantly.** Picking an Editor & JSON theme in the side panel (or on a raw JSON page itself) updates every open JSON tab immediately. Previously the panel's pick never reached JSON pages at all, and a pick made on one page only showed up elsewhere after a refresh.
+- **Markdown "Contents" links always land on their section.** Heading anchors could silently drift after the app re-rendered, leaving outline links pointing at nothing; clicking felt like it only worked sometimes. Anchors are now stable. Links inside the note body that point at a heading also scroll in place now, instead of opening a useless new tab.
+
 ## 1.5.5
 
 - **One-click fix for loose JSON objects.** Paste several JSON objects without the wrapping brackets (log output, or a chunk copied out of the middle of an array) and StructFlow used to just say "Invalid". It now recognizes the shape and offers to wrap them into an array and format, in one click. It never rewrites your text on its own, and genuinely valid JSON is untouched.

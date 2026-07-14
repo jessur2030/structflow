@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "StructFlow",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "A side-panel workspace to format code, take notes, and explore JSON. Private and offline.",
   "permissions": ["sidePanel", "storage", "contextMenus"],
   "background": {
